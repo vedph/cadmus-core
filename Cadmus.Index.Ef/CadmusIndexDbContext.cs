@@ -9,18 +9,25 @@ namespace Cadmus.Index.Ef;
 /// <seealso cref="DbContext" />
 public class CadmusIndexDbContext : DbContext
 {
+    /// <summary>
+    /// The items set.
+    /// </summary>
     public DbSet<EfIndexItem> Items { get; set; }
+
+    /// <summary>
+    /// The data pins set.
+    /// </summary>
     public DbSet<EfIndexPin> Pins { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CadmusGraphDbContext"/> class.
+    /// Initializes a new instance of the <see cref="CadmusIndexDbContext"/> class.
     /// </summary>
     public CadmusIndexDbContext()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CorpusDbContext"/> class.
+    /// Initializes a new instance of the <see cref="CadmusIndexDbContext"/> class.
     /// </summary>
     /// <param name="options">The options.</param>
     public CadmusIndexDbContext(DbContextOptions<CadmusIndexDbContext> options)
@@ -30,7 +37,7 @@ public class CadmusIndexDbContext : DbContext
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CorpusDbContext"/> class.
+    /// Initializes a new instance of the <see cref="CadmusIndexDbContext"/> class.
     /// This can be used to derive your own context which should use a typed
     /// <see cref="DbContextOptions{TContext}"/> in its constructor.
     /// </summary>
