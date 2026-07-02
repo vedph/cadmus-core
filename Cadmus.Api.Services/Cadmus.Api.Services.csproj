@@ -1,0 +1,70 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<TargetFramework>net10.0</TargetFramework>
+		<Authors>Daniele Fusi</Authors>
+		<Company>Fusi</Company>
+		<Product>Cadmus</Product>
+		<Description>Cadmus API services</Description>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<Copyright>by Daniele Fusi</Copyright>
+		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+		<PackageTags>Cadmus;API</PackageTags>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="Assets\Auth.pgsql" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Assets\Auth.pgsql" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Fusi.Api.Auth.Controllers" />
+		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
+		<PackageReference Include="Fusi.Tools" />
+		<PackageReference Include="MessagingApi" />
+		<PackageReference Include="Microsoft.AspNetCore.Authorization" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+		<PackageReference Include="Microsoft.Extensions.FileProviders.Physical" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+		<PackageReference Include="Polly" />
+		<PackageReference Include="Serilog" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.Export\Cadmus.Export.csproj" />
+		<ProjectReference Include="..\Cadmus.Graph\Cadmus.Graph.csproj" />
+		<ProjectReference Include="..\Cadmus.Graph.Ef.PgSql\Cadmus.Graph.Ef.PgSql.csproj" />
+		<ProjectReference Include="..\Cadmus.Index.Ef.PgSql\Cadmus.Index.Ef.PgSql.csproj" />
+		<ProjectReference Include="..\Cadmus.Index\Cadmus.Index.csproj" />
+		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
+		<ProjectReference Include="..\Cadmus.Seed\Cadmus.Seed.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<ProjectReference Include="Cadmus.Core" />
+		<ProjectReference Include="Cadmus.Export" />
+		<ProjectReference Include="Cadmus.Graph" />
+		<ProjectReference Include="Cadmus.Graph.Ef.PgSql" />
+		<ProjectReference Include="Cadmus.Index.Ef.PgSql" />
+		<ProjectReference Include="Cadmus.Index" />
+		<ProjectReference Include="Cadmus.Mongo" />
+		<ProjectReference Include="Cadmus.Seed" />
+	</ItemGroup>
+
+</Project>

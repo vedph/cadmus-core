@@ -1,0 +1,40 @@
+[
+  {
+    "id": "colors@en",
+    "entries": [
+      {
+        "id": "r",
+        "value": "red"
+      },
+      {
+        "id": "g",
+        "value": "green"
+      },
+      {
+        "id": "b",
+        "value": "blue"
+      }
+    ]
+  },
+  {
+    "id": "my-colors@en",
+    "targetId": "colors"
+  },
+  {
+    "id": "shapes@en",
+    "entries": [
+      {
+        "id": "s",
+        "value": "square"
+      },
+      {
+        "id": "c",
+        "value": "circle"
+      },
+      {
+        "id": "t",
+        "value": "triangle"
+      }
+    ]
+  }
+]

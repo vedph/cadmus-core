@@ -1,0 +1,47 @@
+﻿.apparatus-lemma {
+    padding: 2px 4px;
+    border: 1px solid silver;
+    border-radius: 4px;
+    margin-right: 4px;
+    color: #065e1d;
+}
+
+.apparatus-w-value {
+    font-weight: bold;
+}
+
+.apparatus-w-note {
+    font-style: italic;
+}
+
+.apparatus-a-value {
+    font-style: italic;
+}
+
+.apparatus-a-note {
+    font-style: italic;
+}
+
+.apparatus-sep {
+    margin-left: 0.75em;
+}
+
+.apparatus-tag {
+    font-style: italic;
+}
+
+.apparatus-subrange {
+    color: silver;
+}
+
+.apparatus-value {
+    color: #b8690f;
+}
+
+.apparatus-type {
+    font-style: italic;
+}
+
+.apparatus-note {
+    font-style: italic;
+}

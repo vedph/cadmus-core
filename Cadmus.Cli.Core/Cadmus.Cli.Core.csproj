@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<Authors>Daniele Fusi</Authors>
+		<Company>Fusi</Company>
+		<Product>Cadmus</Product>
+		<Description>Cadmus CLI tool core components. This wraps interfaces for repository and part seeder providers, together with a plugin factory.</Description>
+		<Copyright>by Daniele Fusi 2021</Copyright>
+		<Nullable>enable</Nullable>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+		<PackageTags>Cadmus</PackageTags>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="McMaster.NETCore.Plugins" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Seed\Cadmus.Seed.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Seed" />
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Cadmus.Export.ML.FrLinkRendererFilter">
+    <Position X="0.5" Y="0.5" Width="1.75" />
+    <Members>
+      <Method Name="FrLinkRendererFilter" Hidden="true" />
+    </Members>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAARAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>FrLinkRendererFilter.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_options" />
+    </ShowAsAssociation>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Cadmus.Export.ML.FrLinkRendererFilterOptions">
+    <Position X="3.25" Y="0.5" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>ABAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAA=</HashCode>
+      <FileName>FrLinkRendererFilter.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Cadmus.Export.ML.FSTeiStandoffItemComposer">
+    <Position X="0.5" Y="5" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAQAAAAAQAABAAAAAAAAAAAAAAAAAAACAAAA=</HashCode>
+      <FileName>FSTeiStandoffItemComposer.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_options" />
+    </ShowAsAssociation>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Cadmus.Export.ML.FSTeiStandoffItemComposerOptions">
+    <Position X="3.75" Y="5" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>FSTeiStandoffItemComposer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Cadmus.Export.ML.TeiStandoffApparatusJsonRenderer">
+    <Position X="5.75" Y="5" Width="2.5" />
+    <Members>
+      <Method Name="BuildValue" Hidden="true" />
+      <Method Name="RenderAnnotatedValue" Hidden="true" />
+    </Members>
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAQAAAAIAAQBAAiAAAAAAgAAAAAAAAAAAAAA=</HashCode>
+      <FileName>TeiStandoffApparatusJsonRenderer.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_options" />
+    </ShowAsAssociation>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Cadmus.Export.ML.TeiStandoffApparatusJsonRendererOptions">
+    <Position X="9.5" Y="5" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAIA=</HashCode>
+      <FileName>TeiStandoffApparatusJsonRenderer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Cadmus.Export.ML.TeiStandoffTextBlockRenderer">
+    <Position X="5.75" Y="0.5" Width="2.25" />
+    <Members>
+      <Method Name="TeiStandoffTextBlockRenderer" Hidden="true" />
+    </Members>
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAIQJAASAAAAAEAABAAAAQAAAAgAAAAAAAAAAAAAA=</HashCode>
+      <FileName>TeiStandoffTextBlockRenderer.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_options" />
+    </ShowAsAssociation>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="Cadmus.Export.ML.TeiStandoffTextBlockRendererOptions">
+    <Position X="9" Y="0.5" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAQAAgAAAAAAAAAAAAAAABAAAAAAAAABAAAAAAAA=</HashCode>
+      <FileName>TeiStandoffTextBlockRenderer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Cadmus.Export.ML.TeiStandoffItemComposer">
+    <Position X="0.5" Y="2.25" Width="2" />
+    <Members>
+      <Method Name="BuildLayerId" Hidden="true" />
+      <Method Name="TeiStandoffItemComposer" Hidden="true" />
+    </Members>
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAgAAAAAEAEQAAAAAAAAAAAAAIAAAABAAAA=</HashCode>
+      <FileName>TeiStandoffItemComposer.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="_blockBuilder" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="Cadmus.Export.ML.TeiStandoffItemComposerOptions">
+    <Position X="3.75" Y="7" Width="1.5" />
+    <Compartments>
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAABAAAAAAAAAAAAEAAAAAAAABAAAAABAAAAA=</HashCode>
+      <FileName>TeiStandoffItemComposer.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Cadmus.Export.TextBlockBuilder" Collapsed="true">
+    <Position X="4" Y="2.75" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

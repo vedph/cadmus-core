@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "cadmus-tool": {
+      "commandName": "Project",
+      "commandLineArgs": "seed-users c:/users/dfusi/desktop/users.json cadmus-gve-auth"
+    }
+  }
+}

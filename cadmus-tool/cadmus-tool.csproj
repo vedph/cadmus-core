@@ -1,0 +1,100 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<RootNamespace>Cadmus.Cli</RootNamespace>
+		<Authors>Daniele Fusi</Authors>
+		<Company>Fusi</Company>
+		<Product>Cadmus</Product>
+		<Description>Cadmus CLI utility tool</Description>
+		<Copyright>by Daniele Fusi</Copyright>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="appsettings.json" />
+		<None Remove="plugins\README.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="plugins\README.txt">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Assets\LoremIpsum.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Bogus" />
+		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
+		<PackageReference Include="Fusi.Text" />
+		<PackageReference Include="Fusi.Tools" />
+		<PackageReference Include="Fusi.Tools.Configuration" />
+		<PackageReference Include="McMaster.NETCore.Plugins" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+		<PackageReference Include="EFCore.NamingConventions" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+		<PackageReference Include="Microsoft.Extensions.Logging" />
+		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+		<PackageReference Include="Serilog" />
+		<PackageReference Include="Serilog.Extensions.Logging" />
+		<PackageReference Include="Serilog.Sinks.File" />
+		<PackageReference Include="Spectre.Console" />
+		<PackageReference Include="Spectre.Console.Cli" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.Cli.Core\Cadmus.Cli.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.General.Parts\Cadmus.General.Parts.csproj" />
+		<ProjectReference Include="..\Cadmus.Graph\Cadmus.Graph.csproj" />
+		<ProjectReference Include="..\Cadmus.Graph.Ef.PgSql\Cadmus.Graph.Ef.PgSql.csproj" />
+		<ProjectReference Include="..\Cadmus.Graph.Extras\Cadmus.Graph.Extras.csproj" />
+		<ProjectReference Include="..\Cadmus.Import\Cadmus.Import.csproj" />
+		<ProjectReference Include="..\Cadmus.Import.Excel\Cadmus.Import.Excel.csproj" />
+		<ProjectReference Include="..\Cadmus.Index\Cadmus.Index.csproj" />
+		<ProjectReference Include="..\Cadmus.Index.Ef.PgSql\Cadmus.Index.Ef.PgSql.csproj" />
+		<ProjectReference Include="..\Cadmus.Index.PgSql\Cadmus.Index.PgSql.csproj" />
+		<ProjectReference Include="..\Cadmus.Index.Sql\Cadmus.Index.Sql.csproj" />
+		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
+		<ProjectReference Include="..\Cadmus.Philology.Parts\Cadmus.Philology.Parts.csproj" />
+		<ProjectReference Include="..\Cadmus.Seed\Cadmus.Seed.csproj" />
+		<ProjectReference Include="..\Cadmus.Seed.General.Parts\Cadmus.Seed.General.Parts.csproj" />
+		<ProjectReference Include="..\Cadmus.Seed.Philology.Parts\Cadmus.Seed.Philology.Parts.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Core" />
+		<PackageReference Include="Cadmus.Cli.Core" />
+		<PackageReference Include="Cadmus.General.Parts" />
+		<PackageReference Include="Cadmus.Graph" />
+		<PackageReference Include="Cadmus.Graph.Ef.PgSql" />
+		<PackageReference Include="Cadmus.Graph.Extras" />
+		<PackageReference Include="Cadmus.Import" />
+		<PackageReference Include="Cadmus.Import.Excel" />
+		<PackageReference Include="Cadmus.Index" />
+		<PackageReference Include="Cadmus.Index.Ef.PgSql" />
+		<PackageReference Include="Cadmus.Index.PgSql" />
+		<PackageReference Include="Cadmus.Index.Sql" />
+		<PackageReference Include="Cadmus.Mongo" />
+		<PackageReference Include="Cadmus.Philology.Parts" />
+		<PackageReference Include="Cadmus.Seed" />
+		<PackageReference Include="Cadmus.Seed.General.Parts" />
+		<PackageReference Include="Cadmus.Seed.Philology.Parts" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="appsettings.json" />
+	</ItemGroup>
+
+</Project>

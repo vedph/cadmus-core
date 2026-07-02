@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Assets\BasicDataset.csv" />
+		<None Remove="Assets\IncrementalDataset.csv" />
+		<None Remove="Assets\Preview.json" />
+		<None Remove="Assets\TokenTextPart.xslt" />
+		<None Remove="Assets\TokenTextPartWrap.xslt" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Assets\BasicDataset.csv" />
+		<EmbeddedResource Include="Assets\IncrementalDataset.csv" />
+		<EmbeddedResource Include="Assets\Preview.json" />
+		<EmbeddedResource Include="Assets\TokenTextPartWrap.xslt" />
+		<EmbeddedResource Include="Assets\TokenTextPart.xslt" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CsvHelper" />
+		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" />
+		<PackageReference Include="xunit" />
+		<PackageReference Include="xunit.runner.visualstudio">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="coverlet.collector">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Cadmus.Export.ML\Cadmus.Export.ML.csproj" />
+		<ProjectReference Include="..\Cadmus.Export\Cadmus.Export.csproj" />
+		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
+		<ProjectReference Include="..\Cadmus.Philology.Parts\Cadmus.Philology.Parts.csproj" />
+	</ItemGroup>
+
+</Project>

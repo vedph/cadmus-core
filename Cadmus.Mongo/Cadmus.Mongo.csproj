@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IncludeSymbols>true</IncludeSymbols>
+		<Nullable>enable</Nullable>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<TargetFramework>net10.0</TargetFramework>
+		<Company>Fusi</Company>
+		<Authors>Daniele Fusi</Authors>
+		<Product>Cadmus</Product>
+		<Description>MongoDB repository for Cadmus.</Description>
+		<Copyright>by Daniele Fusi 2018</Copyright>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+		<PackageTags>Cadmus;MongoDB</PackageTags>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MongoDB.Bson" />
+		<PackageReference Include="MongoDB.Driver" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Core" />
+	</ItemGroup>
+
+</Project>

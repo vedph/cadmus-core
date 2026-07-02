@@ -1,0 +1,84 @@
+﻿@page "/builder"
+
+<h3>Builder</h3>
+<p class="text-danger">@Model.Error</p>
+
+<EditForm EditContext="@Context">
+    <div class="row">
+        <!-- JSON -->
+        <div class="col-sm-6">
+            <label for="json">JSON</label>
+            <InputTextArea class="form-control"
+                           spellcheck="false"
+                           style="font-family: monospace"
+                           id="json" @bind-Value="Model.Json"
+                           rows="10">
+            </InputTextArea>
+        </div>
+        <!-- XML -->
+        <div class="col-sm-6">
+            <label for="xml">XML</label>
+            <InputTextArea class="form-control"
+                           spellcheck="false"
+                           style="font-family: monospace"
+                           id="xml" @bind-Value="Model.Xml"
+                           rows="10">
+            </InputTextArea>
+        </div>
+    </div>
+    <div class="row">
+        <!-- config -->
+        <div class="col-sm-6">
+            <label for="config">config</label>
+            <InputTextArea class="form-control"
+                           spellcheck="false"
+                           style="font-family: monospace"
+                           id="config" @bind-Value="Model.Config"
+                           rows="10">
+            </InputTextArea>
+        </div>
+        <!-- CSS -->
+        <div class="col-sm-6">
+            <label for="css">CSS</label>
+            <InputTextArea class="form-control"
+                           spellcheck="false"
+                           style="font-family: monospace"
+                           id="css" @bind-Value="Model.Css"
+                           rows="10">
+            </InputTextArea>
+        </div>
+    </div>
+    <div>
+        <InputCheckbox id="fr"
+                        @bind-Value="Model.IsFragment">
+        </InputCheckbox>
+        fragment
+        &nbsp;
+        <InputCheckbox id="wrap"
+                       @bind-Value="Model.IsWrapEnabled">
+        </InputCheckbox>
+        wrap in HTML page
+    </div>
+</EditForm>
+<br />
+<div style="display: flex; gap:8px; flex-flow: row nowrap; align-items: center">
+    <button style="flex: 0 0 auto" class="btn btn-primary" @onclick="WrapJsonInRoot">Wrap JSON</button>
+    <button style="flex: 0 0 auto" class="btn btn-primary" @onclick="BuildXml">Build XML</button>
+    <button style="flex: 0 0 auto" class="btn btn-primary" @onclick="PreviewAsync">Preview</button>
+    @if (Model.IsRunning)
+{
+    <span style="flex: 0 0 auto">running...</span>
+    <div style="flex: 0 0 auto" class="spinner"></div>
+}
+</div>
+<br />
+<!-- result -->
+@if (Model.Html != null)
+{
+<div style="border: 1px solid silver;border-radius:6px;padding:8px;background-color:#f0f0f0;">
+    <code>@Model.Html</code>
+</div>
+<div style="border: 1px solid silver;border-radius:6px;padding:8px">
+    @Model.Result
+</div>
+}

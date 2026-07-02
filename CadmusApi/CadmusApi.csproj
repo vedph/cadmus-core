@@ -1,0 +1,84 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>disable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Remove="Assets\Petrarch-n.json" />
+	  <Content Remove="Assets\Petrarch-t.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Assets\Petrarch-n.json" />
+	  <EmbeddedResource Include="Assets\Petrarch-t.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Cadmus.Img.Parts" />
+		<PackageReference Include="Cadmus.Seed.Img.Parts" />
+		<PackageReference Include="Cadmus.Seed.TaxoStore.Parts" />
+		<PackageReference Include="Cadmus.TaxoStore.Parts" />
+		<PackageReference Include="Fusi.Antiquity" />
+		<PackageReference Include="Fusi.Api.Auth.Controllers" />
+		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
+		<PackageReference Include="MessagingApi" />
+		<PackageReference Include="MessagingApi.SendGrid" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
+		<PackageReference Include="Polly" />
+		<PackageReference Include="Scalar.AspNetCore" />
+		<PackageReference Include="Serilog" />
+		<PackageReference Include="Serilog.AspNetCore" />
+		<PackageReference Include="Serilog.Exceptions" />
+		<PackageReference Include="Serilog.Extensions.Hosting" />
+		<PackageReference Include="Serilog.Sinks.Console" />
+		<PackageReference Include="Serilog.Sinks.File" />
+		<PackageReference Include="Serilog.Sinks.Postgresql.Alternative" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+		<PackageReference Include="TaxoStore.Api.Controllers" />
+		<PackageReference Include="TaxoStore.Core" />
+		<PackageReference Include="TaxoStore.PgSql" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Api.Config\Cadmus.Api.Config.csproj" />
+		<ProjectReference Include="..\Cadmus.Api.Controllers.Export\Cadmus.Api.Controllers.Export.csproj" />
+		<ProjectReference Include="..\Cadmus.Api.Controllers.Import\Cadmus.Api.Controllers.Import.csproj" />
+		<ProjectReference Include="..\Cadmus.Api.Controllers\Cadmus.Api.Controllers.csproj" />
+		<ProjectReference Include="..\Cadmus.Api.Models\Cadmus.Api.Models.csproj" />
+		<ProjectReference Include="..\Cadmus.Api.Services\Cadmus.Api.Services.csproj" />
+		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.Graph.Ef.PgSql\Cadmus.Graph.Ef.PgSql.csproj" />
+		<ProjectReference Include="..\Cadmus.Graph.Extras\Cadmus.Graph.Extras.csproj" />
+		<ProjectReference Include="..\Cadmus.Index.Ef.PgSql\Cadmus.Index.Ef.PgSql.csproj" />
+		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
+		<ProjectReference Include="..\Cadmus.Seed\Cadmus.Seed.csproj" />
+		<ProjectReference Include="..\Cadmus.Seed.General.Parts\Cadmus.Seed.General.Parts.csproj" />
+		<ProjectReference Include="..\Cadmus.Seed.Philology.Parts\Cadmus.Seed.Philology.Parts.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Api.Config" />
+		<PackageReference Include="Cadmus.Api.Controllers.Export" />
+		<PackageReference Include="Cadmus.Api.Controllers.Import" />
+		<PackageReference Include="Cadmus.Api.Controllers" />
+		<PackageReference Include="Cadmus.Api.Models" />
+		<PackageReference Include="Cadmus.Api.Services" />
+		<PackageReference Include="Cadmus.Core" />
+		<PackageReference Include="Cadmus.Graph.Ef.PgSql" />
+		<PackageReference Include="Cadmus.Graph.Extras" />
+		<PackageReference Include="Cadmus.Index.Ef.PgSql" />
+		<PackageReference Include="Cadmus.Mongo" />
+		<PackageReference Include="Cadmus.Seed" />
+		<PackageReference Include="Cadmus.Seed.General.Parts" />
+		<PackageReference Include="Cadmus.Seed.Philology.Parts" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="wwwroot\taxo\" />
+	</ItemGroup>
+
+</Project>

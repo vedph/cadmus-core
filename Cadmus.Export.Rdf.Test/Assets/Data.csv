@@ -1,0 +1,37 @@
+#namespaces,,
+x,"http://test.org/",
+
+#nodes,,
+x:events/birth,x:events/pid/birth,PID/birth
+x:places/arezzo,x:places/arezzo,PID/birth/chronotopes
+x:timespans/ts#4,x:timespans/ts#4,PID/birth/chronotopes
+x:persons/petrarch,x:persons/petrarch,PID/person
+x:persons/eletta_canigiani,x:persons/eletta_canigiani,PID/birth/tag
+x:persons/ser_petracco,x:persons/ser_petracco,PID/birth/tag
+x:event-types/person.birth,x:event-types/person.birth,
+crm:e67_birth,crm:e67_birth,
+crm:p2_has_type,crm:p2_has_type,
+crm:p98_brought_into_life,crm:p98_brought_into_life,
+crm:p3_has_note,crm:p3_has_note,
+crm:e53_place,crm:e53_place,
+crm:p7_took_place_at,crm:p7_took_place_at,
+crm:p4_has_time-span,crm:p4_has_time-span,
+crm:p82_at_some_time_within,crm:p82_at_some_time_within,
+crm:p87_is_identified_by,crm:p87_is_identified_by,
+crm:p96_by_mother,crm:p96_by_mother,
+crm:p97_from_father,crm:p97_from_father,
+
+#triples,,
+x:events/pid/birth,rdf:type,crm:e67_birth,PID/birth
+x:events/pid/birth,crm:p2_has_type,x:event-types/person.birth,PID/birth
+x:events/pid/birth,crm:p98_brought_into_life,x:persons/petrarch,PID/birth
+x:events/pid/birth,crm:p3_has_note,"Petrarch was born on July 20, 1304 at Arezzo from ser Petracco and Eletta Canigiani.",PID/birth/description
+
+x:places/arezzo,rdf:type,crm:e53_place,PID/birth/chronotopes
+x:events/pid/birth,crm:p7_took_place_at,x:places/arezzo,PID/birth/chronotopes
+x:events/pid/birth,crm:p4_has_time-span,x:timespans/ts#4,PID/birth/chronotopes
+x:timespans/ts#4,crm:p82_at_some_time_within,1304,PID/birth/chronotopes
+x:timespans/ts#4,crm:p87_is_identified_by,"20 Jul 1304 AD",PID/birth/chronotopes
+
+x:events/pid/birth,crm:p96_by_mother,x:persons/eletta_canigiani,PID/birth/tag
+x:events/pid/birth,crm:p97_from_father,x:persons/ser_petracco,PID/birth/tag

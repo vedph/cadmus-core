@@ -1,0 +1,25 @@
+﻿@page "/"
+
+<PageTitle>Index</PageTitle>
+
+<h1>Cadmus Preview Builder</h1>
+
+<p>Helper and demo app for building <a href="https://github.com/vedph/cadmus-migration/blob/master/docs/index.md" target="_blank">Cadmus preview</a> resources.</p>
+
+<p>This demo runs whithin your browser without requiring a server. So, the demo is limited to those components not requiring database access. This is usually not an issue, as the purpose of the demo is helping you testing the XSLT script; if you want to add filters requiring database, just emulate their result by editing the JSON code.</p>
+
+<p>For instance, the demo fragment shown here has an additional <code>lemma</code> property which is not found in the fragment code, but should be added by a filter.</p>
+
+<h2>Usage</h2>
+
+To use the builder:
+
+<ol>
+    <li>Enter the JSON code representing your part's content. This is the content of a part. When it's a layer part, the demo must render only a single fragment. In this case, the layer part has the <code>fragments</code> array, but only its first entry will be considered. To this end, ensure you check the <code>fragment</code> options before starting the preview. This will extract only the first entry from the array and render it.</li>
+    <li>Edit your <a href="https://github.com/vedph/cadmus-migration/blob/master/docs/config.md">configuration</a>. This should contain at least the JSON renderer required for rendering the JSON part you are testing. For instance, in the sample code you will find a single JSON renderer for the apparatus layer part. Its key is built by concatenating the layer part type ID with the fragment type ID, separated by a pipe. So, <code>it.vedph.token-text-layer:fr.it.vedph.apparatus</code> is the key for the apparatus layer part. You can add <a href="https://github.com/vedph/cadmus-migration/blob/master/docs/filters.md" target="_blank">filters</a>, unless they require the database to work.</li>
+    <li>Eventually add some CSS if you want it to be inserted in the resulting HTML page. If you check the <code>wrap in HTML page</code> option, the result of preview will be wrapped in a full HTML page, including the CSS styles specified here.</li>
+    <li>Click the <code>Preview</code> button. You will get the resulting code, and the HTML rendition (without any styles).</li>
+</ol>
+
+When using the XSLT-based renderer, which is the most popular option, you can build sample XML data from your sample JSON by clicking the <code>Build XML</code> button. This will automatically wrap the JSON code in a <code>root</code> property, to ensure that the resulting XML can be well-formed (i.e. have a single root element).
+

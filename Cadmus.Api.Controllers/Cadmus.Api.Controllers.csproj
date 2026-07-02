@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IncludeSymbols>true</IncludeSymbols>
+		<Nullable>enable</Nullable>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<TargetFramework>net10.0</TargetFramework>
+		<Authors>Daniele Fusi</Authors>
+		<Company>Fusi</Company>
+		<Product>Cadmus</Product>
+		<Description>Cadmus API controllers.</Description>
+		<Copyright>By Daniele Fusi</Copyright>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+		<PackageTags>Cadmus;API</PackageTags>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Fusi.Api.Auth.Controllers" />
+		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
+		<PackageReference Include="Fusi.Tools" />
+		<PackageReference Include="MessagingApi" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" />
+		<PackageReference Include="Microsoft.Extensions.FileProviders.Physical" />
+		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
+		<PackageReference Include="Serilog" />
+		<PackageReference Include="Serilog.Extensions.Logging" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Api.Models\Cadmus.Api.Models.csproj" />
+		<ProjectReference Include="..\Cadmus.Api.Services\Cadmus.Api.Services.csproj" />
+		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.Index\Cadmus.Index.csproj" />
+		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
+		<ProjectReference Include="..\Cadmus.Seed\Cadmus.Seed.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Api.Models" />
+		<PackageReference Include="Cadmus.Api.Services" />
+		<PackageReference Include="Cadmus.Core" />
+		<PackageReference Include="Cadmus.Index" />
+		<PackageReference Include="Cadmus.Mongo" />
+		<PackageReference Include="Cadmus.Seed" />
+	</ItemGroup>
+</Project>

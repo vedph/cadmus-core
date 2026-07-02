@@ -1,0 +1,84 @@
+﻿{
+  "TextFilters": [
+    {
+      "Keys": "thes-filter",
+      "Id": "it.vedph.text-filter.str.mongo-thesaurus"
+    },
+    {
+      "Keys": "rep-filter",
+      "Id": "text-filter.str.replacer",
+      "Options": {
+        "Replacements": [
+          {
+            "Source": "hello",
+            "Target": "HELLO"
+          }
+        ]
+      }
+    },
+    {
+      "Keys": "md-filter",
+      "Id": "it.vedph.text-filter.str.markdown",
+      "Options": {
+        "MarkdownOpen": "<_md>",
+        "MarkdownClose": "</_md>",
+        "Format": "txt"
+      }
+    }
+  ],
+  "JsonRenderers": [
+    {
+      "Keys": "it.vedph.token-text",
+      "Id": "it.vedph.json-renderer.null",
+      "Options": {
+        "FilterKeys": [ "thes-filter", "rep-filter", "md-filter" ]
+      }
+    },
+    {
+      "Keys": "it.vedph.token-text-layer:fr.it.vedph.comment",
+      "Id": "it.vedph.json-renderer.null"
+    },
+    {
+      "Keys": "it.vedph.token-text-layer:fr.it.vedph.orthography",
+      "Id": "it.vedph.json-renderer.null"
+    }
+  ],
+  "TextPartFlatteners": [
+    {
+      "Keys": "it.vedph.token-text",
+      "Id": "it.vedph.text-flattener.token"
+    }
+  ],
+  "TextTreeRenderers": [
+    {
+      "Keys": "tei-standoff",
+      "Id": "it.vedph.text-tree-renderer.tei-off-linear",
+      "Options": {
+        "RowOpen": "<div xml:id=\"r{y}\">",
+        "RowClose": "</div>",
+        "BlockOpen": "<seg xml:id=\"{b}\">",
+        "BlockClose": "</seg>"
+      }
+    }
+  ],
+  "ItemComposers": [
+    {
+      "Keys": "text-item",
+      "Id": "it.vedph.item-composer.tei-standoff.fs",
+      "Options": {
+        "TextPartFlattenerKey": "it.vedph.token-text",
+        "TextTreeRendererKey": "tei-standoff",
+        "JsonRendererKeys": [
+          "it.vedph.token-text-layer:fr.it.vedph.comment",
+          "it.vedph.token-text-layer:fr.it.vedph.orthography"
+        ]
+      }
+    }
+  ],
+  "ItemIdCollector": {
+    "Id": "it.vedph.item-id-collector.mongo",
+    "Options": {
+      "FacetId": "text"
+    }
+  }
+}

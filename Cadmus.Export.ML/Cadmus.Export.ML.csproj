@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Authors>Daniele Fusi</Authors>
+		<Company>Fusi</Company>
+		<Product>Cadmus</Product>
+		<Description>Cadmus export markup language components.</Description>
+		<Copyright>by Daniele Fusi 2022</Copyright>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+		<PackageTags>Cadmus</PackageTags>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Fusi.Xml.Extras" />
+		<PackageReference Include="JmesPath.Net" />
+		<PackageReference Include="Proteus.Text.Xml" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Export\Cadmus.Export.csproj" />
+		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.General.Parts\Cadmus.General.Parts.csproj" />
+		<ProjectReference Include="..\Cadmus.Philology.Parts\Cadmus.Philology.Parts.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Export" />
+		<PackageReference Include="Cadmus.Core" />
+		<PackageReference Include="Cadmus.General.Parts" />
+		<PackageReference Include="Cadmus.Philology.Parts" />
+	</ItemGroup>
+
+</Project>

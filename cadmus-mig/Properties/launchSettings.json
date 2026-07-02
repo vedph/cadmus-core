@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "cadmus-mig": {
+      "commandName": "Project",
+      "commandLineArgs": "json-to-xml c:/users/dfusi/desktop/part.json -nfi"
+    }
+  }
+}

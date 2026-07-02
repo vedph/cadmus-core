@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>Cadmus.Migration.Cli</RootNamespace>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="appsettings.json" />
+		<None Remove="plugins\README.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="plugins\README.txt">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="McMaster.NETCore.Plugins" />
+		<PackageReference Include="Serilog" />
+		<PackageReference Include="Serilog.Extensions.Hosting" />
+		<PackageReference Include="Serilog.Extensions.Logging" />
+		<PackageReference Include="Serilog.Sinks.File" />
+		<PackageReference Include="Spectre.Console" />
+		<PackageReference Include="Spectre.Console.Cli" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Cli.Core\Cadmus.Cli.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.Philology.Parts\Cadmus.Philology.Parts.csproj" />
+		<ProjectReference Include="..\Cadmus.Export.ML\Cadmus.Export.ML.csproj" />
+		<ProjectReference Include="..\Cadmus.Export.Rdf\Cadmus.Export.Rdf.csproj" />
+		<ProjectReference Include="..\Cadmus.Export\Cadmus.Export.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Cli.Core" />
+		<PackageReference Include="Cadmus.Philology.Parts" />
+		<PackageReference Include="Cadmus.Export.ML" />
+		<PackageReference Include="Cadmus.Export.Rdf" />
+		<PackageReference Include="Cadmus.Export" />
+	</ItemGroup>
+
+</Project>

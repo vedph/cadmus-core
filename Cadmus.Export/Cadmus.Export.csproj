@@ -1,0 +1,64 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<Authors>Daniele Fusi</Authors>
+		<Company>Fusi</Company>
+		<Product>Cadmus</Product>
+		<Description>Cadmus export components.</Description>
+		<Copyright>by Daniele Fusi 2022</Copyright>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+		<PackageTags>Cadmus</PackageTags>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Deterministic>true</Deterministic>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Remove="Assets\Bcp47.txt" />
+		<None Remove="Assets\Iso639.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Include="Assets\Bcp47.txt" />
+		<EmbeddedResource Include="Assets\Iso639.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
+		<PackageReference Include="Fusi.Tools" />
+		<PackageReference Include="Fusi.Tools.Configuration" />
+		<PackageReference Include="Fusi.Xml" />
+		<PackageReference Include="Fusi.Xml.Extras" />
+		<PackageReference Include="JmesPath.Net" />
+		<PackageReference Include="Markdig" />
+		<PackageReference Include="MongoDB.Bson" />
+		<PackageReference Include="MongoDB.Driver" />
+		<PackageReference Include="Proteus.Core" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.General.Parts\Cadmus.General.Parts.csproj" />
+		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
+		<ProjectReference Include="..\Cadmus.Philology.Parts\Cadmus.Philology.Parts.csproj" />
+		<ProjectReference Include="..\Proteus.Rendering\Proteus.Rendering.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Core" />
+		<PackageReference Include="Cadmus.General.Parts" />
+		<PackageReference Include="Cadmus.Mongo" />
+		<PackageReference Include="Cadmus.Philology.Parts" />
+		<PackageReference Include="Proteus.Rendering" />
+	</ItemGroup>
+
+</Project>

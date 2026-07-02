@@ -1,0 +1,52 @@
+﻿using Cadmus.Index.Sql;
+using Fusi.Tools.Configuration;
+using System;
+using System.Data.Common;
+
+namespace Cadmus.Index.PgSql;
+
+/// <summary>
+/// PostgreSql item index reader.
+/// <para>Tag: <c>item-index-reader.pgsql</c>.</para>
+/// </summary>
+/// <seealso cref="SqlItemIndexReaderBase" />
+[Tag("item-index-reader.pgsql")]
+public sealed class PgSqlItemIndexReader : SqlItemIndexReaderBase,
+    IConfigurable<SqlOptions>, IItemIndexReader
+{
+    /// <summary>
+    /// Configures the object with the specified options.
+    /// </summary>
+    /// <param name="options">The options.</param>
+    /// <exception cref="ArgumentNullException">options</exception>
+    public void Configure(SqlOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ConnectionString = options.ConnectionString!;
+    }
+
+    /// <summary>
+    /// Gets the connection.
+    /// </summary>
+    /// <returns>
+    /// Connection.
+    /// </returns>
+    protected override DbConnection GetConnection() =>
+        new Npgsql.NpgsqlConnection(ConnectionString);
+
+    /// <summary>
+    /// Gets a new command object.
+    /// </summary>
+    /// <returns>Command.</returns>
+    protected override DbCommand GetCommand() =>
+        new Npgsql.NpgsqlCommand();
+
+    /// <summary>
+    /// Gets the SQL query builder.
+    /// </summary>
+    /// <returns>
+    /// SQL query builder.
+    /// </returns>
+    protected override ISqlQueryBuilder GetQueryBuilder() =>
+        new PgSqlQueryBuilder();
+}

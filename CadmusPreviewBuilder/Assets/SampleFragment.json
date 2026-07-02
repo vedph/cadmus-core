@@ -1,0 +1,78 @@
+﻿{
+  "id": "d507aeaf-a359-41cb-b70d-16164567fcd0",
+  "itemId": "fcd71d89-d92e-416b-8fab-4300f5f6f518",
+  "typeId": "it.vedph.token-text-layer",
+  "roleId": "fr.it.vedph.apparatus",
+  "timeCreated": "2022-09-28T13:41:14.623+0000",
+  "creatorId": "zeus",
+  "timeModified": "2022-09-28T13:41:14.638+0000",
+  "userId": "zeus",
+  "fragments": [
+    {
+      "lemma": "pulsosque",
+      "location": "1.2",
+      "tag": "marginal",
+      "entries": [
+        {
+          "type": 0,
+          "subrange": null,
+          "tag": null,
+          "value": "pulsisque",
+          "normValue": "pulsisque",
+          "isAccepted": true,
+          "groupId": null,
+          "witnesses": [
+            {
+              "value": "B",
+              "note": "manus altera"
+            },
+            {
+              "value": "O"
+            }
+          ],
+          "authors": [
+            {
+              "value": "Cursius",
+              "note": "(dubitanter)"
+            }
+          ]
+        },
+        {
+          "type": 0,
+          "value": "",
+          "witnesses": [
+            {
+              "value": "Q"
+            },
+            {
+              "value": "Z"
+            }
+          ]
+        },
+        {
+          "type": 0,
+          "value": "pulsosque",
+          "normValue": "pulsosque",
+          "witnesses": [
+            {
+              "value": "P"
+            },
+            {
+              "value": "r"
+            }
+          ],
+          "authors": [
+            {
+              "value": "Serv. ad Aen. 1,2",
+              "note": "(de ablativo casu)"
+            }
+          ]
+        },
+        {
+          "type": 3,
+          "note": "non liquet an lacuna postulanda sit."
+        }
+      ]
+    }
+  ]
+}

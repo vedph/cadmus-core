@@ -1,0 +1,48 @@
+﻿{
+  "events": [
+    {
+      "eid": "birth",
+      "type": "person.birth",
+      "chronotopes": [
+        {
+          "place": {
+            "value": "Arezzo"
+          },
+          "date": {
+            "a": {
+              "value": 1304
+            }
+          }
+        }
+      ],
+      "assertion": {
+        "rank": 2,
+        "references": [
+          {
+            "type": "paper",
+            "citation": "Rossi 1963"
+          }
+        ]
+      },
+      "description": "Petrarch was born in 1304 at Arezzo from ser Petracco and Eletta Cangiani.",
+      "relatedEntities": [
+        {
+          "relation": "mother",
+          "id": {
+            "target": {
+              "gid": "x:guys/eletta_cangiani"
+            }
+          }
+        },
+        {
+          "relation": "father",
+          "id": {
+            "target": {
+              "gid": "x:guys/ser_petracco"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
