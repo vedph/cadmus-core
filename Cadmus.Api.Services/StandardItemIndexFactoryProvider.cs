@@ -34,7 +34,7 @@ public sealed class StandardItemIndexFactoryProvider :
             .ConfigureServices((hostContext, services) =>
             {
                 ItemIndexFactory.ConfigureServices(services,
-                    // Cadmus.Index.Ef.MySql
+                    // Cadmus.Index.Ef.PgSql
                     typeof(EfPgSqlItemIndexWriter).Assembly);
             })
             // extension method from Fusi library
