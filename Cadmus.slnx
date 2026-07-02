@@ -35,6 +35,7 @@
   <Project Path="Cadmus.Graph.Extras/Cadmus.Graph.Extras.csproj" />
   <Project Path="Cadmus.Graph.Test/Cadmus.Graph.Test.csproj" />
   <Project Path="Cadmus.Graph/Cadmus.Graph.csproj" />
+  <Project Path="Cadmus.GraphStudio.Api/Cadmus.GraphStudio.Api.csproj" Id="f6884331-f5d0-4178-b177-e951e4ef1446" />
   <Project Path="Cadmus.Import.Excel.Test/Cadmus.Import.Excel.Test.csproj" />
   <Project Path="Cadmus.Import.Excel/Cadmus.Import.Excel.csproj" />
   <Project Path="Cadmus.Import.Proteus.Test/Cadmus.Import.Proteus.Test.csproj" />

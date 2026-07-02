@@ -9,6 +9,7 @@ This is the unified backend core for the Cadmus framework. It merges the followi
 - [cadmus-philology](https://github.com/vedph/cadmus-philology)
 - [cadmus_tool](https://github.com/vedph/cadmus_tool)
 - [cadmus-api](https://github.com/vedph/cadmus-api)
+- [cadmus-graph-studio-api](https://github.com/vedph/cadmus-graph-studio-api)
 
 ## Projects
 
@@ -58,3 +59,5 @@ This is the unified backend core for the Cadmus framework. It merges the followi
   - `Cadmus.Api.Controllers.Import`: data import API controllers
   - `Cadmus.Api.Models`: API data exchange models
   - `Cadmus.Api.Services`: API services
+- **graph studio**:
+  -	`Cadmus.GraphStudio.Api`: API for graph studio

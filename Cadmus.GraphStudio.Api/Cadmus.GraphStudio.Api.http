@@ -1,0 +1,328 @@
+@Api_HostAddress = http://localhost:5257
+
+# POST api/mappings/run
+POST {{Api_HostAddress}}/api/mappings/run
+Accept: application/json
+Content-Type: application/json
+{
+  "itemId": "IID",
+  "partId": "PID",
+  "itemTitle": "Alpha item",
+  "itemEid": "alpha",
+  "metadataPid": "MPID",
+  "source": "{\n  \"events\": [\n    {\n      \"eid\": \"birth\",\n      \"type\": \"person.birth\",\n      \"chronotopes\": [\n        {\n          \"place\": {\n            \"value\": \"Arezzo\"\n          },\n          \"date\": {\n            \"a\": {\n              \"value\": 1304\n            }\n          }\n        }\n      ],\n      \"description\": \"Petrarch was born in 1304 at Arezzo from ser Petracco and Eletta Cangiani.\",\n      \"relatedEntities\": [\n        {\n          \"relation\": \"mother\",\n          \"id\": {\n            \"target\": {\n              \"gid\": \"x:guys/eletta_cangiani\"\n            }\n          }\n        },\n        {\n          \"relation\": \"father\",\n          \"id\": {\n            \"target\": {\n              \"gid\": \"x:guys/ser_petracco\"\n            }\n          }\n        }\n      ]\n    },\n    {\n      \"eid\": \"death\",\n      \"type\": \"person.death\",\n      \"chronotopes\": [\n        {\n          \"place\": {\n            \"value\": \"Arquà\"\n          },\n          \"date\": {\n            \"a\": {\n              \"value\": 1374\n            }\n          }\n        }\n      ],\n      \"description\": \"Petrarch died in 1374 at Arquà.\"\n    }\n  ]\n}",
+  "mappings": [
+    {
+      "id": 11,
+      "name": "person_birth_event",
+      "sourceType": 2,
+      "facetFilter": "person",
+      "partTypeFilter": "it.vedph.historical-events",
+      "description": "Map person birth event",
+      "source": "events[?type=='person.birth']",
+      "sid": "{$part-id}/{@eid}",
+      "output": {
+        "nodes": {
+          "event": { "uid": "x:events/{$sid}", "label": "x:events/{@eid}" }
+        },
+        "triples": [
+          { "s": "{?event}", "p": "a", "o": "crm:E67_birth" },
+          {
+            "s": "{?event}",
+            "p": "crm:P2_has_type",
+            "o": "x:event-types/person.birth"
+          },
+          {
+            "s": "{?event}",
+            "p": "crm:P98_brought_into_life",
+            "o": "{$person}"
+          }
+        ],
+        "metadata": {
+          "sid": "{$part-id}/{@eid}",
+          "person": "x:persons/{$metadata-pid}/{$item-eid}"
+        }
+      },
+      "children": [
+        {
+          "id": 12,
+          "parentId": 11,
+          "name": "event_description",
+          "sourceType": 0,
+          "description": "Map the description of an event to EVENT crm:P3_has_note LITERAL.",
+          "source": "description",
+          "sid": "{$sid}/description",
+          "output": {
+            "triples": [
+              { "s": "{?event}", "p": "crm:P3_has_note", "ol": "\"{$.}\"" }
+            ]
+          }
+        },
+        {
+          "id": 13,
+          "parentId": 11,
+          "name": "event_note",
+          "sourceType": 0,
+          "description": "Map the note of an event to EVENT crm:P3_has_note LITERAL.",
+          "source": "note",
+          "sid": "{$sid}/note",
+          "output": {
+            "triples": [
+              { "s": "{?event}", "p": "crm:P3_has_note", "ol": "\"{$.}\"" }
+            ]
+          }
+        },
+        {
+          "id": 14,
+          "parentId": 11,
+          "name": "event_chronotopes",
+          "sourceType": 0,
+          "description": "For each chronotope, map the place/date of an event to triples which create a place node for the place and link it to the event via a triple using crm:P7_took_place_at for places; and to triples using crm:P4_has_time_span which in turn has a new timespan node has object.",
+          "source": "chronotopes",
+          "sid": "{$sid}/chronotopes",
+          "children": [
+            {
+              "id": 29,
+              "parentId": 14,
+              "name": "event_chronotopes/place",
+              "sourceType": 0,
+              "source": "place",
+              "sid": "",
+              "output": {
+                "nodes": { "place": { "uid": "x:places/{@value}" } },
+                "triples": [
+                  { "s": "{?place}", "p": "a", "o": "crm:E53_Place" },
+                  {
+                    "s": "{?event}",
+                    "p": "crm:P7_took_place_at",
+                    "o": "{?place}"
+                  }
+                ]
+              }
+            },
+            {
+              "id": 30,
+              "parentId": 14,
+              "name": "event_chronotopes/date",
+              "sourceType": 0,
+              "source": "date",
+              "sid": "",
+              "output": {
+                "nodes": { "timespan": { "uid": "x:timespans/ts##" } },
+                "triples": [
+                  {
+                    "s": "{?event}",
+                    "p": "crm:P4_has_time-span",
+                    "o": "{?timespan}"
+                  },
+                  {
+                    "s": "{?timespan}",
+                    "p": "crm:P82_at_some_time_within",
+                    "ol": "\"{$date_value}\"^^xs:float"
+                  },
+                  {
+                    "s": "{?timespan}",
+                    "p": "crm:P87_is_identified_by",
+                    "ol": "\"{$date_text}\"@en"
+                  }
+                ],
+                "metadata": {
+                  "date_value": "{!_hdate({@.} & value)}",
+                  "date_text": "{!_hdate({@.} & text)}"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "parentId": 11,
+          "name": "event_assertion",
+          "sourceType": 0,
+          "description": "Map the assertion of an event to EVENT x:has_probability RANK^^xsd:float.",
+          "source": "assertion",
+          "sid": "{$sid}/assertion",
+          "output": {
+            "nodes": { "assertion": { "uid": "x:assertions/as##" } },
+            "triples": [
+              {
+                "s": "{?event}",
+                "p": "x:has_probability",
+                "ol": "\"{@rank}\"^^xsd:float"
+              },
+              {
+                "s": "{?assertion}",
+                "p": "a",
+                "o": "crm:E13_attribute_assignment"
+              },
+              {
+                "s": "{?assertion}",
+                "p": "crm:P140_assigned_attribute_to",
+                "o": "{?event}"
+              },
+              {
+                "s": "{?assertion}",
+                "p": "crm:P141_assigned",
+                "o": "x:has_probability"
+              },
+              {
+                "s": "{?assertion}",
+                "p": "crm:P177_assigned_property_of_type",
+                "o": "crm:E55_type"
+              }
+            ]
+          },
+          "children": [
+            {
+              "id": 31,
+              "parentId": 15,
+              "name": "event_assertion/references",
+              "sourceType": 0,
+              "source": "references",
+              "sid": "{$sid}/assertion/reference",
+              "children": [
+                {
+                  "id": 32,
+                  "parentId": 31,
+                  "name": "event/references/citation",
+                  "sourceType": 0,
+                  "source": "citation",
+                  "sid": "",
+                  "output": {
+                    "nodes": { "citation": { "uid": "x:citations/cit##" } },
+                    "triples": [
+                      { "s": "{?citation}", "p": "a", "o": "crm:E31_Document" },
+                      {
+                        "s": "{?citation}",
+                        "p": "rdfs:label",
+                        "ol": "\"{@.}\""
+                      },
+                      {
+                        "s": "{?assertion}",
+                        "p": "crm:P70i_is_documented_in",
+                        "o": "{?citation}"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "parentId": 11,
+          "name": "event_tag",
+          "sourceType": 0,
+          "description": "Map the tag of an event to EVENT P9i_forms_part_of GROUP.",
+          "source": "tag",
+          "sid": "{$sid}/tag",
+          "output": {
+            "nodes": { "period": { "uid": "x:periods/{$part-id}/{@value}" } },
+            "triples": [
+              { "s": "{?event}", "p": "P9i_forms_part_of", "o": "{?period}" }
+            ]
+          }
+        },
+        {
+          "id": 17,
+          "parentId": 11,
+          "name": "person_birth_event/related/by_mother@eg",
+          "sourceType": 0,
+          "source": "relatedEntities[?relation=='person:birth:mother' && !id.target.name && starts_with(id.target.gid, '@')]",
+          "sid": "",
+          "output": {
+            "nodes": {
+              "mother": { "uid": "{!_substring({@id.target.gid} & 1)}" }
+            },
+            "triples": [
+              { "s": "{?event}", "p": "crm:P96_by_mother", "o": "{?mother}" }
+            ]
+          }
+        },
+        {
+          "id": 18,
+          "parentId": 11,
+          "name": "person_birth_event/related/by_mother@el",
+          "sourceType": 0,
+          "source": "relatedEntities[?relation=='person:birth:mother' && !id.target.name && !(starts_with(id.target.gid, '@'))]",
+          "sid": "",
+          "output": {
+            "nodes": { "mother": { "uid": "{@id.target.gid}" } },
+            "triples": [
+              { "s": "{?event}", "p": "crm:P96_by_mother", "o": "{?mother}" }
+            ]
+          }
+        },
+        {
+          "id": 19,
+          "parentId": 11,
+          "name": "person_birth_event/related/by_mother@i",
+          "sourceType": 0,
+          "source": "relatedEntities[?relation=='person:birth:mother' && id.target.name]",
+          "sid": "",
+          "output": {
+            "nodes": {
+              "mother": {
+                "uid": "x:persons/{@id.target.partId}/{@id.target.value}",
+                "label": "x:persons/{@id.target.value}"
+              }
+            },
+            "triples": [
+              { "s": "{?event}", "p": "crm:P96_by_mother", "o": "{?mother}" }
+            ]
+          }
+        },
+        {
+          "id": 20,
+          "parentId": 11,
+          "name": "person_birth_event/related/from_father@eg",
+          "sourceType": 0,
+          "source": "relatedEntities[?relation=='person:birth:father' && !id.target.name && starts_with(id.target.gid, '@')]",
+          "sid": "",
+          "output": {
+            "nodes": {
+              "father": { "uid": "{!_substring({@id.target.gid} & 1)}" }
+            },
+            "triples": [
+              { "s": "{?event}", "p": "crm:P97_from_father", "o": "{?father}" }
+            ]
+          }
+        },
+        {
+          "id": 21,
+          "parentId": 11,
+          "name": "person_birth_event/related/from_father@el",
+          "sourceType": 0,
+          "source": "relatedEntities[?relation=='person:birth:father' && !id.target.name && !(starts_with(id.target.gid, '@'))]",
+          "sid": "",
+          "output": {
+            "nodes": { "father": { "uid": "{@id.target.gid}" } },
+            "triples": [
+              { "s": "{?event}", "p": "crm:P97_from_father", "o": "{?father}" }
+            ]
+          }
+        },
+        {
+          "id": 22,
+          "parentId": 11,
+          "name": "person_birth_event/related/from_father@i",
+          "sourceType": 0,
+          "source": "relatedEntities[?relation=='person:birth:father' && id.target.name]",
+          "sid": "",
+          "output": {
+            "nodes": {
+              "father": {
+                "uid": "x:persons/{@id.target.partId}/{@id.target.value}",
+                "label": "x:persons/{@id.target.value}"
+              }
+            },
+            "triples": [
+              { "s": "{?event}", "p": "crm:P97_from_father", "o": "{?father}" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
