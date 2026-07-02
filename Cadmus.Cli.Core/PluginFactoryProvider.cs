@@ -74,14 +74,13 @@ public static class PluginFactoryProvider
     public static T? Get<T>(string pluginPath, string? tag = null)
         where T : class
     {
-        if (pluginPath == null)
-            throw new ArgumentNullException(nameof(pluginPath));
+        ArgumentNullException.ThrowIfNull(pluginPath);
 
         if (!File.Exists(pluginPath)) return null;
 
         PluginLoader loader = PluginLoader.CreateFromAssemblyFile(
                 pluginPath,
-                sharedTypes: new[] { typeof(T) });
+                sharedTypes: [typeof(T)]);
 
         foreach (Type type in loader.LoadDefaultAssembly()
             .GetExportedTypes()

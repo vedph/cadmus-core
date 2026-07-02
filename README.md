@@ -1,5 +1,15 @@
 # Cadmus Backend Core
 
+This is the unified backend core for the Cadmus framework. It merges the following repositories:
+
+- [cadmus-bricks](https://github.com/vedph/cadmus-bricks)
+- [cadmus_core](https://github.com/vedph/cadmus_core)
+- [cadmus-migration-v3](https://github.com/vedph/cadmus-migration-v3)
+- [cadmus-general](https://github.com/vedph/cadmus-general)
+- [cadmus-philology](https://github.com/vedph/cadmus-philology)
+- [cadmus_tool](https://github.com/vedph/cadmus_tool)
+- [cadmus-api](https://github.com/vedph/cadmus-api)
+
 ## Projects
 
 - **bricks**:
