@@ -12,9 +12,9 @@
   - `Cadmus.Mongo`: MongoDB data repository
 - **index**:
   - `Cadmus.Index`: core models and logic for data index
-  - `Cadmus.Index.Ef`: EntityFramework base implementation for data index
+  - `Cadmus.Index.Ef`: EntityFramework base implementation for data index (currently used for data storage)
   - `Cadmus.Index.Ef.PgSql`: PostgreSQL implementation of `Cadmus.Index.Ef`
-  - `Cadmus.Index.Sql`: SQL base index implementation
+  - `Cadmus.Index.Sql`: SQL base index implementation (currently used for query)
   - `Cadmus.Index.PgSql`: PostgreSQL implementation of `Cadmus.Index.Sql`
 - **graph**:
   - `Cadmus.Graph`: core models and logic for semantic data graph
