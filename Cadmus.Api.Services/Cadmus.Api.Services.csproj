@@ -57,14 +57,14 @@
 		<ProjectReference Include="..\Cadmus.Seed\Cadmus.Seed.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
-		<ProjectReference Include="Cadmus.Core" />
-		<ProjectReference Include="Cadmus.Export" />
-		<ProjectReference Include="Cadmus.Graph" />
-		<ProjectReference Include="Cadmus.Graph.Ef.PgSql" />
-		<ProjectReference Include="Cadmus.Index.Ef.PgSql" />
-		<ProjectReference Include="Cadmus.Index" />
-		<ProjectReference Include="Cadmus.Mongo" />
-		<ProjectReference Include="Cadmus.Seed" />
+		<PackageReference Include="Cadmus.Core" />
+		<PackageReference Include="Cadmus.Export" />
+		<PackageReference Include="Cadmus.Graph" />
+		<PackageReference Include="Cadmus.Graph.Ef.PgSql" />
+		<PackageReference Include="Cadmus.Index.Ef.PgSql" />
+		<PackageReference Include="Cadmus.Index" />
+		<PackageReference Include="Cadmus.Mongo" />
+		<PackageReference Include="Cadmus.Seed" />
 	</ItemGroup>
 
 </Project>

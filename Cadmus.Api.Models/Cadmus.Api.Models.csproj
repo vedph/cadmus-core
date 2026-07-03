@@ -27,9 +27,9 @@
 		<ProjectReference Include="..\Cadmus.Index\Cadmus.Index.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
-		<ProjectReference Include="Cadmus.Core" />
-		<ProjectReference Include="Cadmus.Graph" />
-		<ProjectReference Include="Cadmus.Index" />
+		<PackageReference Include="Cadmus.Core" />
+		<PackageReference Include="Cadmus.Graph" />
+		<PackageReference Include="Cadmus.Index" />
 	</ItemGroup>
 
 </Project>
