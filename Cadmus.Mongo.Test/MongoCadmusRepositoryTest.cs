@@ -298,10 +298,10 @@ public class MongoCadmusRepositoryTest : CadmusRepositoryTestBase
         var collection = db.GetCollection<BsonDocument>(MongoItem.COLLECTION);
 
         var page = MongoHelper.GetDocumentsPage(collection,
-            "{\"userId\": \"Odd\"}", "{\"sortKey\":1}", 1, 10);
+            "{\"userId\": \"zeus\"}", "{\"sortKey\":1}", 1, 10);
 
-        Assert.Equal(10, page.Items.Count);
-        Assert.Equal(10, page.Total);
+        Assert.Single(page.Items);
+        Assert.Equal(1, page.Total);
     }
     #endregion
 

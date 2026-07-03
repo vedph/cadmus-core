@@ -1,11 +1,13 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path="buildnpub.ps1" />
     <File Path="CHANGELOG.md" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
     <File Path="Dockerfile" />
     <File Path="Dockerfile-bricks" />
     <File Path="Dockerfile-graph-studio" />
+    <File Path="getbuildorder.ps1" />
     <File Path="nuget.config" />
     <File Path="README.md" />
   </Folder>
