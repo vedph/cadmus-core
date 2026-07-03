@@ -10,21 +10,21 @@ ARG TARGETARCH
 ARG TARGETOS
 WORKDIR /src
 
-COPY ["Cadmus.Api/Cadmus.Api.csproj", "Cadmus.Api/"]
+COPY ["Cadmus.GraphStudio.Api/Cadmus.GraphStudio.Api.csproj", "Cadmus.GraphStudio.Api/"]
 # Pass the architecture to restore the correct RID-specific packages
-RUN dotnet restore "Cadmus.Api/Cadmus.Api.csproj" -a $TARGETARCH -s https://api.nuget.org/v3/index.json --verbosity n
+RUN dotnet restore "Cadmus.GraphStudio.Api/Cadmus.GraphStudio.Api.csproj" -a $TARGETARCH -s https://api.nuget.org/v3/index.json --verbosity n
 
 COPY . .
 # Compile specifically for the target OS and Architecture
-RUN dotnet build "Cadmus.Api/Cadmus.Api.csproj" -c Release -a $TARGETARCH -o /app/build
+RUN dotnet build "Cadmus.GraphStudio.Api/Cadmus.GraphStudio.Api.csproj" -c Release -a $TARGETARCH -o /app/build
 
 # Stage 3: publish
 FROM build AS publish
 ARG TARGETARCH
-RUN dotnet publish "Cadmus.Api/Cadmus.Api.csproj" -c Release -a $TARGETARCH -o /app/publish
+RUN dotnet publish "Cadmus.GraphStudio.Api/Cadmus.GraphStudio.Api.csproj" -c Release -a $TARGETARCH -o /app/publish
 
 # Stage 4: final
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Cadmus.Api.dll"]
+ENTRYPOINT ["dotnet", "Cadmus.GraphStudio.Api.dll"]

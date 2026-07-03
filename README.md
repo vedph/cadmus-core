@@ -52,7 +52,7 @@ This is the unified backend core for the Cadmus framework. It merges the followi
   - `cadmus-mig`: CLI migration tool
   - `cadmus-tool`: CLI tool
 - **API**:
-  - `CadmusApi`: demo API
+  - `Cadmus.Api`: demo API
   - `Cadmus.Api.Config`: API configuration
   - `Cadmus.Api.Controllers`: API controllers
   - `Cadmus.Api.Controllers.Export`: data export API controllers
@@ -61,3 +61,34 @@ This is the unified backend core for the Cadmus framework. It merges the followi
   - `Cadmus.Api.Services`: API services
 - **graph studio**:
   -	`Cadmus.GraphStudio.Api`: API for graph studio
+
+## Docker Images
+
+🐋 Before creating Docker images, ensure you have a buildx builder instance running that supports multi-arch:
+
+```sh
+docker buildx create --use --name multi-arch-builder || docker buildx use multi-arch-builder
+docker buildx inspect --bootstrap
+```
+
+>To run natively on Linux VMs, macOS (both Intel and Apple Silicon), and Windows (via WSL2 or Docker Desktop)—`linux/amd64` and `linux/arm64` are the only two targets we need. Note that `docker buildx` automatically injects variables like `TARGETARCH` and `TARGETOS` into the scope of your build. In `Dockerfile` we pass these directly to the .NET CLI commands.
+
+These commands build for multiple platforms and push directly to Docker Hub:
+
+- 🐋 **Cadmus.Api**:
+
+```sh
+docker buildx build --platform linux/amd64,linux/arm64 -t vedph2020/cadmus-api:13.0.4 -t vedph2020/cadmus-api:latest --push .
+```
+
+- 🐋 **Cadmus.Bricks.Api**:
+
+```sh
+docker buildx build -f Dockerfile-bricks --platform linux/amd64,linux/arm64 -t vedph2020/cadmus-bricks-api:0.0.4 -t vedph2020/cadmus-bricks-api:latest --push .
+```
+
+- 🐋 **Cadmus.GraphStudio.Api**:
+
+```sh
+docker buildx build -f Dockerfile-graph-studio --platform linux/amd64,linux/arm64 -t vedph2020/cadmus-graph-studio-api:1.0.0 -t vedph2020/cadmus-graph-studio-api:latest --push .
+```

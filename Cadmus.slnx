@@ -1,9 +1,11 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path="CHANGELOG.md" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
     <File Path="Dockerfile" />
     <File Path="Dockerfile-bricks" />
+    <File Path="Dockerfile-graph-studio" />
     <File Path="nuget.config" />
     <File Path="README.md" />
   </Folder>
@@ -15,6 +17,7 @@
   <Project Path="Cadmus.Api.Controllers/Cadmus.Api.Controllers.csproj" />
   <Project Path="Cadmus.Api.Models/Cadmus.Api.Models.csproj" />
   <Project Path="Cadmus.Api.Services/Cadmus.Api.Services.csproj" />
+  <Project Path="Cadmus.Api/Cadmus.Api.csproj" />
   <Project Path="Cadmus.Bricks.Api/Cadmus.Bricks.Api.csproj" />
   <Project Path="Cadmus.Cli.Core/Cadmus.Cli.Core.csproj" />
   <Project Path="Cadmus.Core.Test/Cadmus.Core.Test.csproj" />
@@ -63,7 +66,6 @@
   <Project Path="Cadmus.Seed.Philology.Parts/Cadmus.Seed.Philology.Parts.csproj" />
   <Project Path="Cadmus.Seed.Test/Cadmus.Seed.Test.csproj" />
   <Project Path="Cadmus.Seed/Cadmus.Seed.csproj" />
-  <Project Path="CadmusApi/CadmusApi.csproj" />
   <Project Path="Proteus.Rendering.Test/Proteus.Rendering.Test.csproj" />
   <Project Path="Proteus.Rendering/Proteus.Rendering.csproj" />
 </Solution>
