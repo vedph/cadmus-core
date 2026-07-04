@@ -47,7 +47,12 @@ namespace Cadmus.Api
 
             // item browser factory provider
             services.AddSingleton<IItemBrowserFactoryProvider>(_ =>
-            new StandardItemBrowserFactoryProvider(
+                new StandardItemBrowserFactoryProvider(
+                    config.GetConnectionString("Default")!));
+
+            // metadata builder factory provider
+            services.AddSingleton<IItemMetadataBuilderFactoryProvider>(_ =>
+                new StandardItemMetadataBuilderFactoryProvider(
                     config.GetConnectionString("Default")!));
 
             // index and graph

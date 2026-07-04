@@ -7,7 +7,7 @@
 public interface IItemBrowserFactoryProvider
 {
     /// <summary>
-    /// Gets the part/fragment seeders factory.
+    /// Gets the items browsers factory.
     /// </summary>
     /// <param name="profile">The profile.</param>
     /// <returns>Factory.</returns>

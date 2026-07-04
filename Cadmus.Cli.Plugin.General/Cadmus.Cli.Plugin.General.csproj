@@ -1,29 +1,41 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Authors>Daniele Fusi</Authors>
 		<Company>Fusi</Company>
 		<Product>Cadmus</Product>
-		<Description>Cadmus general CLI plugin</Description>
+		<Description>Cadmus CLI general parts services.</Description>
+		<Copyright>by Daniele Fusi 2021</Copyright>
+		<Nullable>enable</Nullable>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-		<Version>2.1.1</Version>
-		<FileVersion>2.1.1</FileVersion>
-		<AssemblyVersion>2.1.1</AssemblyVersion>
+		<PackageTags>Cadmus</PackageTags>
+		<DebugType>portable</DebugType>
+		<DebugSymbols>true</DebugSymbols>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+		<EmbedUntrackedSources>true</EmbedUntrackedSources>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Cadmus.Cli.Core" Version="4.1.2" />
-		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" Version="1.0.3" />
+		<PackageReference Include="Cadmus.Cli.Core" />
+		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
+		<PackageReference Include="Fusi.Tools" />
 	</ItemGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Debug'">
 		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
 		<ProjectReference Include="..\Cadmus.General.Parts\Cadmus.General.Parts.csproj" />
 		<ProjectReference Include="..\Cadmus.Seed.General.Parts\Cadmus.Seed.General.Parts.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Mongo" />
+		<PackageReference Include="Cadmus.General.Parts" />
+		<PackageReference Include="Cadmus.Seed.General.Parts" />
 	</ItemGroup>
 
 </Project>

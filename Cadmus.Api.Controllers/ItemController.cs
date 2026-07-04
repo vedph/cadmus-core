@@ -1,30 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
+﻿using Cadmus.Api.Models;
 using Cadmus.Api.Services.Seeding;
 using Cadmus.Core;
 using Cadmus.Core.Config;
 using Cadmus.Core.Layers;
 using Cadmus.Core.Storage;
+using Cadmus.Graph;
 using Cadmus.Index;
 using Cadmus.Index.Config;
-using Cadmus.Api.Models;
+using Fusi.Api.Auth.Models;
 using Fusi.Tools.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Microsoft.Extensions.DependencyInjection;
-using Cadmus.Graph;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
 using System.Globalization;
-using Fusi.Api.Auth.Models;
+using System.IO;
+using System.Linq;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Cadmus.Api.Controllers;
 
@@ -49,6 +51,7 @@ public sealed class ItemController : ControllerBase
     private readonly UserManager<NamedUser> _userManager;
     private readonly IServiceProvider _serviceProvider;
     private readonly IRepositoryProvider _repositoryProvider;
+    private readonly IItemMetadataBuilderFactoryProvider _metadataBuilderFactoryProvider;
     private readonly IConfiguration _configuration;
     private readonly IMemoryCache _cache;
     private readonly ILogger<ItemController> _logger;
@@ -59,12 +62,14 @@ public sealed class ItemController : ControllerBase
     /// <param name="userManager">The user manager.</param>
     /// <param name="serviceProvider">The service provider.</param>
     /// <param name="repositoryProvider">The repository provider.</param>
+    /// <param name="metadataBuilderFactoryProvider">The metadata builder factory provider.</param>
     /// <param name="configuration">The configuration.</param>
     /// <param name="logger">The logger.</param>
     /// <exception cref="ArgumentNullException">repositoryService</exception>
     public ItemController(UserManager<NamedUser> userManager,
         IServiceProvider serviceProvider,
         IRepositoryProvider repositoryProvider,
+        IItemMetadataBuilderFactoryProvider metadataBuilderFactoryProvider,
         IConfiguration configuration,
         IMemoryCache cache,
         ILogger<ItemController> logger)
@@ -75,6 +80,8 @@ public sealed class ItemController : ControllerBase
             throw new ArgumentNullException(nameof(serviceProvider));
         _repositoryProvider = repositoryProvider ??
             throw new ArgumentNullException(nameof(repositoryProvider));
+        _metadataBuilderFactoryProvider = metadataBuilderFactoryProvider ??
+            throw new ArgumentNullException(nameof(metadataBuilderFactoryProvider));
         _configuration = configuration ??
             throw new ArgumentNullException(nameof(configuration));
         _cache = cache ??
@@ -375,8 +382,7 @@ public sealed class ItemController : ControllerBase
     [Produces("application/json")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public IActionResult GetPartPins(
-        [FromRoute] string id)
+    public IActionResult GetPartPins([FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
@@ -402,6 +408,61 @@ public sealed class ItemController : ControllerBase
                           p.Value
                       }).ToList();
         return Ok(result);
+    }
+
+    private async Task<ItemMetadataBuilderFactory?> GetMetadataBuilderFactory()
+    {
+        string? profileSource = _configuration["Seed:MetadataBuilders"];
+        if (string.IsNullOrEmpty(profileSource)) return null;
+
+        ResourceLoaderService loaderService = new(_serviceProvider);
+
+        string profile;
+        using (StreamReader reader = new(
+            (await loaderService.LoadAsync(profileSource))!, Encoding.UTF8))
+        {
+            profile = await reader.ReadToEndAsync();
+        }
+        return _metadataBuilderFactoryProvider.GetFactory(profile);
+    }
+
+    /// <summary>
+    /// Build and get metadata from the specified item. Use this endpoint to
+    /// build title and/or description of a given item by inspecting its parts.
+    /// </summary>
+    /// <param name="id">The item's identifier.</param>
+    /// <param name="targets">The metadata targets: <c>T</c>=title,
+    /// <c>D</c>=description. Default is <c>TD</c>.</param>
+    /// <returns>Dictionary with metadata, or 404 if item not found. When parts
+    /// are missing from the source item, an empty dictionary is returned.</returns>
+    [HttpGet("api/items/{id}/metadata")]
+    [Produces("application/json")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetItemMetadata([FromRoute] string id,
+        [FromQuery] string? targets = "TD")
+    {
+        // get factory (assuming that metadata builders in JSON configuration
+        // have a tag equal to the item's facet)
+        ItemMetadataBuilderFactory? factory = await GetMetadataBuilderFactory();
+        if (factory == null) return Ok(new { });
+
+        // get repository
+        ICadmusRepository repository = _repositoryProvider.CreateRepository();
+    
+        // get the source item (must be present)
+        IItem? item = repository.GetItem(id, false);
+        if (item == null) return NotFound();
+
+        // get the builder for the item's facet
+        IItemMetadataBuilder? builder = factory.GetItemMetadataBuilder(item.FacetId);
+        if (builder == null) return Ok(new { });
+
+        // build metadata
+        IDictionary<string, string> metadata = builder.Build(
+            repository, item.Id, targets ?? "TD");
+        
+        return Ok(metadata);
     }
 
     /// <summary>

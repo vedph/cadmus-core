@@ -75,7 +75,7 @@ public class ItemBrowserController : ControllerBase
     public async Task<string[]> GetBrowserIds()
     {
         ItemBrowserFactory? factory = await GetFactory();
-        if (factory == null) return Array.Empty<string>();
+        if (factory == null) return [];
         return factory.GetItemBrowserIds();
     }
 
@@ -114,7 +114,7 @@ public class ItemBrowserController : ControllerBase
         if (factory == null)
         {
             return Ok(new DataPage<ItemInfo>(model.PageNumber,
-                model.PageSize, 0, new List<ItemInfo>()));
+                model.PageSize, 0, []));
         }
 
         IItemBrowser? browser = factory.GetItemBrowser(browserId);
