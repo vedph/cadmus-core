@@ -11,6 +11,13 @@ This is the unified backend core for the Cadmus framework. It merges the followi
 - [cadmus-api](https://github.com/vedph/cadmus-api)
 - [cadmus-graph-studio-api](https://github.com/vedph/cadmus-graph-studio-api)
 
+These repositories are now archived and no longer maintained. Please use this repository instead, which provides:
+
+- centralized codebase for all core Cadmus backend components.
+- unified versioning and release management.
+
+The projects were just copied into this solution from the above repositories, and then their configuration files were updated to use the new unified versioning and release management. The code itself was not changed, so it is still the same as in the original repositories. Anyway, new development will be done here.
+
 ## Projects
 
 - **bricks**:
@@ -61,6 +68,8 @@ This is the unified backend core for the Cadmus framework. It merges the followi
   - `Cadmus.Api.Services`: API services
 - **graph studio**:
   -	`Cadmus.GraphStudio.Api`: API for graph studio
+
+>If you add new projects to this solution, ensure to add them in `buildnpub.ps1` (you can use getbuildorder.ps1 to get the build order).
 
 ## Docker Images
 
