@@ -412,7 +412,7 @@ public sealed class ItemController : ControllerBase
 
     private async Task<ItemMetadataBuilderFactory?> GetMetadataBuilderFactory()
     {
-        string? profileSource = _configuration["Seed:MetadataBuilders"];
+        string? profileSource = _configuration["Seed:ProfileSource"];
         if (string.IsNullOrEmpty(profileSource)) return null;
 
         ResourceLoaderService loaderService = new(_serviceProvider);

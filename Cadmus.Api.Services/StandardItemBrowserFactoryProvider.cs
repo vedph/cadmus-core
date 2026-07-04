@@ -30,11 +30,11 @@ public sealed class StandardItemBrowserFactoryProvider :
     private static IHost GetHost(string config)
     {
         // build the tags to types map for parts/fragments
-        Assembly[] browserAssemblies = new[]
-        {
+        Assembly[] browserAssemblies =
+        [
             // Cadmus.Mongo
             typeof(MongoHierarchyItemBrowser).Assembly,
-        };
+        ];
         TagAttributeToTypeMap map = new();
         map.Add(browserAssemblies);
 

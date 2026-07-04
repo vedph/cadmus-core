@@ -119,11 +119,11 @@ public sealed class ItemMetadataBuilderFactory : ComponentFactory
 
         ComponentFactoryConfigEntry? entry =
             entries.FirstOrDefault(e => e.Keys?.Contains(facetId) == true);
-        if (entry == null) return null;
+        if (entry?.Tag == null) return null;
 
         int i = entries.IndexOf(entry);
         return GetComponent<IItemMetadataBuilder>(
-            facetId,
+            entry.Tag,
             $"metadataBuilders:{i}:options",
             false);
     }
