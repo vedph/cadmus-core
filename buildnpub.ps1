@@ -54,8 +54,6 @@ $projectOrder = @(
     "Cadmus.Api.Models\Cadmus.Api.Models.csproj",
     "Cadmus.Api.Controllers.Import\Cadmus.Api.Controllers.Import.csproj",
     "Cadmus.Api.Controllers\Cadmus.Api.Controllers.csproj",
-    "Cadmus.Cli.Plugin.General\Cadmus.Cli.Plugin.General.csproj",
-    "Cadmus.Cli.Plugin.Philology\Cadmus.Cli.Plugin.Philology.csproj",
     "Cadmus.Import.Proteus\Cadmus.Import.Proteus.csproj"
 )
 

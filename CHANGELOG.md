@@ -1,5 +1,8 @@
 # History
 
+## 14.0.1
+
+- 2026-07-05: replaced old reference to Fusi.Tools.Config namespace with Fusi.Tools.Configuration in `TagAttributeToTypeMap`.`GetTag`.
 - 2026-07-04: 🆕 added item metadata builders feature with its endpoint `api/items/{id}/metadata`. These are components which can be configured from the API profile to generate title and/or description of a given item from its parts. ⚠️ You need to add this code to your API `Program`.`ConfigureAppServices`:
 
 ```cs
@@ -21,6 +24,8 @@ To use this feature, configure builders in your `seed-profile.json`: for each bu
   ]
 }
 ```
+
+## 14.0.0
 
 - 2026-07-03:
   - renamed `CadmusApi` to `Cadmus.Api`.

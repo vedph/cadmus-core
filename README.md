@@ -1,6 +1,6 @@
 # Cadmus Backend Core
 
-This is the unified backend core for the Cadmus framework. It merges the following repositories:
+This is the unified backend core for the [Cadmus framework](https://vedph.github.io/cadmus-doc/). It merges the following repositories:
 
 - [cadmus-bricks](https://github.com/vedph/cadmus-bricks)
 - [cadmus_core](https://github.com/vedph/cadmus_core)
@@ -16,7 +16,7 @@ These repositories are now archived and no longer maintained. Please use this re
 - centralized codebase for all core Cadmus backend components.
 - unified versioning and release management.
 
-The projects were just copied into this solution from the above repositories, and then their configuration files were updated to use the new unified versioning and release management. The code itself was not changed, so it is still the same as in the original repositories. Anyway, new development will be done here.
+The projects were just copied into this solution from the above repositories, and then their configuration files were updated to use the new unified versioning (starting from 14.0.0) and release management. The code itself was not changed, so it is still the same as in the original repositories. Anyway, new development will be done here.
 
 ## Projects
 
@@ -27,7 +27,7 @@ The projects were just copied into this solution from the above repositories, an
 - **core**:
   - `Cadmus.Core`: core models and logic
   - `Cadmus.Seed`: core models and logic for seeding mock data
-  - `Cadmus.Mongo`: MongoDB data repository
+  - `Cadmus.Mongo`: MongoDB implementation of data repository
 - **index**:
   - `Cadmus.Index`: core models and logic for data index
   - `Cadmus.Index.Ef`: EntityFramework base implementation for data index (currently used for data storage)

@@ -66,7 +66,7 @@ public sealed class TagAttributeToTypeMap
         // Yet, other parts of the system will do, as soon as you are going
         // to compare types.
         var tag = t.CustomAttributes.FirstOrDefault(
-            a => a.AttributeType.FullName == "Fusi.Tools.Config.TagAttribute")
+            a => a.AttributeType.FullName == "Fusi.Tools.Configuration.TagAttribute")
             ?.ConstructorArguments[0].Value as string;
         if (tag != null)
         {
