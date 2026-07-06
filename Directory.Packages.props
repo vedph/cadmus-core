@@ -10,7 +10,7 @@
 		<PackageVersion Include="Cadmus.Api.Controllers" Version="14.0.1" />
 		<PackageVersion Include="Cadmus.Api.Models" Version="14.0.1" />
 		<PackageVersion Include="Cadmus.Api.Services" Version="14.0.1" />
-		<PackageVersion Include="CadmusApi" Version="14.0.1" />
+		<PackageVersion Include="Cadmus.Api" Version="14.0.1" />
 		<PackageVersion Include="Cadmus.Bricks.Api" Version="14.0.1" />
 		<PackageVersion Include="Cadmus.Core" Version="14.0.1" />
 		<PackageVersion Include="Cadmus.Cli.Core" Version="14.0.1" />

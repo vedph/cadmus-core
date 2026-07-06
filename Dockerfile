@@ -10,6 +10,7 @@ ARG TARGETARCH
 ARG TARGETOS
 WORKDIR /src
 
+COPY ["Directory.Packages.props", "Directory.Build.props", "./"]
 COPY ["Cadmus.Api/Cadmus.Api.csproj", "Cadmus.Api/"]
 # Pass the architecture to restore the correct RID-specific packages
 RUN dotnet restore "Cadmus.Api/Cadmus.Api.csproj" -a $TARGETARCH -s https://api.nuget.org/v3/index.json --verbosity n
