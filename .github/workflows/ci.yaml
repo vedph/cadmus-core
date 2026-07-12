@@ -1,0 +1,77 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release
+    strategy:
+      matrix:
+        kind: ["linux", "windows", "macOS", "macOS-arm", "windows-arm"]
+        include:
+          - kind: linux
+            os: ubuntu-latest
+            target: linux-x64
+          - kind: windows
+            os: windows-latest
+            target: win-x64
+          - kind: macOS
+            os: macos-latest
+            target: osx-x64
+          - kind: macOS-arm
+            os: macos-latest
+            target: osx-arm64
+          - kind: windows-arm
+            os: windows-latest
+            target: win-arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        shell: bash
+        run: |
+          tag=${GITHUB_REF#refs/tags/}
+          release_name="$tag-${{ matrix.target }}"
+
+          # Build everything
+          dotnet publish ./cadmus-tool/cadmus-tool.csproj --framework net10.0 --self-contained --runtime "${{ matrix.target }}" -c Release -o "$release_name"
+
+          # Make executable
+          if [ "${{ matrix.target }}" != "win-x64" ] && [ "${{ matrix.target }}" != "win-arm64" ]; then
+            chmod +x "$release_name/cadmus-tool"
+          fi
+
+          # Pack files
+          if [ "${{ matrix.target }}" == "win-x64" ] || [ "${{ matrix.target }}" == "win-arm64" ]; then
+            # Pack to zip for Windows
+            7z a -tzip "${release_name}.zip" "./${release_name}/*"
+          else
+            tar czvf "${release_name}.tar.gz" "$release_name"
+          fi
+
+          # Delete output directory
+          rm -r "$release_name"
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.zip
+            *.tar.gz
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

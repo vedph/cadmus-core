@@ -1,12 +1,17 @@
-﻿using Serilog;
-using Spectre.Console.Cli;
+﻿using Cadmus.Cli.Commands;
+using Cadmus.Cli.Services;
+using Fusi.Cli.Auth.Commands;
+using Fusi.Cli.Auth.Services;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 using Spectre.Console;
+using Spectre.Console.Cli;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
-using System;
-using Cadmus.Cli.Commands;
 
 namespace Cadmus.Cli;
 
@@ -54,7 +59,15 @@ public static class Program
             Stopwatch stopwatch = new();
             stopwatch.Start();
 
-            CommandApp app = new();
+            // we want to inject ICliAuthSettings into the Fusi.Cli.Auth commands
+            ServiceCollection registrations = new();
+            registrations.AddSingleton<ICliAuthSettings>(_ => new CliAuthSettings
+            {
+                ApiRootUri = CliAppContext.Configuration.GetValue<string>(
+                    "ApiRootUri") ?? ""
+            });
+
+            CommandApp app = new(new TypeRegistrar(registrations));
             app.Configure(config =>
             {
                 config.AddCommand<BuildIndexSqlCommand>("build-sql")
@@ -97,6 +110,25 @@ public static class Program
 
                 config.AddCommand<RunMongoScriptCommand>("run-mongo")
                     .WithDescription("Run a MongoDB script.");
+
+                // from Fusi.Cli.Auth
+                config.AddCommand<AddUserCommand>("add-user")
+                    .WithDescription("Add a user account");
+
+                config.AddCommand<AddUserRolesCommand>("add-user-roles")
+                    .WithDescription("Add role(s) to a user");
+
+                config.AddCommand<DeleteUserCommand>("delete-user")
+                    .WithDescription("Delete the specified user account");
+
+                config.AddCommand<DeleteUserRolesCommand>("delete-user-roles")
+                    .WithDescription("Delete the specified roles from a user");
+
+                config.AddCommand<ListUsersCommand>("list-users")
+                    .WithDescription("List user accounts");
+
+                config.AddCommand<UpdateUserCommand>("update-user")
+                    .WithDescription("Update metadata for the specified user");
             });
 
             int result = await app.RunAsync(args);

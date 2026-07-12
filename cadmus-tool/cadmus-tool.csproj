@@ -34,6 +34,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Bogus" />
+		<PackageReference Include="Fusi.Cli.Auth" />
 		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
 		<PackageReference Include="Fusi.Text" />
 		<PackageReference Include="Fusi.Tools" />
@@ -41,6 +42,7 @@
 		<PackageReference Include="McMaster.NETCore.Plugins" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
 		<PackageReference Include="Microsoft.Extensions.Configuration" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
 		<PackageReference Include="EFCore.NamingConventions" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
