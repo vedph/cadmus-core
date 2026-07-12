@@ -101,3 +101,12 @@ docker buildx build -f Dockerfile-bricks --platform linux/amd64,linux/arm64 -t v
 ```sh
 docker buildx build -f Dockerfile-graph-studio --platform linux/amd64,linux/arm64 -t vedph2020/cadmus-graph-studio-api:1.0.0 -t vedph2020/cadmus-graph-studio-api:latest --push .
 ```
+
+## CI Workflow
+
+This workspace has a CI workflow for publishing the CLI tool application. Should it fail, you can re-run it after fixing the workflow if the error is there. Yet, remember that "Re-run all jobs" reuses the workflow file as it was pinned to that specific run (the commit/tag that triggered it), not your latest push. Since a fix lands in a commit after that run started, the rerun replays the old, broken ci.yaml. To avoid this, use the workflow_dispatch trigger — that one runs whatever ci.yaml currently exists on the branch/ref you pick. Via the UI:
+
+1. Actions tab → select the Publish workflow in the left sidebar (not the old run)
+2. Click Run workflow (top right)
+3. Pick branch master, enter v14.0.2 in the tag field
+4. Run workflow
