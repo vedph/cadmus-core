@@ -31,6 +31,32 @@ namespace Cadmus.Api
         // startup log file name, Serilog is configured later via appsettings.json
         private const string STARTUP_LOG_NAME = "startup.log";
 
+        #region Taxo Store
+        private static void ConfigureTaxoStoreServices(IServiceCollection services,
+            IConfiguration config)
+        {
+            services.AddTaxoStoreServices(options =>
+            {
+                // get connection string
+                string? connectionString = config.GetConnectionString("TaxoStore");
+                if (string.IsNullOrEmpty(connectionString))
+                {
+                    throw new InvalidOperationException(
+                        "Connection string 'TaxoStore' not found.");
+                }
+                options.ConnectionString = connectionString;
+
+                // read auto-initialization flag
+                options.EnableAutoInitialization =
+                    config.GetValue("TaxoStore:EnableAutoInitialization", true);
+
+                // read initialization delay (useful for Docker/PostgreSQL startup)
+                options.InitializationDelaySeconds =
+                    config.GetValue("TaxoStore:InitializationDelaySeconds", 0);
+            });
+        }
+        #endregion
+
         private static void ConfigureAppServices(IServiceCollection services,
             IConfiguration config)
         {
@@ -58,6 +84,9 @@ namespace Cadmus.Api
             // index and graph
             ServiceConfigurator.ConfigureIndexServices(services, config);
             ServiceConfigurator.ConfigureGraphServices(services, config);
+
+            // taxostore
+            ConfigureTaxoStoreServices(services, config);
 
             // walker demo graph repository, only for demo in this app
             services.AddSingleton((_) =>
@@ -122,7 +151,7 @@ namespace Cadmus.Api
                 // controllers from Cadmus.Api.Controllers
                 builder.Services.AddControllers()
                     .AddApplicationPart(typeof(ItemController).Assembly)
-                    // taxonomies store
+                    // taxostore
                     .AddApplicationPart(typeof(TaxoTreeController).Assembly)
                     .AddControllersAsServices();
 

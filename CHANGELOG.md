@@ -1,5 +1,7 @@
 # History
 
+- 2026-07-13: configured `Cadmus.Api` demo for taxonomies store.
+
 ## 14.0.2
 
 - 2026-07-12:
