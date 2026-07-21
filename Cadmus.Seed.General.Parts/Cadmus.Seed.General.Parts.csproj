@@ -21,6 +21,10 @@
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
+	</ItemGroup>
+
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">
 		<ProjectReference Include="..\Cadmus.General.Parts\Cadmus.General.Parts.csproj" />
 		<ProjectReference Include="..\Cadmus.Seed\Cadmus.Seed.csproj" />

@@ -1,5 +1,8 @@
 # History
 
+- 2026-08-21:
+  - updated packages.
+  - added `<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />` to all library projects.
 - 2026-07-13: configured `Cadmus.Api` demo for taxonomies store.
 
 ## 14.0.2

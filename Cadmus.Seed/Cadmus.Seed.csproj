@@ -24,6 +24,7 @@
 	<ItemGroup>
 		<PackageReference Include="Bogus" />
 		<PackageReference Include="Fusi.Tools.Configuration" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">

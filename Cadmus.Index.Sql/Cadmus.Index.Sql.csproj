@@ -23,6 +23,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Fusi.DbManager" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 		<PackageReference Include="SqlKata.Execution" />
 	</ItemGroup>
 

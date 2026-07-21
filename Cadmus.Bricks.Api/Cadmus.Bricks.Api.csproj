@@ -20,6 +20,7 @@
 		<PackageReference Include="Fusi.DbManager.PgSql" />
 		<PackageReference Include="MessagingApi" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 		<PackageReference Include="Mol.Api.Controllers" />
 		<PackageReference Include="Mol.PgSql" />
 		<PackageReference Include="Mufi.Api.Controllers" />

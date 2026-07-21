@@ -24,6 +24,7 @@
 	<ItemGroup>
 		<PackageReference Include="Fusi.Xml.Extras" />
 		<PackageReference Include="JmesPath.Net" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 		<PackageReference Include="Proteus.Text.Xml" />
 	</ItemGroup>
 

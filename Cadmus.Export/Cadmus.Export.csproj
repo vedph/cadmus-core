@@ -42,6 +42,7 @@
 		<PackageReference Include="JmesPath.Net" />
 		<PackageReference Include="Markdig" />
 		<PackageReference Include="MongoDB.Bson" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 		<PackageReference Include="MongoDB.Driver" />
 		<PackageReference Include="Proteus.Core" />
 	</ItemGroup>

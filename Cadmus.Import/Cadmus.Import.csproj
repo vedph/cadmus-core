@@ -24,7 +24,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="CsvHelper" />
+		<PackageReference Include="CsvHelper" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">

@@ -38,7 +38,7 @@ namespace Cadmus.Api.Services
         #region Seeding
         static private Stream GetResourceStream(string name) =>
             typeof(WalkerDemoGraphController).Assembly.GetManifestResourceStream(
-            "CadmusApi.Assets." + name)!;
+            "Cadmus.Api.Assets." + name)!;
 
         private static void FillGraph(IGraphRepository repository)
         {
