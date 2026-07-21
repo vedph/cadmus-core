@@ -1,0 +1,162 @@
+{
+  "parts": {
+    "it.vedph.asserted-historical-dates": {
+      "thesauriIds": [
+        "asserted-historical-date-tags",
+        "doc-reference-types",
+        "doc-reference-tags"
+      ]
+    },
+    "it.vedph.bibliography": {
+      "thesauriIds": [
+        "bibliography-types",
+        "bibliography-tags",
+        "bibliography-author-roles",
+        "bibliography-languages"
+      ]
+    },
+    "it.vedph.categories": {
+      "thesauriIds": ["categories"]
+    },
+    "it.vedph.chronotopes": {
+      "thesauriIds": [
+        "chronotope-tags",
+        "assertion-tags",
+        "doc-reference-types",
+        "doc-reference-tags"
+      ]
+    },
+    "it.vedph.comment": {
+      "thesauriIds": [
+        "comment-tags",
+        "comment-id-scopes",
+        "asserted-id-features",
+        "comment-id-tags",
+        "assertion-tags",
+        "comment-categories",
+        "comment-keyword-languages",
+        "comment-keyword-indexes",
+        "comment-keyword-tags"
+      ]
+    },
+    "it.vedph.decorated-counts": {
+      "thesauriIds": ["decorated-count-ids", "decorated-count-tags"]
+    },
+    "it.vedph.district-location": {
+      "thesauriIds": ["district-name-languages", "district-name-piece-types"]
+    },
+    "it.vedph.doc-references": {
+      "thesauriIds": ["doc-reference-types", "doc-reference-tags"]
+    },
+    "it.vedph.ext-bibliography": {},
+    "it.vedph.external-ids": {
+      "thesauriIds": [
+        "external-id-tags",
+        "external-id-scopes",
+        "assertion-tags",
+        "doc-reference-types",
+        "doc-reference-tags"
+      ]
+    },
+    "it.vedph.flags": {
+      "thesauriIds": ["flags"]
+    },
+    "it.vedph.historical-date": {
+      "thesauriIds": ["doc-reference-types", "doc-reference-tags"]
+    },
+    "it.vedph.historical-events": {
+      "thesauriIds": [
+        "event-types",
+        "event-tags",
+        "chronotope-tags",
+        "assertion-tags",
+        "doc-reference-types",
+        "doc-reference-tags",
+        "event-relations",
+        "pin-link-scopes",
+        "pin-link-tags",
+        "assertion-tags"
+      ]
+    },
+    "it.vedph.index-keywords": {
+      "thesauriIds": ["languages", "keyword-indexes", "keyword-tags"]
+    },
+    "it.vedph.keywords": {
+      "thesauriIds": ["languages"]
+    },
+    "it.vedph.metadata": {
+      "thesauriIds": ["metadata-names", "metadata-types"]
+    },
+    "it.vedph.names": {
+      "thesauriIds": [
+        "name-languages",
+        "name-tags",
+        "name-piece-types",
+        "assertion-tags",
+        "doc-reference-types",
+        "doc-reference-tags"
+      ]
+    },
+    "it.vedph.note": {
+      "thesauriIds": ["note-tags"]
+    },
+    "it.vedph.physical-measurements": {
+      "thesauriIds": [
+        "physical-size-set-names",
+        "physical-size-dim-tags",
+        "physical-size-units"
+      ]
+    },
+    "it.vedph.physical-states": {
+      "thesauriIds": [
+        "physical-states",
+        "physical-state-features",
+        "physical-state-reporters"
+      ]
+    },
+    "it.vedph.pin-links": {
+      "thesauriIds": [
+        "pin-link-scopes",
+        "pin-link-tags",
+        "asserted-id-features",
+        "pin-link-assertion-tags",
+        "pin-link-docref-types",
+        "pin-link-docref-tags"
+      ]
+    },
+    "it.vedph.tiled-text-layer": {
+      "baseText": true
+    },
+    "it.vedph.token-text-layer": {
+      "baseText": true
+    }
+  },
+  "fragments": {
+    "fr.it.vedph.chronology": {
+      "thesauriIds": ["chronology-tags"]
+    },
+    "fr.it.vedph.comment": {
+      "thesauriIds": [
+        "comment-tags",
+        "comment-id-scopes",
+        "asserted-id-features",
+        "comment-id-tags",
+        "assertion-tags",
+        "comment-categories",
+        "comment-keyword-languages",
+        "comment-keyword-indexes",
+        "comment-keyword-tags"
+      ]
+    },
+    "fr.it.vedph.pin-links": {
+      "thesauriIds": [
+        "pin-link-scopes",
+        "pin-link-tags",
+        "asserted-id-features",
+        "pin-link-assertion-tags",
+        "pin-link-docref-types",
+        "pin-link-docref-tags"
+      ]
+    }
+  }
+}

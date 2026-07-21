@@ -1,0 +1,31 @@
+# Bibliography
+
+Bibliographic references in a bottom-up approach.
+
+🔑 `it.vedph.bibliography`
+
+- entries (`BibEntry[]`):
+  - key (`string`)
+  - typeId\* (`string`, 📚 `bibliography-types`): the type identifier for the entry and its container: e.g. book, journal article, book article, proceedings article, journal review, ebook, site, magazine, newspaper, tweet, TV series, etc. Usually the ID is drawn from a thesaurus.
+  - tag (`string` 📚 `bibliography-tags`)
+  - authors (`BibAuthor[]`): 1 or more authors, each having a first name, a last name, and an optional role ID. The role IDs are usually drawn from a thesaurus, and mostly used for contributors:
+    - firstName (`string`): first name.
+    - lastName* (`string`): last name.
+    - roleId (`string` 📚 `bibliography-author-roles`): role ID.
+  - title\* (`string`)
+  - language* (`string` 📚 `bibliography-languages`): the ISO 639-3 letters (primary) language code of the bibliographic entry.
+  - container (`string`): the optional container: a journal, a book, a collection of proceedings, etc.
+  - contributors (`BibAuthor[]`): 0 or more contributors, with the same properties of the authors. Usually they also have some role specified, e.g. "editor" for the editor of a book collecting a number of articles from different authors, "translator", "organization", etc.
+  - edition (`short`): the optional edition number. Default is 0.
+  - number (`string`): the optional alphanumeric number (e.g. for a journal).
+  - publisher (`string`): the optional publisher name.
+  - yearPub (`short`): the optional year of publication. Default is 0.
+  - placePub (`string`): the optional place of publication.
+  - location (`string`): the location identifier for the bibliographic item, e.g. an URL or a DOI.
+  - accessDate (`Date`): the optional last access date, typically used for web resources.
+  - firstPage (`short`)
+  - lastPage (`short`)
+  - keywords (`Keyword[]`): any number of optional keywords assigned to the entry, each with its language and value.
+    - language (`string`)
+    - value (`string`)
+  - note (`string`): an optional free text note.
