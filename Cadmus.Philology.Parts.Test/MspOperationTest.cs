@@ -1,4 +1,5 @@
-﻿using Fusi.Tools.Text;
+﻿/*
+using Fusi.Tools.Text;
 using System.Text;
 using Xunit;
 
@@ -445,3 +446,4 @@ public sealed class MspOperationTest
     }
     #endregion
 }
+*/

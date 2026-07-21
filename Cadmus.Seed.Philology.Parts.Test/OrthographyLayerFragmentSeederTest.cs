@@ -1,6 +1,7 @@
 ﻿using Cadmus.Core;
 using Cadmus.Core.Layers;
 using Cadmus.Philology.Parts;
+using Cadmus.Philology.Tools;
 using Cadmus.Seed.Parts.Test;
 using Fusi.Tools.Configuration;
 using System;
@@ -49,8 +50,9 @@ public sealed class OrthographyLayerFragmentSeederTest
         Assert.Equal("1.1", fr!.Location);
         Assert.NotNull(fr.Reference);
         Assert.Single(fr.Operations);
-        MspOperation? op = MspOperation.Parse(fr.Operations[0]);
-        Assert.Null(op!.Tag);
+        ReplaceEditOperation? op = new();
+        op.Parse(fr.Operations[0]);
+        Assert.Empty(op.Tags);
     }
 
     [Fact]
@@ -73,7 +75,8 @@ public sealed class OrthographyLayerFragmentSeederTest
         Assert.Equal("1.1", fr!.Location);
         Assert.NotNull(fr.Reference);
         Assert.Single(fr.Operations);
-        MspOperation? op = MspOperation.Parse(fr.Operations[0]);
-        Assert.NotNull(op!.Tag);
+        ReplaceEditOperation? op = new();
+        op.Parse(fr.Operations[0]);
+        Assert.NotEmpty(op.Tags);
     }
 }

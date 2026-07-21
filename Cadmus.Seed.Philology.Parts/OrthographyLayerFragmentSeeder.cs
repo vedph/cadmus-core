@@ -1,8 +1,8 @@
 ﻿using Cadmus.Core;
 using Cadmus.Core.Layers;
 using Cadmus.Philology.Parts;
+using Cadmus.Philology.Tools;
 using Fusi.Tools.Configuration;
-using Fusi.Tools.Text;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -74,14 +74,14 @@ public sealed class OrthographyLayerFragmentSeeder : FragmentSeederBase,
         string standard = ChangeLetterAt(baseText, i);
 
         // create operation
-        MspOperation op = new()
+        ReplaceEditOperation op = new()
         {
-            Operator = MspOperator.Replace,
-            RangeA = new TextRange(i, 1),
-            ValueA = new string(baseText[i], 1),
-            ValueB = new string(standard[i], 1),
-            Tag = _options?.Tags?.Count > 0
-                ? SeedHelper.RandomPickOneOf(_options.Tags) : null
+            At = i + 1,
+            Run = 1,
+            InputText = new string(baseText[i], 1),
+            ReplacementText = new string(standard[i], 1),
+            Tags = _options?.Tags?.Count > 0
+                ? [SeedHelper.RandomPickOneOf(_options.Tags)!] : []
         };
 
         OrthographyLayerFragment fragment = new()

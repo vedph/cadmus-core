@@ -1,8 +1,9 @@
 # History
 
-- 2026-08-21:
+- 2026-07-21:
   - updated packages.
   - added `<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />` to all library projects.
+  - commented out `MspOperation` and related code, and fixed orthography layer seeder which was still using it.
 - 2026-07-13: configured `Cadmus.Api` demo for taxonomies store.
 
 ## 14.0.2

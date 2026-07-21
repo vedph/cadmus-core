@@ -1,4 +1,5 @@
-﻿using DiffMatchPatch;
+﻿/*
+using DiffMatchPatch;
 using Fusi.Tools.Text;
 using System;
 using System.Collections.Generic;
@@ -182,3 +183,4 @@ public sealed class DifferResultToMspAdapter :
             .ToList();
     }
 }
+*/

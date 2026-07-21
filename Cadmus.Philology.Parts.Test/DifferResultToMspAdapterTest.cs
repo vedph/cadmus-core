@@ -1,4 +1,5 @@
-﻿using DiffMatchPatch;
+﻿/*
+using DiffMatchPatch;
 using Xunit;
 
 namespace Cadmus.Philology.Parts.Test;
@@ -321,3 +322,4 @@ public sealed class DifferResultToMspAdapterTest
         Assert.Equal("X", op.ValueA);
     }
 }
+*/

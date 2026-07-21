@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿/*
+using System.Collections.Generic;
 
 namespace Cadmus.Philology.Parts;
 
@@ -30,3 +31,4 @@ public interface IDiffResultToMspAdapter<TResult>
     /// <returns>zero or more misspelling operations</returns>
     IList<MspOperation> Adapt(TResult result);
 }
+*/

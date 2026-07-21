@@ -17,7 +17,7 @@ public sealed class ReplaceEditOperation : EditOperation
     /// <summary>
     /// Gets or sets the replacement text.
     /// </summary>
-    public string ReplacementText { get; set; } = string.Empty;
+    public string ReplacementText { get; set; } = "";
 
     /// <summary>
     /// Executes the operation on the given input text.
