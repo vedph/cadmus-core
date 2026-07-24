@@ -1,5 +1,9 @@
 # History
 
+- 2026-07-24:
+  - added options to `CadmusEntrySetContextPatcher`.
+  - updated packages.
+
 ## 15.0.0
 
 - 2026-07-21:
