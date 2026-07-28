@@ -47,7 +47,7 @@ public sealed class ItemGraphSourceAdapter : JsonGraphSourceAdapter,
     }
 
     /// <summary>
-    /// Adapt the source to the mapping process, eventually also setting
+    /// Adapt the source to the mapping process, possibly also setting
     /// <paramref name="filter" /> and <paramref name="metadata" />
     /// accordingly.
     /// </summary>

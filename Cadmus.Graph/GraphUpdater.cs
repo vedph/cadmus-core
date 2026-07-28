@@ -36,7 +36,8 @@ public class GraphUpdater
     /// <exception cref="ArgumentNullException">repository</exception>
     public GraphUpdater(IGraphRepository repository)
     {
-        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _repository = repository
+            ?? throw new ArgumentNullException(nameof(repository));
         _mapper = new JsonNodeMapper
         {
             IsMappingTracingEnabled = true,
@@ -134,8 +135,10 @@ public class GraphUpdater
         _mapper.Context = new GraphSource(item);
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
 
-        var df = _itemAdapter.Adapt(_mapper.Context, Metadata);
-        if (df.Item1 != null) Update(df.Item1, df.Item2);
+        (object? result, RunNodeMappingFilter filter) =
+            _itemAdapter.Adapt(_mapper.Context, Metadata);
+        
+        if (result != null) Update(result, filter);
     }
 
     /// <summary>
@@ -149,11 +152,18 @@ public class GraphUpdater
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(part);
 
+        // create the source
         _mapper.Context = new GraphSource(item, part);
+
+        // supply metadata if requested
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
 
-        var df = _partAdapter.Adapt(_mapper.Context, Metadata);
-        if (df.Item1 != null) Update(df.Item1, df.Item2);
+        // adapt the source to a data object and a filter
+        (object? result, RunNodeMappingFilter filter) =
+            _partAdapter.Adapt(_mapper.Context, Metadata);
+
+        // update the graph if we have a data object
+        if (result != null) Update(result, filter);
     }
 
     /// <summary>
@@ -169,9 +179,11 @@ public class GraphUpdater
         _mapper.Context = new GraphSource(item);
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
 
-        var df = _itemAdapter.Adapt(_mapper.Context, Metadata);
-        if (df.Item1 == null) return null;
-        return Explain(df.Item1, df.Item2);
+        (object? result, RunNodeMappingFilter filter) =
+            _itemAdapter.Adapt(_mapper.Context, Metadata);
+        if (result == null) return null;
+        
+        return Explain(result, filter);
     }
 
     /// <summary>
@@ -189,8 +201,10 @@ public class GraphUpdater
         _mapper.Context = new GraphSource(item, part);
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
 
-        var df = _partAdapter.Adapt(_mapper.Context, Metadata);
-        if (df.Item1 == null) return null;
-        return Explain(df.Item1, df.Item2);
+        (object? result, RunNodeMappingFilter filter) =
+            _partAdapter.Adapt(_mapper.Context, Metadata);
+        if (result == null) return null;
+
+        return Explain(result, filter);
     }
 }

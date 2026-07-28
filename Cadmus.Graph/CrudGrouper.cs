@@ -32,9 +32,9 @@ public sealed class CrudGrouper<T>
     /// </summary>
     public CrudGrouper()
     {
-        Added = new List<T>();
-        Updated = new List<T>();
-        Deleted = new List<T>();
+        Added = [];
+        Updated = [];
+        Deleted = [];
     }
 
     /// <summary>

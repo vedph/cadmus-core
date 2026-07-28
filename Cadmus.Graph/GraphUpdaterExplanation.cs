@@ -34,7 +34,7 @@ public sealed class GraphUpdaterExplanation
     public GraphUpdaterExplanation()
     {
         Filter = new RunNodeMappingFilter();
-        Mappings = new List<NodeMapping>();
+        Mappings = [];
         Metadata = new Dictionary<string, object>();
         Set = new();
     }

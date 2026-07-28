@@ -6,6 +6,8 @@ namespace Cadmus.Graph.Macros;
 
 /// <summary>
 /// Substring macro. This returns a substring of the received string.
+/// Arguments: 0=the string to substring; 1=the start index; 2=the length
+/// (optional).
 /// Tag: <c>node-mapping-macro.substring</c>.
 /// </summary>
 /// <seealso cref="INodeMappingMacro" />
@@ -16,8 +18,8 @@ public sealed class SubstringMacro : INodeMappingMacro
     /// Run the macro function.
     /// </summary>
     /// <param name="context">The data context of the macro function.</param>
-    /// <param name="args">The arguments: 0=the string to substring,
-    /// 1=the start index, 2=the length (optional).</param>
+    /// <param name="args">The arguments: 0=the string to substring;
+    /// 1=the start index; 2=the length (optional).</param>
     /// <returns>Result or null.</returns>
     /// <exception cref="ArgumentNullException">template</exception>
     public string? Run(GraphSource? context, string[]? args)

@@ -94,6 +94,6 @@ public sealed class JsonGraphPresetReader : IGraphPresetReader
         using StreamReader reader = new(stream, Encoding.UTF8);
         return JsonSerializer.Deserialize<IList<NodeMapping>>(
             reader.ReadToEnd(),
-            _options) ?? Array.Empty<NodeMapping>();
+            _options) ?? [];
     }
 }

@@ -77,7 +77,7 @@ public class MappedTriple
     /// </summary>
     /// <returns>
     /// A <see cref="string" /> that represents this instance, and can be
-    /// parsed with <see cref="MappedTriple.Parse(string?)"/>. A literal object
+    /// parsed with <see cref="Parse(string?)"/>. A literal object
     /// is granted to be wrapped in <c>""</c>, either it's followed by a language
     /// or type identifier or not. This produces objects like <c>"sample"</c>,
     /// <c>"sample"^^en</c>, or <c>"123"^^xs:int</c>.

@@ -16,7 +16,7 @@ public sealed class PartGraphSourceAdapter : JsonGraphSourceAdapter,
     public const string M_PART_ROLE_ID = "part-role-id";
 
     /// <summary>
-    /// Adapt the source to the mapping process, eventually also setting
+    /// Adapt the source to the mapping process, possibly also setting
     /// <paramref name="filter" /> and <paramref name="metadata" />
     /// accordingly.
     /// </summary>

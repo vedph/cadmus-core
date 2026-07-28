@@ -42,11 +42,10 @@ public abstract class JsonGraphSourceAdapter
     /// <param name="source">The source.</param>
     /// <param name="metadata">The target dictionary for metadata generated
     /// by the adapter.</param>
-    /// <returns>
-    /// The adaptation result, or null.
-    /// </returns>
+    /// <returns>The adaptation result (JSON code serialized from the adapted
+    /// object, plus the filter), or null.</returns>
     /// <exception cref="ArgumentNullException">source or metadata</exception>
-    public Tuple<object?, RunNodeMappingFilter> Adapt(
+    public (object? result, RunNodeMappingFilter filter) Adapt(
         GraphSource source, IDictionary<string, object> metadata)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -55,8 +54,6 @@ public abstract class JsonGraphSourceAdapter
         RunNodeMappingFilter filter = new();
         object? result = Adapt(source, filter, metadata);
 
-        return Tuple.Create(
-            (object?)JsonSerializer.Serialize(result, _options),
-            filter);
+        return (JsonSerializer.Serialize(result, _options), filter);
     }
 }

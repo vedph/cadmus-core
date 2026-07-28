@@ -5,6 +5,10 @@ using System.Collections.Generic;
 
 namespace Cadmus.Graph;
 
+/// <summary>
+/// Node mapper interface. A node mapper is responsible for mapping a source
+/// into a graph set, using a mapping definition.
+/// </summary>
 public interface INodeMapper : IHasDataDictionary
 {
     /// <summary>

@@ -470,8 +470,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         }
 
         nodes = nodes.OrderBy(n => n.Label!.ToLower()).ThenBy(n => n.Id);
-        List<EfNode> results = nodes.Skip(filter.GetSkipCount())
-            .Take(filter.PageSize).ToList();
+        List<EfNode> results = [.. nodes.Skip(filter.GetSkipCount()).Take(filter.PageSize)];
         return new DataPage<UriNode>(filter.PageNumber, filter.PageSize, total,
             results.Select(n => n.ToUriNode(n.UriEntry!.Uri)).ToArray());
     }
@@ -486,17 +485,16 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(ids);
 
         using CadmusGraphDbContext context = GetContext();
-        IList<EfNode> nodes = context.Nodes
+        IList<EfNode> nodes = [.. context.Nodes
             .Include(n => n.UriEntry)
             .Where(n => ids.Contains(n.Id))
-            .AsNoTracking()
-            .ToList();
+            .AsNoTracking()];
 
-        return ids.Select(id =>
+        return [.. ids.Select(id =>
         {
             EfNode? node = nodes.FirstOrDefault(n => n.Id == id);
             return node?.ToUriNode(node.UriEntry!.Uri);
-        }).ToList();
+        })];
     }
 
     /// <summary>
@@ -748,7 +746,7 @@ public abstract class EfGraphRepository : IUidBuilder,
                      .ThenBy(n => n.Id)
                      .Skip(filter.GetSkipCount()).Take(filter.PageSize);
 
-        List<EfNode> results = nodes.ToList();
+        List<EfNode> results = [.. nodes];
         return new DataPage<UriNode>(filter.PageNumber, filter.PageSize, total,
             results.ConvertAll(n => n.ToUriNode(n.UriEntry!.Uri)));
     }
@@ -903,7 +901,7 @@ public abstract class EfGraphRepository : IUidBuilder,
             .Skip(filter.GetSkipCount())
             .Take(filter.PageSize);
 
-        List<EfTriple> results = triples.ToList();
+        List<EfTriple> results = [.. triples];
         return new DataPage<UriTriple>(filter.PageNumber, filter.PageSize, total,
             results.ConvertAll(t => t.ToUriTriple()));
     }
@@ -953,7 +951,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         properties = properties.OrderBy(p => p.Node!.UriEntry!.Uri.ToLower())
             .Skip(filter.GetSkipCount()).Take(filter.PageSize);
 
-        List<EfProperty> results = properties.ToList();
+        List<EfProperty> results = [.. properties];
 
         return new DataPage<UriProperty>(filter.PageNumber, filter.PageSize,
             total, results.ConvertAll(p => p.ToUriProperty()));
@@ -1089,6 +1087,8 @@ public abstract class EfGraphRepository : IUidBuilder,
 
         if (!string.IsNullOrEmpty(filter.Name))
         {
+            // use ToLower() to get the right translation into SQL
+            // (PostgreSQL is case-sensitive, so we need to use lower() on both sides)
             mappings = mappings.Where(m =>
                 m.Name.ToLower().Contains(filter.Name.ToLower()));
         }
@@ -1137,10 +1137,10 @@ public abstract class EfGraphRepository : IUidBuilder,
             if (!string.IsNullOrEmpty(filter.Group))
             {
                 sb.Append("(group_filter IS NULL OR ")
-                  .Append(BuildRawRegexSql(new[]
-                    {
+                  .Append(BuildRawRegexSql(
+                    [
                         Tuple.Create("group_filter", (string?)filter.Group),
-                    }))
+                    ]))
                   .AppendLine(")");
             }
             if (!string.IsNullOrEmpty(filter.Title))
@@ -1148,10 +1148,10 @@ public abstract class EfGraphRepository : IUidBuilder,
                 if (!string.IsNullOrEmpty(filter.Group)) sb.AppendLine("AND");
 
                 sb.Append("(title_filter IS NULL OR ")
-                  .Append(BuildRawRegexSql(new[]
-                    {
+                  .Append(BuildRawRegexSql(
+                    [
                         Tuple.Create("title_filter", (string?)filter.Title),
-                    }))
+                    ]))
                   .AppendLine(")");
             }
 
@@ -1278,8 +1278,8 @@ public abstract class EfGraphRepository : IUidBuilder,
         mappings = mappings.OrderBy(m => m.Name.ToLower()).ThenBy(m => m.Id);
 
         List<EfMapping> results = filter.PageSize > 0
-            ? mappings.Skip(filter.GetSkipCount()).Take(filter.PageSize).ToList()
-            : mappings.Skip(filter.GetSkipCount()).ToList();
+            ? [.. mappings.Skip(filter.GetSkipCount()).Take(filter.PageSize)]
+            : [.. mappings.Skip(filter.GetSkipCount())];
 
         if (descendants)
         {
@@ -1505,11 +1505,10 @@ public abstract class EfGraphRepository : IUidBuilder,
 
         using CadmusGraphDbContext context = GetContext();
 
-        IList<EfMapping> mappings = GetFilteredMappings(filter, context)
-            .OrderBy(m => m.Ordinal)
-            .ToList();
+        IList<EfMapping> mappings = [.. GetFilteredMappings(filter, context)
+            .OrderBy(m => m.Ordinal)];
 
-        return mappings.Select(m => GetPopulatedMapping(m, context)).ToList();
+        return [.. mappings.Select(m => GetPopulatedMapping(m, context))];
     }
 
     private static JsonSerializerOptions GetMappingJsonSerializerOptions()
@@ -1602,7 +1601,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (filter.PageSize > 0) triples = triples.Take(filter.PageSize);
 
         return new DataPage<UriTriple>(filter.PageNumber, filter.PageSize,
-            total, triples.Select(t => t.ToUriTriple()).ToList());
+            total, [.. triples.Select(t => t.ToUriTriple())]);
     }
 
     /// <summary>
@@ -1873,8 +1872,7 @@ public abstract class EfGraphRepository : IUidBuilder,
             };
         }
 
-        List<TripleGroup> results = sortedGroups.Skip(filter.GetSkipCount())
-            .Take(filter.PageSize).ToList();
+        List<TripleGroup> results = [.. sortedGroups.Skip(filter.GetSkipCount()).Take(filter.PageSize)];
 
         return new DataPage<TripleGroup>(filter.PageNumber, filter.PageSize,
             total, results);
@@ -2055,21 +2053,19 @@ public abstract class EfGraphRepository : IUidBuilder,
         using CadmusGraphDbContext context = GetContext();
 
         // SID nodes
-        List<EfNode> nodes = context.Nodes.Include(n => n.UriEntry)
+        List<EfNode> nodes = [.. context.Nodes.Include(n => n.UriEntry)
             .AsNoTracking()
             .Where(n => n.Sid != null &&
-                        n.Sid.ToLower().StartsWith(sourceId.ToLower()))
-            .ToList();
+                        n.Sid.ToLower().StartsWith(sourceId.ToLower()))];
 
         // SID triples
-        List<EfTriple> triples = context.Triples
+        List<EfTriple> triples = [.. context.Triples
             .Include(t => t.Subject).ThenInclude(n => n!.UriEntry)
             .Include(t => t.Predicate).ThenInclude(n => n!.UriEntry)
             .Include(t => t.Object).ThenInclude(n => n!.UriEntry)
             .AsNoTracking()
             .Where(t => t.Sid != null &&
-                        t.Sid.ToLower().StartsWith(sourceId.ToLower()))
-            .ToList();
+                        t.Sid.ToLower().StartsWith(sourceId.ToLower()))];
 
         return new GraphSet(
             nodes.ConvertAll(n => n.ToUriNode()),
@@ -2110,7 +2106,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (string.IsNullOrEmpty(sourceId))
         {
             foreach (UriNode node in nodes) AddNode(node, true, false, context);
-            return nodes.Select(n => n.Id).ToList();
+            return [.. nodes.Select(n => n.Id)];
         }
 
         // get old set

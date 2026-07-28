@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace Cadmus.Graph;
 
+/// <summary>
+/// Base class for node filters, which are used to filter nodes in a graph query.
+/// </summary>
 public class NodeFilterBase : PagingOptions
 {
     /// <summary>

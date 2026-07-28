@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 
 namespace Cadmus.Graph;
 
@@ -30,8 +29,8 @@ public class NodeMappingDocument
     /// </summary>
     public NodeMappingDocument()
     {
-        NamedMappings = new();
-        DocumentMappings = new();
+        NamedMappings = [];
+        DocumentMappings = [];
     }
 
     private void ResolveNamedMappings(NodeMapping mapping)

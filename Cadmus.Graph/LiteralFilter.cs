@@ -2,6 +2,9 @@
 
 namespace Cadmus.Graph;
 
+/// <summary>
+/// A filter for object literals in a triple store.
+/// </summary>
 public class LiteralFilter : PagingOptions
 {
     /// <summary>

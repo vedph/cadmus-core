@@ -22,11 +22,19 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
     private string? _lastSid;
     private string? _lastSidSource;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonNodeMapper"/> class.
+    /// </summary>
     public JsonNodeMapper()
     {
         _jmes = new();
     }
 
+    /// <summary>
+    /// Resolves the specified data expression into a string.
+    /// </summary>
+    /// <param name="expression">The data expression.</param>
+    /// <returns>The resolved string.</returns>
     protected override string ResolveDataExpression(string expression)
     {
         if (_doc == null) return "";
@@ -293,6 +301,7 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
         // set source type once for all the descendants
         _sourceType = mapping.SourceType;
 
+        // apply mapping recursively
         ApplyMapping(null, json, mapping, target);
     }
 }

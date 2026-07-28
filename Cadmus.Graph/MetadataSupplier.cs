@@ -20,7 +20,7 @@ public class MetadataSupplier
     /// </summary>
     public MetadataSupplier()
     {
-        _sources = new List<IMetadataSource>();
+        _sources = [];
     }
 
     /// <summary>

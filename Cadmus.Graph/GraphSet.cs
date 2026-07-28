@@ -25,8 +25,8 @@ public class GraphSet
     /// </summary>
     public GraphSet()
     {
-        Nodes = new List<UriNode>();
-        Triples = new List<UriTriple>();
+        Nodes = [];
+        Triples = [];
     }
 
     /// <summary>
@@ -86,13 +86,13 @@ public class GraphSet
     /// <returns>Dictionary.</returns>
     public IDictionary<string, IList<UriNode>> GetNodesByGuid()
     {
-        Dictionary<string, IList<UriNode>> dct = new();
+        Dictionary<string, IList<UriNode>> dct = [];
 
         foreach (UriNode node in Nodes)
         {
             string key = node.Sid != null? node.Sid[..36] : "";
 
-            if (!dct.ContainsKey(key)) dct[key] = new List<UriNode>();
+            if (!dct.ContainsKey(key)) dct[key] = [];
             dct[key].Add(node);
         }
         return dct;
@@ -106,13 +106,13 @@ public class GraphSet
     /// <returns>Dictionary.</returns>
     public IDictionary<string, IList<UriTriple>> GetTriplesByGuid()
     {
-        Dictionary<string, IList<UriTriple>> dct = new();
+        Dictionary<string, IList<UriTriple>> dct = [];
 
         foreach (UriTriple triple in Triples)
         {
             string key = triple.Sid != null? triple.Sid[..36] : "";
 
-            if (!dct.ContainsKey(key)) dct[key] = new List<UriTriple>();
+            if (!dct.ContainsKey(key)) dct[key] = [];
             dct[key].Add(triple);
         }
         return dct;

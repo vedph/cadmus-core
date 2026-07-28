@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace Cadmus.Graph;
 
 /// <summary>
-/// The nodes graph repository in the index.
+/// Nodes graph repository.
 /// </summary>
 public interface IGraphRepository : IUidBuilder, IMappingRepository
 {

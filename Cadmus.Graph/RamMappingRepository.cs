@@ -113,7 +113,7 @@ public class RamMappingRepository : IMappingRepository
         {
             return new DataPage<NodeMapping>(
                 filter.PageNumber, filter.PageSize, 0,
-                Array.Empty<NodeMapping>());
+                []);
         }
 
         mappings = mappings.OrderBy(m => m.Name).ThenBy(m => m.Id)
@@ -121,7 +121,7 @@ public class RamMappingRepository : IMappingRepository
             .Take(filter.PageSize == 0? total : filter.PageSize);
 
         return new DataPage<NodeMapping>(filter.PageNumber,
-            filter.PageSize, total, mappings.ToList());
+            filter.PageSize, total, [.. mappings]);
     }
 
     /// <summary>
