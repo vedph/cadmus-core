@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using Xunit;
 
 namespace Cadmus.Graph.Test;
@@ -92,5 +93,68 @@ public sealed class TemplateTreeTest
         string result = tree.Resolve(MockResolver);
 
         Assert.Equal("{literal}", result);
+    }
+
+    [Fact]
+    public void Create_Null_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => TemplateTree.Create(null!));
+    }
+
+    [Fact]
+    public void Create_NoBraces_IsLiteralFastPath()
+    {
+        const string template = "just a literal string";
+
+        TemplateTree tree = TemplateTree.Create(template);
+        string result = tree.Resolve(MockResolver);
+
+        Assert.Equal(template, result);
+    }
+
+    [Fact]
+    public void Create_TrailingLoneOpenBrace_IsLiteral()
+    {
+        const string template = "abc{";
+
+        TemplateTree tree = TemplateTree.Create(template);
+        string result = tree.Resolve(MockResolver);
+
+        Assert.Equal("abc{", result);
+    }
+
+    [Fact]
+    public void Create_LoneCloseBrace_IsLiteral()
+    {
+        const string template = "abc}def";
+
+        TemplateTree tree = TemplateTree.Create(template);
+        string result = tree.Resolve(MockResolver);
+
+        Assert.Equal("abc}def", result);
+    }
+
+    [Fact]
+    public void Create_InvalidPlaceholderType_Throws()
+    {
+        const string template = "{Xinvalid}";
+
+        Assert.Throws<CadmusGraphException>(() => TemplateTree.Create(template));
+    }
+
+    [Fact]
+    public void Create_UnclosedBrace_Throws()
+    {
+        const string template = "{$unclosed";
+
+        Assert.Throws<CadmusGraphException>(() => TemplateTree.Create(template));
+    }
+
+    [Fact]
+    public void Resolve_NullResolver_Throws()
+    {
+        TemplateTree tree = TemplateTree.Create("literal");
+
+        Assert.Throws<ArgumentNullException>(() => tree.Resolve(null!));
     }
 }

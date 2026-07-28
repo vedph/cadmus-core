@@ -1,6 +1,8 @@
 # History
 
-- 2026-07-28: more documentation and code modernization for `Cadmus.Graph*` projects.
+- 2026-07-28:
+  - more documentation, code modernization and full code revision for `Cadmus.Graph*` projects.
+  - more tests for `Cadmus.Graph*` projects.
 - 2026-07-24:
   - added options to `CadmusEntrySetContextPatcher`.
   - updated packages.
