@@ -68,4 +68,29 @@ public sealed class TemplateTreeTest
 
         Assert.Equal("AbcdEfG", result);
     }
+
+    [Fact]
+    public void Create_LoneBackslash_DoesNotHang()
+    {
+        // a backslash not followed by { or } is not an escape sequence:
+        // it must be treated as a literal character rather than stalling
+        // the parser (regression test for an infinite loop)
+        const string template = @"C:\path\to\file{$X}";
+        TemplateTree tree = TemplateTree.Create(template);
+
+        string result = tree.Resolve(MockResolver);
+
+        Assert.Equal(@"C:\path\to\filex", result);
+    }
+
+    [Fact]
+    public void Create_EscapedBraces_Ok()
+    {
+        const string template = @"\{literal\}";
+        TemplateTree tree = TemplateTree.Create(template);
+
+        string result = tree.Resolve(MockResolver);
+
+        Assert.Equal("{literal}", result);
+    }
 }

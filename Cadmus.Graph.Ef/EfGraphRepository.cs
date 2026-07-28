@@ -380,7 +380,8 @@ public abstract class EfGraphRepository : IUidBuilder,
             nodes = filter.IsSidPrefix
                 ? nodes.Where(n => n.Sid != null &&
                     n.Sid.ToLower().StartsWith(filter.Sid.ToLower()))
-                : nodes.Where(n => n.Sid == filter.Sid);
+                : nodes.Where(n => n.Sid != null &&
+                    n.Sid.ToLower() == filter.Sid.ToLower());
         }
 
         // class IDs
@@ -389,7 +390,7 @@ public abstract class EfGraphRepository : IUidBuilder,
             // nodes with any of the specified class IDs
             nodes = nodes.Where(n =>
                 n.Classes != null && n.Classes.Count > 0 &&
-                n.Classes!.Any(c => filter.ClassIds.Contains(c.Id)));
+                n.Classes!.Any(c => filter.ClassIds.Contains(c.ClassId)));
         }
 
         return nodes;
@@ -408,7 +409,7 @@ public abstract class EfGraphRepository : IUidBuilder,
 
         using CadmusGraphDbContext context = GetContext();
         IQueryable<EfNode> nodes = filter.LinkedNodeId > 0
-            ? filter.LinkedNodeId switch
+            ? char.ToUpperInvariant(filter.LinkedNodeRole) switch
             {
                 'S' => context.Nodes
                     .Include(n => n.UriEntry)
@@ -535,10 +536,8 @@ public abstract class EfGraphRepository : IUidBuilder,
         return GetNodeByUri(uri, context);
     }
 
-    private (int A, int Sub) GetASubIds()
+    private static (int A, int Sub) GetASubIds(CadmusGraphDbContext context)
     {
-        using CadmusGraphDbContext context = GetContext();
-
         // a
         EfNode? a = context.Nodes.Include(n => n.UriEntry)
             .AsNoTracking()
@@ -603,7 +602,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (updateClasses)
         {
             context.SaveChanges();
-            (int aId, int subId) = GetASubIds();
+            (int aId, int subId) = GetASubIds(context);
             UpdateNodeClasses(node.Id, aId, subId, context);
         }
 
@@ -643,7 +642,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(nodes);
 
         using CadmusGraphDbContext context = GetContext();
-        (int aId, int subId) = GetASubIds();
+        (int aId, int subId) = GetASubIds(context);
         foreach (UriNode node in nodes.Where(n => n.Uri != null))
         {
             string? nodeUri = node.Uri?.ToLower();
@@ -656,6 +655,11 @@ public abstract class EfGraphRepository : IUidBuilder,
                     Uri = node.Uri!
                 };
                 context.UriEntries.Add(uri);
+                // flush immediately so that a later duplicate URI in the
+                // same batch is recognized as already existing, instead of
+                // being added again (which would violate the uri_lookup
+                // uniqueness constraint)
+                context.SaveChanges();
             }
             context.Nodes.Add(new EfNode
             {
@@ -1774,12 +1778,12 @@ public abstract class EfGraphRepository : IUidBuilder,
         // update classes for nodes
         if (nodeIds.Count > 0)
         {
-            (int aId, int subId) = GetASubIds();
+            (int aId, int subId) = GetASubIds(context);
             foreach (int id in nodeIds) UpdateNodeClasses(id, aId, subId, context);
         }
     }
 
-    private void DeleteTriple(int id, CadmusGraphDbContext context)
+    private static void DeleteTriple(int id, CadmusGraphDbContext context)
     {
         EfTriple? triple = context.Triples.Find(id);
         if (triple == null) return;
@@ -1789,7 +1793,7 @@ public abstract class EfGraphRepository : IUidBuilder,
 
         if (triple.ObjectId != null)
         {
-            (int aId, int subId) = GetASubIds();
+            (int aId, int subId) = GetASubIds(context);
             UpdateNodeClasses(triple.ObjectId.Value, aId, subId, context);
         }
     }
@@ -1984,7 +1988,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         // update classes for nodes
         if (nodeIds.Count > 0)
         {
-            (int aId, int subId) = GetASubIds();
+            (int aId, int subId) = GetASubIds(context);
             foreach (int id in nodeIds) UpdateNodeClasses(id, aId, subId, context);
         }
     }
@@ -1999,9 +2003,8 @@ public abstract class EfGraphRepository : IUidBuilder,
     public Task UpdateNodeClassesAsync(CancellationToken cancel,
         IProgress<ProgressReport>? progress = null)
     {
-        (int aId, int subId) = GetASubIds();
-
         using CadmusGraphDbContext context = GetContext();
+        (int aId, int subId) = GetASubIds(context);
 
         // get total nodes to go
         int total = context.Nodes.Count(n => !n.IsClass);
@@ -2322,7 +2325,7 @@ public abstract class EfGraphRepository : IUidBuilder,
 
             // node classes
             Debug.WriteLine("Updating node classes");
-            (int aId, int subId) = GetASubIds();
+            (int aId, int subId) = GetASubIds(context);
             foreach (int nodeId in nodeIds)
             {
                 UpdateNodeClasses(nodeId, aId, subId, context);

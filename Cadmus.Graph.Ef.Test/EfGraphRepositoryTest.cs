@@ -555,6 +555,81 @@ public abstract class EfGraphRepositoryTest
         Assert.Empty(page.Items);
     }
 
+    protected void DoGetNodes_ByClassIds_Ok()
+    {
+        Reset();
+        IGraphRepository repository = GetRepository();
+        // classes
+        Node animal = new()
+        {
+            Id = repository.AddUri("x:animal"),
+            Label = "animal",
+            IsClass = true
+        };
+        repository.AddNode(animal);
+        Node plant = new()
+        {
+            Id = repository.AddUri("x:plant"),
+            Label = "plant",
+            IsClass = true
+        };
+        repository.AddNode(plant);
+        Node a = new()
+        {
+            Id = repository.AddUri("rdf:type"),
+            Label = "a",
+            Tag = Node.TAG_PROPERTY
+        };
+        repository.AddNode(a);
+        // instances
+        Node argos = new()
+        {
+            Id = repository.AddUri("x:dogs/argos"),
+            Label = "Argos"
+        };
+        repository.AddNode(argos);
+        repository.AddTriple(new Triple
+        {
+            SubjectId = argos.Id,
+            PredicateId = a.Id,
+            ObjectId = animal.Id
+        });
+        Node rose = new()
+        {
+            Id = repository.AddUri("x:flowers/rose"),
+            Label = "Rose"
+        };
+        repository.AddNode(rose);
+        repository.AddTriple(new Triple
+        {
+            SubjectId = rose.Id,
+            PredicateId = a.Id,
+            ObjectId = plant.Id
+        });
+        // re-add to trigger class propagation now that the "a" triples exist
+        repository.AddNode(argos);
+        repository.AddNode(rose);
+
+        DataPage<UriNode> page = repository.GetNodes(new NodeFilter
+        {
+            ClassIds = [animal.Id]
+        });
+        Assert.Equal(1, page.Total);
+        Assert.Single(page.Items);
+        Assert.Equal("Argos", page.Items[0].Label);
+
+        // cross-check with the other class: this catches a filter that
+        // matches by coincidence (e.g. against the node_class row's own
+        // PK) rather than by the actual class node ID
+        page = repository.GetNodes(new NodeFilter
+        {
+            ClassIds = [plant.Id]
+        });
+        Assert.Equal(1, page.Total);
+        Assert.Single(page.Items);
+        Assert.Equal("Rose", page.Items[0].Label);
+    }
+
     protected void DoDeleteNode_NotExisting_Nope()
     {
         Reset();

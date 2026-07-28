@@ -74,8 +74,13 @@ public static class TripleObjectSupplier
             case "xs:unsignedLong":
             case "xsd:unsignedLong":
                 if (triple.LiteralNumber != null) return true;
-                triple.LiteralNumber = Convert.ToDouble(triple.ObjectLiteral,
-                    CultureInfo.InvariantCulture);
+                // a malformed numeric literal must not throw
+                if (double.TryParse(triple.ObjectLiteral,
+                    NumberStyles.Float | NumberStyles.AllowThousands,
+                    CultureInfo.InvariantCulture, out double n))
+                {
+                    triple.LiteralNumber = n;
+                }
                 return true;
             default:
                 return false;

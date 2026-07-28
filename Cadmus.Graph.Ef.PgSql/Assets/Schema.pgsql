@@ -4,7 +4,10 @@ CREATE TABLE namespace_lookup (
 	uri varchar(500) NOT NULL,
 	CONSTRAINT namespace_lookup_pk PRIMARY KEY (id)
 );
-CREATE INDEX namespace_lookup_uri_idx ON namespace_lookup USING btree (uri);
+-- lookups are always performed case-insensitively (see EfGraphRepository),
+-- so index the lower() expression rather than the raw column
+CREATE INDEX namespace_lookup_id_lower_idx ON namespace_lookup (lower(id));
+CREATE INDEX namespace_lookup_uri_lower_idx ON namespace_lookup (lower(uri));
 
 -- uri_lookup
 CREATE TABLE uri_lookup (
@@ -12,7 +15,11 @@ CREATE TABLE uri_lookup (
 	uri varchar(500) NOT NULL,
 	CONSTRAINT uri_lookup_pk PRIMARY KEY (id)
 );
-CREATE INDEX uri_lookup_uri_idx ON uri_lookup USING btree (uri);
+-- unique + case-insensitive: this is the hottest lookup in the whole graph
+-- (every node/triple add resolves its URI here), and URIs are always
+-- compared case-insensitively; the unique constraint also prevents
+-- duplicate URI rows from being created under concurrent inserts
+CREATE UNIQUE INDEX uri_lookup_uri_lower_idx ON uri_lookup (lower(uri));
 
 -- uid_lookup
 CREATE TABLE uid_lookup (
@@ -22,7 +29,9 @@ CREATE TABLE uid_lookup (
 	has_suffix boolean NOT NULL,
 	CONSTRAINT uid_lookup_pk PRIMARY KEY (id)
 );
-CREATE INDEX uid_lookup_unsuffixed_idx ON uid_lookup USING btree (unsuffixed);
+-- not unique: by design several rows can share the same unsuffixed value
+-- (that's how suffix clashes are resolved), but lookups are case-insensitive
+CREATE INDEX uid_lookup_unsuffixed_lower_idx ON uid_lookup (lower(unsuffixed));
 
 -- node
 CREATE TABLE node (
@@ -36,6 +45,12 @@ CREATE TABLE node (
 );
 -- node foreign keys
 ALTER TABLE node ADD CONSTRAINT node_fk FOREIGN KEY (id) REFERENCES uri_lookup(id) ON DELETE CASCADE ON UPDATE CASCADE;
+-- SID lookups (GetGraphSet/DeleteGraphSet/GetNodes) are case-insensitive
+-- exact or prefix matches: varchar_pattern_ops also supports LIKE 'x%'
+-- regardless of locale; partial index since most nodes needing this lookup
+-- have a non-null sid
+CREATE INDEX node_sid_lower_idx ON node (lower(sid) varchar_pattern_ops)
+	WHERE sid IS NOT NULL;
 
 -- node_class
 CREATE TABLE node_class (
@@ -48,6 +63,9 @@ CREATE TABLE node_class (
 -- node_class foreign keys
 ALTER TABLE node_class ADD CONSTRAINT node_class_fk FOREIGN KEY (node_id) REFERENCES node(id) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE node_class ADD CONSTRAINT node_class_fk_1 FOREIGN KEY (class_id) REFERENCES node(id) ON DELETE CASCADE ON UPDATE CASCADE;
+-- covers both the node_id join (GetNodes by ClassIds) and the class_id
+-- membership check in the same index
+CREATE INDEX node_class_node_id_class_id_idx ON node_class (node_id, class_id);
 
 -- property
 CREATE TABLE property (
@@ -76,7 +94,18 @@ CREATE TABLE triple (
 	CONSTRAINT triple_pk PRIMARY KEY (id)
 );
 CREATE INDEX triple_o_lit_ix_idx ON triple USING btree (o_lit_ix);
-CREATE INDEX triple_sid_idx ON triple USING btree (sid);
+-- SID lookups are always case-insensitive (exact or prefix), unlike the
+-- above raw-column index which no query can ever use
+CREATE INDEX triple_sid_lower_idx ON triple (lower(sid) varchar_pattern_ops)
+	WHERE sid IS NOT NULL;
+-- s_id/p_id/o_id are FK columns: Postgres does NOT auto-index them, yet
+-- they are the columns used to join/filter triples in virtually every
+-- graph query (GetLinkedNodes, GetTripleGroups, FindTripleByValue) and,
+-- most critically, in the populate_node_class procedure below, which is
+-- invoked once per touched node on every single graph update
+CREATE INDEX triple_s_id_p_id_idx ON triple (s_id, p_id);
+CREATE INDEX triple_p_id_idx ON triple (p_id);
+CREATE INDEX triple_o_id_idx ON triple (o_id);
 -- triple foreign keys
 ALTER TABLE triple ADD CONSTRAINT triple_fk FOREIGN KEY (s_id) REFERENCES node(id) ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE triple ADD CONSTRAINT triple_fk_1 FOREIGN KEY (p_id) REFERENCES node(id) ON DELETE CASCADE ON UPDATE CASCADE;
@@ -102,6 +131,7 @@ CREATE TABLE "mapping" (
 );
 CREATE INDEX mapping_facet_filter_idx ON mapping USING btree (facet_filter);
 CREATE INDEX mapping_name_idx ON mapping USING btree (name);
+CREATE INDEX mapping_source_type_idx ON mapping USING btree (source_type);
 
 -- mapping_link
 CREATE TABLE mapping_link (
@@ -207,6 +237,12 @@ INSERT INTO node(id, is_class, label, tag, source_type, sid) VALUES(15, false, '
 CREATE OR REPLACE PROCEDURE populate_node_class(instance_id integer, a_id integer, sub_id integer)
  LANGUAGE sql
 AS $function$
+    -- remove any classes previously computed for this node: without this,
+    -- node_class would only ever grow (once per node update) and could
+    -- keep stale class assignments around after the node's class
+    -- hierarchy changes
+    DELETE FROM node_class WHERE node_id = instance_id;
+
     INSERT INTO node_class(node_id, class_id, "level")
     (WITH RECURSIVE cn AS (
         -- ANCHOR

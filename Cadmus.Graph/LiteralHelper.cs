@@ -89,9 +89,14 @@ public static partial class LiteralHelper
                     case "xsd:unsignedInt":
                     case "xs:unsignedLong":
                     case "xsd:unsignedLong":
-                        triple.LiteralNumber =
-                            Convert.ToDouble(triple.ObjectLiteral,
-                                             CultureInfo.InvariantCulture);
+                        // a malformed numeric literal must not abort the
+                        // whole mapping/import process
+                        if (double.TryParse(triple.ObjectLiteral,
+                            NumberStyles.Float | NumberStyles.AllowThousands,
+                            CultureInfo.InvariantCulture, out double n))
+                        {
+                            triple.LiteralNumber = n;
+                        }
                         break;
                 }
             }

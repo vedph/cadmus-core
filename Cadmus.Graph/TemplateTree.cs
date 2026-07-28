@@ -86,6 +86,12 @@ public sealed class TemplateTree
                         sb.Append(template[i + 1]);
                         i += 2;
                     }
+                    else
+                    {
+                        // not an escape: treat backslash as a literal char
+                        sb.Append(template[i]);
+                        i++;
+                    }
                     break;
 
                 case '{':

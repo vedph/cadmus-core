@@ -138,6 +138,9 @@ public sealed class EfPgSqlGraphRepositoryTest : EfGraphRepositoryTest
 
     [Fact]
     public void GetLinkedNodes_Ok() => DoGetLinkedNodes_Ok();
+
+    [Fact]
+    public void GetNodes_ByClassIds_Ok() => DoGetNodes_ByClassIds_Ok();
     #endregion
 
     #region Property
