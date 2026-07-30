@@ -1,4 +1,4 @@
-﻿using Cadmus.Core.Config;
+using Cadmus.Core.Config;
 using Fusi.Tools;
 using Fusi.Tools.Data;
 using Microsoft.Extensions.Caching.Memory;
@@ -93,8 +93,8 @@ internal class MockGraphRepository : RamMappingRepository, IGraphRepository
         throw new NotImplementedException();
     }
 
-    private static IQueryable<NodeMapping> ApplyNodeMappingFilter(
-        RunNodeMappingFilter filter, IQueryable<NodeMapping> mappings)
+    private static IQueryable<GraphNodeMapping> ApplyNodeMappingFilter(
+        RunNodeMappingFilter filter, IQueryable<GraphNodeMapping> mappings)
     {
         // (in our RAM list all the mappings are top-level, so no parent ID
         // filtering is required)
@@ -146,9 +146,9 @@ internal class MockGraphRepository : RamMappingRepository, IGraphRepository
         return mappings;
     }
 
-    public IList<NodeMapping> FindMappings(RunNodeMappingFilter filter)
+    public IList<GraphNodeMapping> FindMappings(RunNodeMappingFilter filter)
     {
-        return new List<NodeMapping>(
+        return new List<GraphNodeMapping>(
             ApplyNodeMappingFilter(filter, Mappings.AsQueryable()));
     }
 

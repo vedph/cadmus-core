@@ -19,7 +19,7 @@ public sealed class JsonNodeMapperTest
     //    "{ \"id\": \"b\", \"value\": \"blue\" } ], " +
     //    "\"size\": { \"w\": 21, \"h\": 29.7 } } ";
 
-    private static IList<NodeMapping> LoadMappings(string name)
+    private static IList<GraphNodeMapping> LoadMappings(string name)
     {
         using StreamReader reader = new(TestHelper.GetResourceStream(name),
             Encoding.UTF8);
@@ -32,8 +32,8 @@ public sealed class JsonNodeMapperTest
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
 
-        return JsonSerializer.Deserialize<IList<NodeMapping>>(reader.ReadToEnd(),
-            options) ?? Array.Empty<NodeMapping>();
+        return JsonSerializer.Deserialize<IList<GraphNodeMapping>>(reader.ReadToEnd(),
+            options) ?? Array.Empty<GraphNodeMapping>();
     }
 
     private static void ResetMapperMetadata(INodeMapper mapper)
@@ -64,11 +64,11 @@ public sealed class JsonNodeMapperTest
         //r = jmes.Transform(_json, "x");
         // @@
 
-        NodeMapping mapping = LoadMappings("Mappings.json")
+        GraphNodeMapping mapping = LoadMappings("Mappings.json")
             .First(m => m.Name == "birth event");
         GraphSet set = new();
 
-        JsonNodeMapper mapper = new();
+        JsonGraphNodeMapper mapper = new();
         ResetMapperMetadata(mapper);
         string json = TestHelper.LoadResourceText("Events.json");
         mapper.Map(json, mapping, set);
@@ -97,7 +97,7 @@ public sealed class JsonNodeMapperTest
             P = "rdf:type",
             O = "itn:works/{@value}"
         });
-        NodeMapping mapping = new()
+        GraphNodeMapping mapping = new()
         {
             Name = "work",
             SourceType = 2,
@@ -108,7 +108,7 @@ public sealed class JsonNodeMapperTest
             Output = output
         };
         GraphSet set = new();
-        JsonNodeMapper mapper = new();
+        JsonGraphNodeMapper mapper = new();
         ResetMapperMetadata(mapper);
         const string json = "{\"metadata\": [{\"name\": \"eid\", \"value\":\"x\"}]}";
 

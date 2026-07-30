@@ -3,7 +3,7 @@
 namespace Cadmus.Graph;
 
 /// <summary>
-/// A filter for <see cref="NodeMapping"/>.
+/// A filter for <see cref="GraphNodeMapping"/>.
 /// </summary>
 public class NodeMappingFilter : PagingOptions
 {

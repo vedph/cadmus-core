@@ -1,4 +1,4 @@
-﻿using Cadmus.Core.Config;
+using Cadmus.Core.Config;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -32,11 +32,11 @@ public sealed class JsonGraphPresetReaderTest
     {
         JsonGraphPresetReader reader = new();
 
-        IList<NodeMapping> mappings = reader.LoadMappings(
+        IList<GraphNodeMapping> mappings = reader.LoadMappings(
             GetResourceStream("Mappings.json"));
 
         Assert.Equal(2, mappings.Count);
-        foreach (NodeMapping mapping in mappings)
+        foreach (GraphNodeMapping mapping in mappings)
         {
             Assert.NotNull(mapping.Output);
             Assert.True(mapping.HasChildren);

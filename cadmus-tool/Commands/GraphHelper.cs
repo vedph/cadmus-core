@@ -1,4 +1,4 @@
-﻿using Cadmus.Cli.Services;
+using Cadmus.Cli.Services;
 using Cadmus.Graph;
 using Cadmus.Graph.Ef;
 using Cadmus.Graph.Ef.PgSql;
@@ -21,9 +21,9 @@ internal static class GraphHelper
         return reader.ReadToEnd();
     }
 
-    public static IList<NodeMapping> ParseMappings(string json)
+    public static IList<GraphNodeMapping> ParseMappings(string json)
     {
-        List<NodeMapping> mappings = [];
+        List<GraphNodeMapping> mappings = [];
         JsonSerializerOptions options = new()
         {
             AllowTrailingCommas = true,
@@ -32,14 +32,14 @@ internal static class GraphHelper
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
 
-        mappings.AddRange(JsonSerializer.Deserialize<IList<NodeMapping>>(
+        mappings.AddRange(JsonSerializer.Deserialize<IList<GraphNodeMapping>>(
             json ?? "{}",
-            options) ?? Array.Empty<NodeMapping>());
+            options) ?? Array.Empty<GraphNodeMapping>());
 
         return mappings;
     }
 
-    public static IList<NodeMapping> LoadMappings(string path)
+    public static IList<GraphNodeMapping> LoadMappings(string path)
     {
         return ParseMappings(LoadText(path));
     }

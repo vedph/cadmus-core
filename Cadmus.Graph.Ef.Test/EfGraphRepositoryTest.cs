@@ -1438,11 +1438,11 @@ public abstract class EfGraphRepositoryTest
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
             repository.AddMapping(mapping);
 
         // root mappings
-        DataPage<NodeMapping> page = repository.GetMappings(new NodeMappingFilter
+        DataPage<GraphNodeMapping> page = repository.GetMappings(new NodeMappingFilter
         {
             PageSize = 30
         }, true);
@@ -1457,8 +1457,8 @@ public abstract class EfGraphRepositoryTest
         Assert.Equal(2, page.Total);
     }
 
-    private static void AssertMappingsEqual(NodeMapping expected,
-        NodeMapping actual, bool output, bool children)
+    private static void AssertMappingsEqual(GraphNodeMapping expected,
+        GraphNodeMapping actual, bool output, bool children)
     {
         Assert.Equal(expected.Id, actual.Id);
         Assert.Equal(expected.ParentId, actual.ParentId);
@@ -1496,19 +1496,19 @@ public abstract class EfGraphRepositoryTest
             {
                 for (int i = 0; i < expected.Children.Count; i++)
                 {
-                    AssertMappingsEqual(expected.Children[i], actual.Children[i],
-                        output, true);
+                    AssertMappingsEqual((GraphNodeMapping)expected.Children[i],
+                        (GraphNodeMapping)actual.Children[i], output, true);
                 }
             }
         }
     }
 
-    private static IList<NodeMapping> GetMappings(int count)
+    private static IList<GraphNodeMapping> GetMappings(int count)
     {
-        List<NodeMapping> mappings = new(count);
+        List<GraphNodeMapping> mappings = new(count);
         for (int n = 1; n <= count; n++)
         {
-            NodeMapping mapping = new()
+            GraphNodeMapping mapping = new()
             {
                 Ordinal = n,
                 SourceType = Node.SOURCE_ITEM,
@@ -1554,11 +1554,11 @@ public abstract class EfGraphRepositoryTest
         IGraphRepository repository = GetRepository();
 
         // item mapping
-        NodeMapping mapping = GetMappings(1)[0];
+        GraphNodeMapping mapping = GetMappings(1)[0];
         repository.AddMapping(mapping);
 
         Assert.True(mapping.Id > 0);
-        NodeMapping? mapping2 = repository.GetMapping(mapping.Id);
+        GraphNodeMapping? mapping2 = repository.GetMapping(mapping.Id);
         Assert.NotNull(mapping2);
         AssertMappingsEqual(mapping, mapping2!, true, true);
     }
@@ -1569,7 +1569,7 @@ public abstract class EfGraphRepositoryTest
         IGraphRepository repository = GetRepository();
 
         // item mapping
-        NodeMapping mapping = new()
+        GraphNodeMapping mapping = new()
         {
             FacetFilter = "person",
             Name = "Item",
@@ -1581,7 +1581,7 @@ public abstract class EfGraphRepositoryTest
         mapping.Description = "Updated!";
         repository.AddMapping(mapping);
 
-        NodeMapping? mapping2 = repository.GetMapping(mapping.Id);
+        GraphNodeMapping? mapping2 = repository.GetMapping(mapping.Id);
         Assert.NotNull(mapping2);
         Assert.Equal(mapping.SourceType, mapping2!.SourceType);
         Assert.Equal(mapping.Name, mapping2!.Name);
@@ -1595,11 +1595,11 @@ public abstract class EfGraphRepositoryTest
         IGraphRepository repository = GetRepository();
 
         // item mapping
-        NodeMapping mapping = GetMappings(1)[0];
+        GraphNodeMapping mapping = GetMappings(1)[0];
         repository.AddMapping(mapping);
 
         Assert.True(mapping.Id > 0);
-        NodeMapping? mapping2 = repository.GetMapping(mapping.Id);
+        GraphNodeMapping? mapping2 = repository.GetMapping(mapping.Id);
         Assert.NotNull(mapping2);
         AssertMappingsEqual(mapping, mapping2!, true, true);
     }
@@ -1610,7 +1610,7 @@ public abstract class EfGraphRepositoryTest
         IGraphRepository repository = GetRepository();
 
         // item mapping
-        NodeMapping mapping = new()
+        GraphNodeMapping mapping = new()
         {
             FacetFilter = "person",
             Name = "Item",
@@ -1623,7 +1623,7 @@ public abstract class EfGraphRepositoryTest
         mapping.Description = "Updated!";
         repository.AddMapping(mapping);
 
-        NodeMapping? mapping2 = repository.GetMapping(mapping.Id);
+        GraphNodeMapping? mapping2 = repository.GetMapping(mapping.Id);
         Assert.NotNull(mapping2);
         Assert.Equal(mapping.SourceType, mapping2!.SourceType);
         Assert.Equal(mapping.Name, mapping2!.Name);
@@ -1636,7 +1636,7 @@ public abstract class EfGraphRepositoryTest
         Reset();
         IGraphRepository repository = GetRepository();
         // item mapping
-        NodeMapping mapping = new()
+        GraphNodeMapping mapping = new()
         {
             FacetFilter = "person",
             Name = "Item",
@@ -1654,7 +1654,7 @@ public abstract class EfGraphRepositoryTest
         Reset();
         IGraphRepository repository = GetRepository();
         // item mapping
-        NodeMapping mapping = new()
+        GraphNodeMapping mapping = new()
         {
             FacetFilter = "person",
             Name = "Item",
@@ -1671,15 +1671,15 @@ public abstract class EfGraphRepositoryTest
     {
         Reset();
         IGraphRepository repository = GetRepository();
-        IList<NodeMapping> mappings = GetMappings(3);
-        mappings[0].Children.Add(new NodeMapping
+        IList<GraphNodeMapping> mappings = GetMappings(3);
+        mappings[0].Children.Add(new GraphNodeMapping
         {
             Name = "m1-child"
         });
-        foreach (NodeMapping mapping in mappings)
+        foreach (GraphNodeMapping mapping in mappings)
             repository.AddMapping(mapping);
 
-        DataPage<NodeMapping> page = repository.GetMappings(
+        DataPage<GraphNodeMapping> page = repository.GetMappings(
             new NodeMappingFilter
             {
                 PageSize = 2,
@@ -1703,8 +1703,8 @@ public abstract class EfGraphRepositoryTest
     {
         Reset();
         IGraphRepository repository = GetRepository();
-        IList<NodeMapping> mappings = GetMappings(3);
-        mappings[0].Children.Add(new NodeMapping
+        IList<GraphNodeMapping> mappings = GetMappings(3);
+        mappings[0].Children.Add(new GraphNodeMapping
         {
             Name = "child",
             Output = new NodeMappingOutput
@@ -1716,10 +1716,10 @@ public abstract class EfGraphRepositoryTest
             }
         });
         mappings[1].FacetFilter = "x";
-        foreach (NodeMapping mapping in mappings)
+        foreach (GraphNodeMapping mapping in mappings)
             repository.AddMapping(mapping);
 
-        IList<NodeMapping> results = repository.FindMappings(
+        IList<GraphNodeMapping> results = repository.FindMappings(
             new RunNodeMappingFilter
             {
                 SourceType = Node.SOURCE_ITEM,
@@ -1732,7 +1732,7 @@ public abstract class EfGraphRepositoryTest
         Assert.NotNull(results[0].Output);
         Assert.True(results[0].HasChildren);
         Assert.Equal("child", results[0].Children[0].Name);
-        Assert.NotNull(results[0].Children[0].Output);
+        Assert.NotNull(((GraphNodeMapping)results[0].Children[0]).Output);
 
         Assert.Equal("m3", results[1].Name);
         Assert.NotNull(results[1].Output);
@@ -1756,7 +1756,7 @@ public abstract class EfGraphRepositoryTest
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
             repository.AddMapping(mapping);
         IItem item = new Item
         {
@@ -1953,7 +1953,7 @@ public abstract class EfGraphRepositoryTest
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
             repository.AddMapping(mapping);
         // item with metadata part with EID=alpha
         IItem item = new Item
@@ -2015,7 +2015,7 @@ public abstract class EfGraphRepositoryTest
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
             repository.AddMapping(mapping);
 
         // work alpha
@@ -2194,7 +2194,7 @@ public abstract class EfGraphRepositoryTest
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
             repository.AddMapping(mapping);
 
         // work alpha
@@ -2438,7 +2438,7 @@ public abstract class EfGraphRepositoryTest
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
             repository.AddMapping(mapping);
 
         // person (Petrarch)

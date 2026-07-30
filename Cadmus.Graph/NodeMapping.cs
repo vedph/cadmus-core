@@ -1,15 +1,22 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace Cadmus.Graph;
 
 /// <summary>
-/// Node mapping.
+/// Base node mapping. This represents the mapping of a single node in the
+/// tree of properties underlying a source object (e.g. a JSON object),
+/// selected via some source expression (e.g. a JMES path), independently
+/// of the specific output to be generated for each processed node. Derive
+/// from this class to define the output-specific properties of a mapping
+/// (e.g. <see cref="GraphNodeMapping"/> for RDF graph output).
 /// </summary>
-public class NodeMapping
+[JsonConverter(typeof(NodeMappingJsonConverter))]
+public abstract class NodeMapping
 {
     private IList<NodeMapping>? _children;
     private string? _scalarPattern;
@@ -110,16 +117,11 @@ public class NodeMapping
     }
 
     /// <summary>
-    /// The output of this mapping.
-    /// </summary>
-    public NodeMappingOutput? Output { get; set; }
-
-    /// <summary>
     /// The optional children mappings of this mapping.
     /// </summary>
     public IList<NodeMapping> Children
     {
-        get { return _children ??= new List<NodeMapping>(); }
+        get { return _children ??= []; }
         set { _children = value; }
     }
 
@@ -131,7 +133,7 @@ public class NodeMapping
     /// <summary>
     /// Initializes a new instance of the <see cref="NodeMapping"/> class.
     /// </summary>
-    public NodeMapping()
+    protected NodeMapping()
     {
         Source = "";
     }
@@ -171,32 +173,36 @@ public class NodeMapping
     }
 
     /// <summary>
+    /// Copies this mapping's base properties into <paramref name="target"/>.
+    /// Used by derived classes to implement <see cref="Clone"/>.
+    /// </summary>
+    /// <param name="target">The target mapping to copy properties into.
+    /// </param>
+    protected void CopyTo(NodeMapping target)
+    {
+        target.Id = Id;
+        target.ParentId = ParentId;
+        target.Ordinal = Ordinal;
+        target.Name = Name;
+        target.SourceType = SourceType;
+        target.FacetFilter = FacetFilter;
+        target.GroupFilter = GroupFilter;
+        target.FlagsFilter = FlagsFilter;
+        target.TitleFilter = TitleFilter;
+        target.PartTypeFilter = PartTypeFilter;
+        target.PartRoleFilter = PartRoleFilter;
+        target.Description = Description;
+        target.Source = Source;
+        target.Sid = Sid;
+        target.ScalarPattern = ScalarPattern;
+        target.Children = Children.Select(m => m.Clone()).ToList();
+    }
+
+    /// <summary>
     /// Clones this instance, deep copying all the <see cref="NodeMapping"/>'s.
     /// </summary>
     /// <returns>New mapping object.</returns>
-    public virtual NodeMapping Clone()
-    {
-        return new NodeMapping
-        {
-            Id = Id,
-            ParentId = ParentId,
-            Ordinal = Ordinal,
-            Name = Name,
-            SourceType = SourceType,
-            FacetFilter = FacetFilter,
-            GroupFilter = GroupFilter,
-            FlagsFilter = FlagsFilter,
-            TitleFilter = TitleFilter,
-            PartTypeFilter = PartTypeFilter,
-            PartRoleFilter = PartRoleFilter,
-            Description = Description,
-            Source = Source,
-            Sid = Sid,
-            ScalarPattern = ScalarPattern,
-            Output = Output,
-            Children = Children.Select(m => m.Clone()).ToList(),
-        };
-    }
+    public abstract NodeMapping Clone();
 
     private static bool AppendFilter(string id, bool filter, StringBuilder sb,
         string value)
@@ -211,6 +217,16 @@ public class NodeMapping
         sb.Append(id).Append('=');
         sb.Append(value);
         return filter;
+    }
+
+    /// <summary>
+    /// Appends any derived-class specific information to the string
+    /// representation built by <see cref="ToString"/>. The default
+    /// implementation does nothing.
+    /// </summary>
+    /// <param name="sb">The target string builder.</param>
+    protected virtual void AppendExtra(StringBuilder sb)
+    {
     }
 
     /// <summary>
@@ -246,7 +262,7 @@ public class NodeMapping
         if (filter) sb.Append(']');
 
         sb.Append(": ").Append(Source);
-        if (Output != null) sb.Append(" -> ").Append(Output);
+        AppendExtra(sb);
 
         return sb.ToString();
     }

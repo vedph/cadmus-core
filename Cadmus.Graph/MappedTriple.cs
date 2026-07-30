@@ -3,7 +3,7 @@
 namespace Cadmus.Graph;
 
 /// <summary>
-/// A triple defined in a <see cref="NodeMapping"/>.
+/// A triple defined in a <see cref="GraphNodeMapping"/>.
 /// </summary>
 public class MappedTriple
 {

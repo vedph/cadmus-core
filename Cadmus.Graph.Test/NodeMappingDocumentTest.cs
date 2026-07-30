@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using Xunit;
@@ -24,7 +24,7 @@ public sealed class NodeMappingDocumentTest
     [Fact]
     public void Mapping_Serialization_Ok()
     {
-        NodeMapping m = new()
+        GraphNodeMapping m = new()
         {
             Id = 1,
             Name = "alpha",
@@ -34,7 +34,7 @@ public sealed class NodeMappingDocumentTest
             }
         };
         string json = JsonSerializer.Serialize(m, _options);
-        NodeMapping? m2 = JsonSerializer.Deserialize<NodeMapping>(json, _options);
+        GraphNodeMapping? m2 = JsonSerializer.Deserialize<GraphNodeMapping>(json, _options);
 
         Assert.NotNull(m2);
         Assert.Equal(m.Name, m2.Name);
@@ -45,7 +45,7 @@ public sealed class NodeMappingDocumentTest
     public void Document_Serialization_Ok()
     {
         NodeMappingDocument doc = new();
-        doc.DocumentMappings.Add(new NodeMapping { Name = "sample" });
+        doc.DocumentMappings.Add(new GraphNodeMapping { Name = "sample" });
 
         string json = JsonSerializer.Serialize(doc, _options);
         NodeMappingDocument? doc2 =
@@ -63,11 +63,11 @@ public sealed class NodeMappingDocumentTest
             (TestHelper.LoadResourceText("MappingsDocDepth3.json"), _options);
 
         Assert.NotNull(doc);
-        List<NodeMapping> mappings = doc.GetMappings().ToList();
+        List<GraphNodeMapping> mappings = doc.GetMappings().ToList();
         Assert.Equal(2, mappings.Count);
 
         // work
-        NodeMapping? mapping = mappings.Find(m => m.Name == "work");
+        GraphNodeMapping? mapping = mappings.Find(m => m.Name == "work");
         Assert.NotNull(mapping);
         Assert.Empty(mapping.Children);
 
@@ -78,7 +78,7 @@ public sealed class NodeMappingDocumentTest
         Assert.Single(mapping.Children);
         Assert.Equal("work chronotopes/chronotopes", mapping.Children[0].Name);
 
-        NodeMapping mappingCC = mapping.Children[0];
+        GraphNodeMapping mappingCC = (GraphNodeMapping)mapping.Children[0];
         Assert.Equal(3, mappingCC.Children.Count);
         Assert.Equal("work chronotopes/chronotopes/place",
             mappingCC.Children[0].Name);

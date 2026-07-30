@@ -1,4 +1,4 @@
-﻿using Cadmus.Core.Config;
+using Cadmus.Core.Config;
 using Cadmus.Graph;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -26,7 +26,7 @@ internal sealed class GraphImportCommand : AsyncCommand<GraphImportCommandSettin
         Dictionary<int, int> ids = [];
 
         JsonGraphPresetReader reader = new();
-        foreach (NodeMapping mapping in reader.LoadMappings(source))
+        foreach (GraphNodeMapping mapping in reader.LoadMappings(source))
         {
             Console.WriteLine(mapping);
             if (!settings.IsDry)

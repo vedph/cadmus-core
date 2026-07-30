@@ -1,4 +1,4 @@
-﻿using Cadmus.Core;
+using Cadmus.Core;
 using Cadmus.Graph.Adapters;
 using System;
 using System.Collections.Generic;
@@ -38,7 +38,7 @@ public class GraphUpdater
     {
         _repository = repository
             ?? throw new ArgumentNullException(nameof(repository));
-        _mapper = new JsonNodeMapper
+        _mapper = new JsonGraphNodeMapper
         {
             IsMappingTracingEnabled = true,
             UidBuilder = repository
@@ -86,7 +86,7 @@ public class GraphUpdater
         SetMapperMetadata();
         GraphSet set = new();
 
-        foreach (NodeMapping mapping in _repository.FindMappings(filter))
+        foreach (GraphNodeMapping mapping in _repository.FindMappings(filter))
             _mapper.Map(data, mapping, set);
 
         _repository.UpdateGraph(set);
@@ -101,13 +101,14 @@ public class GraphUpdater
         {
             Filter = filter
         };
-        foreach (NodeMapping mapping in _repository.FindMappings(filter))
+        foreach (GraphNodeMapping mapping in _repository.FindMappings(filter))
         {
             _mapper.Map(data, mapping, explanation.Set);
             if (_mapper.Data.TryGetValue(NodeMapper.APPLIED_MAPPING_LIST,
                 out object? o) && o is IList<NodeMapping> applied)
             {
-                foreach (NodeMapping a in applied) explanation.Mappings.Add(a);
+                foreach (NodeMapping a in applied)
+                    explanation.Mappings.Add((GraphNodeMapping)a);
             }
             else
             {

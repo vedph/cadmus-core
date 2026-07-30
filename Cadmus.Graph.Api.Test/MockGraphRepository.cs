@@ -126,14 +126,14 @@ internal sealed class MockGraphRepository : IGraphRepository
     public void DeleteProperty(int id) =>
         throw new NotImplementedException();
 
-    public DataPage<NodeMapping> GetMappings(NodeMappingFilter filter,
+    public DataPage<GraphNodeMapping> GetMappings(NodeMappingFilter filter,
         bool descendants) => throw new NotImplementedException();
-    public NodeMapping? GetMapping(int id) =>
+    public GraphNodeMapping? GetMapping(int id) =>
         throw new NotImplementedException();
-    public int AddMapping(NodeMapping mapping) =>
+    public int AddMapping(GraphNodeMapping mapping) =>
         throw new NotImplementedException();
     public void DeleteMapping(int id) => throw new NotImplementedException();
-    public IList<NodeMapping> FindMappings(RunNodeMappingFilter filter) =>
+    public IList<GraphNodeMapping> FindMappings(RunNodeMappingFilter filter) =>
         throw new NotImplementedException();
     public int Import(string json) => throw new NotImplementedException();
     public string Export() => throw new NotImplementedException();

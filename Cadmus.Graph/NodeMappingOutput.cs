@@ -3,7 +3,7 @@
 namespace Cadmus.Graph;
 
 /// <summary>
-/// The output definition of a <see cref="NodeMapping"/>.
+/// The output definition of a <see cref="GraphNodeMapping"/>.
 /// </summary>
 public class NodeMappingOutput
 {

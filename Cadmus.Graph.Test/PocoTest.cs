@@ -234,7 +234,7 @@ public sealed class PocoTest
     public void GraphUpdaterExplanation_ToString_ReportsCounts()
     {
         GraphUpdaterExplanation explanation = new();
-        explanation.Mappings.Add(new NodeMapping { Name = "m1" });
+        explanation.Mappings.Add(new GraphNodeMapping { Name = "m1" });
         explanation.Metadata["k"] = "v";
 
         Assert.Equal("Mappings=1, Metadata=1", explanation.ToString());

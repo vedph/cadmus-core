@@ -1,4 +1,4 @@
-﻿using Cadmus.Core.Config;
+using Cadmus.Core.Config;
 using System.Collections.Generic;
 using System.IO;
 
@@ -37,5 +37,5 @@ public interface IGraphPresetReader
     /// </summary>
     /// <param name="stream">The stream.</param>
     /// <returns>Node mappings.</returns>
-    IList<NodeMapping> LoadMappings(Stream stream);
+    IList<GraphNodeMapping> LoadMappings(Stream stream);
 }

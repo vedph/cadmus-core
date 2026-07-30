@@ -1,31 +1,48 @@
-﻿using Fusi.Tools.Configuration;
-using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using DevLab.JmesPath;
-using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 
 namespace Cadmus.Graph;
 
 /// <summary>
-/// JSON-based node mapper.
-/// <para>Tag: <c>node-mapper.json</c>.</para>
+/// Base class for JSON-based node mappers. This class implements the
+/// select-and-process logic shared by any mapper transforming a JSON source
+/// object via a tree of <see cref="NodeMapping"/>'s selected through JMES
+/// path expressions, regardless of the specific output the mapper builds
+/// for each processed node (e.g. RDF nodes/triples, or another JSON object).
+/// Derive from this class and implement <see cref="BuildOutput"/> to define
+/// what output to build for a matched mapping.
 /// </summary>
+/// <typeparam name="TTarget">The type of the object collecting the output
+/// generated while applying the mappings.</typeparam>
 /// <seealso cref="NodeMapper" />
-/// <seealso cref="INodeMapper" />
-[Tag("node-mapper.json")]
-public sealed class JsonNodeMapper : NodeMapper, INodeMapper
+public abstract class JsonNodeMapper<TTarget> : NodeMapper
 {
     private readonly JmesPath _jmes;
     private JsonDocument? _doc;
-    private int _sourceType;
-    private string? _lastSid;
     private string? _lastSidSource;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JsonNodeMapper"/> class.
+    /// Gets the source type of the mapping tree currently being applied.
+    /// This is set once for all the descendants when <see cref="Map"/>
+    /// is invoked.
     /// </summary>
-    public JsonNodeMapper()
+    protected int SourceType { get; private set; }
+
+    /// <summary>
+    /// Gets or sets the last SID resolved while applying the current
+    /// mapping tree. This is inherited by descendant mappings which do not
+    /// override it with their own <see cref="NodeMapping.Sid"/>.
+    /// </summary>
+    protected string? LastSid { get; set; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JsonNodeMapper{TTarget}"/>
+    /// class.
+    /// </summary>
+    protected JsonNodeMapper()
     {
         _jmes = new();
     }
@@ -66,87 +83,20 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
         return JsonDocument.Parse(result).RootElement.ToString() ?? "";
     }
 
-    private void AddNodes(string sid, NodeMapping mapping, GraphSet target)
-    {
-        foreach (var p in mapping.Output!.Nodes)
-        {
-            string uri = UidBuilder.BuildUid(ResolveTemplate(p.Value.Uid!, true),
-                sid);
-            UriNode node = new()
-            {
-                Uri = uri,
-                SourceType = _sourceType,
-                Sid = sid,
-                Label = string.IsNullOrEmpty(p.Value.Label) ?
-                    uri : ResolveTemplate(p.Value.Label, false)
-            };
-            ContextNodes[p.Key] = node;
-            target.Nodes.Add(node);
-        }
-    }
-
-    private void AddTriples(string sid, NodeMapping mapping, GraphSet target)
-    {
-        int n = 0;
-        foreach (MappedTriple tripleSource in mapping.Output!.Triples)
-        {
-            n++;
-            if (string.IsNullOrEmpty(tripleSource.S))
-            {
-                throw new CadmusGraphException(
-                    $"Undefined triple subject at mapping #{n}: {mapping}");
-            }
-            if (string.IsNullOrEmpty(tripleSource.P))
-            {
-                throw new CadmusGraphException(
-                    $"Undefined triple predicate at mapping #{n}: {mapping}");
-            }
-            if (string.IsNullOrEmpty(tripleSource.O) && tripleSource.OL == null)
-            {
-                throw new CadmusGraphException(
-                    $"Undefined triple object at mapping #{n}: {mapping}");
-            }
-
-            UriTriple triple = new()
-            {
-                Sid = sid,
-                SubjectUri = ResolveTemplate(tripleSource.S!, true),
-                // P=a becomes rdf:type
-                PredicateUri = ResolveTemplate(tripleSource.P == "a"
-                    ? "rdf:type": tripleSource.P!, true),
-                ObjectUri = tripleSource.O != null
-                    ? ResolveTemplate(tripleSource.O!, true) : null,
-                ObjectLiteral = tripleSource.OL != null
-                    ? ResolveTemplate(tripleSource.OL, false)
-                    : null
-            };
-            LiteralHelper.AdjustLiteral(triple);
-            target.Triples.Add(triple);
-        }
-    }
-
-    private void BuildOutput(string? sid, NodeMapping mapping, GraphSet target)
-    {
-        if (mapping.Output == null) return;
-
-        // metadata
-        if (mapping.Output.HasMetadata)
-        {
-            foreach (var p in mapping.Output.Metadata)
-                Data[p.Key] = ResolveTemplate(p.Value!, false);
-        }
-
-        if (!string.IsNullOrEmpty(sid))
-        {
-            // nodes
-            if (mapping.Output.HasNodes) AddNodes(sid, mapping, target);
-            // triples
-            if (mapping.Output.HasTriples) AddTriples(sid, mapping, target);
-        }
-    }
+    /// <summary>
+    /// Builds the output for the specified matched mapping, using the
+    /// specified SID if any, into <paramref name="target"/>.
+    /// </summary>
+    /// <param name="sid">The SID resolved for this mapping (which might be
+    /// inherited from an ancestor mapping), or null/empty when none could
+    /// be resolved.</param>
+    /// <param name="mapping">The matched mapping.</param>
+    /// <param name="target">The target object collecting the output.</param>
+    protected abstract void BuildOutput(string? sid, NodeMapping mapping,
+        TTarget target);
 
     private void ApplyMapping(string? sid, string json, NodeMapping mapping,
-        GraphSet target, int itemIndex = -1)
+        TTarget target, int itemIndex = -1)
     {
         Logger?.LogDebug("Mapping {mapping}", mapping);
 
@@ -200,7 +150,7 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
             sid = ResolveTemplate(mapping.Sid!, false);
             if (!string.IsNullOrEmpty(sid))
             {
-                _lastSid = sid;
+                LastSid = sid;
                 _lastSidSource = mapping.Sid;
             }
         }
@@ -210,7 +160,7 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
             // corner case: inherited SID with an array item: resolve it
             // again if including $index
             sid = ResolveTemplate(mapping.Sid!, false);
-            if (!string.IsNullOrEmpty(sid)) _lastSid = sid;
+            if (!string.IsNullOrEmpty(sid)) LastSid = sid;
         }
 
         // process document with result, according to its root type
@@ -221,19 +171,8 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
             case JsonValueKind.Undefined:
                 break;
             case JsonValueKind.Object:
-                if (mapping.Output != null)
-                {
-                    if (string.IsNullOrEmpty(sid))
-                    {
-                        if (_lastSid == null && !mapping.Output.HasNoGraph)
-                        {
-                            throw new CadmusGraphException(
-                                $"Undefined SID for mapping {mapping}");
-                        }
-                        sid = _lastSid;
-                    }
-                    BuildOutput(sid, mapping, target);
-                }
+                if (string.IsNullOrEmpty(sid)) sid = LastSid;
+                BuildOutput(sid, mapping, target);
                 break;
             // an array does not trigger output, but applies its mapping
             // to each of its items
@@ -252,19 +191,8 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
             default:
                 // set current leaf variable
                 Data["."] = _doc.RootElement.ToString();
-                if (mapping.Output != null)
-                {
-                    if (string.IsNullOrEmpty(sid))
-                    {
-                        if (_lastSid == null && !mapping.Output.HasNoGraph)
-                        {
-                            throw new CadmusGraphException(
-                                $"Undefined SID for mapping {mapping}");
-                        }
-                        sid = _lastSid;
-                    }
-                    BuildOutput(sid, mapping, target);
-                }
+                if (string.IsNullOrEmpty(sid)) sid = LastSid;
+                BuildOutput(sid, mapping, target);
                 break;
         }
         _doc = null;
@@ -278,20 +206,20 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
     }
 
     /// <summary>
-    /// Map the specified source into the <paramref name="target"/> graphset.
+    /// Map the specified source into the <paramref name="target"/> object.
     /// </summary>
     /// <param name="source">The source object, here a JSON string.</param>
     /// <param name="mapping">The mapping to apply.</param>
-    /// <param name="target">The target graphset.</param>
+    /// <param name="target">The target object collecting the output.</param>
     /// <exception cref="ArgumentNullException">mapping or target</exception>
-    public void Map(object source, NodeMapping mapping, GraphSet target)
+    public virtual void Map(object source, NodeMapping mapping, TTarget target)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         ArgumentNullException.ThrowIfNull(target);
 
         // reset state
-        _sourceType = 0;
-        _lastSid = null;
+        SourceType = 0;
+        LastSid = null;
         _doc = null;
 
         // source is JSON
@@ -299,7 +227,7 @@ public sealed class JsonNodeMapper : NodeMapper, INodeMapper
         if (string.IsNullOrEmpty(json)) return;
 
         // set source type once for all the descendants
-        _sourceType = mapping.SourceType;
+        SourceType = mapping.SourceType;
 
         // apply mapping recursively
         ApplyMapping(null, json, mapping, target);

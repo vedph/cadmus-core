@@ -1,4 +1,4 @@
-﻿using Cadmus.Graph;
+using Cadmus.Graph;
 using SharpCompress.Common;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -43,7 +43,7 @@ internal sealed class GraphDerefMappingsCommand :
                 JsonSerializer.Deserialize<NodeMappingDocument>(json, options)
                 ?? throw new InvalidFormatException("Invalid JSON mappings document");
 
-            List<NodeMapping> mappings = [.. doc.GetMappings()];
+            List<GraphNodeMapping> mappings = [.. doc.GetMappings()];
             using StreamWriter writer = new(settings.OutputPath!, false,
                 Encoding.UTF8);
             writer.Write(JsonSerializer.Serialize(mappings, options));

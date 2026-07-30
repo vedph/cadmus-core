@@ -1,4 +1,4 @@
-﻿using Cadmus.Api.Controllers;
+using Cadmus.Api.Controllers;
 using Cadmus.Core.Config;
 using Cadmus.Graph;
 using Cadmus.Graph.Ef;
@@ -105,7 +105,7 @@ namespace Cadmus.Api.Services
             }
         }
 
-        public int AddMapping(NodeMapping mapping)
+        public int AddMapping(GraphNodeMapping mapping)
         {
             EnsureSeeded();
             return _inner.AddMapping(mapping);
@@ -208,7 +208,7 @@ namespace Cadmus.Api.Services
             return _inner.Export();
         }
 
-        public IList<NodeMapping> FindMappings(RunNodeMappingFilter filter)
+        public IList<GraphNodeMapping> FindMappings(RunNodeMappingFilter filter)
         {
             EnsureSeeded();
             return _inner.FindMappings(filter);
@@ -232,13 +232,13 @@ namespace Cadmus.Api.Services
             return _inner.GetLinkedNodes(filter);
         }
 
-        public NodeMapping? GetMapping(int id)
+        public GraphNodeMapping? GetMapping(int id)
         {
             EnsureSeeded();
             return _inner.GetMapping(id);
         }
 
-        public DataPage<NodeMapping> GetMappings(NodeMappingFilter filter,
+        public DataPage<GraphNodeMapping> GetMappings(NodeMappingFilter filter,
             bool descendants)
         {
             EnsureSeeded();

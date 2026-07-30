@@ -7,11 +7,11 @@ namespace Cadmus.Graph.Test;
 
 public sealed class RamMappingRepositoryTest
 {
-    private static NodeMapping GetMapping(string name, int sourceType,
+    private static GraphNodeMapping GetMapping(string name, int sourceType,
         string? facet = null, string? group = null, string? title = null,
         string? partType = null, string? partRole = null, int? flags = null)
     {
-        return new NodeMapping
+        return new GraphNodeMapping
         {
             Name = name,
             SourceType = sourceType,
@@ -29,7 +29,7 @@ public sealed class RamMappingRepositoryTest
     public void AddMapping_New_GetsId()
     {
         RamMappingRepository repository = new();
-        NodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
+        GraphNodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
 
         int id = repository.AddMapping(mapping);
 
@@ -42,14 +42,14 @@ public sealed class RamMappingRepositoryTest
     public void AddMapping_ExistingId_Replaces()
     {
         RamMappingRepository repository = new();
-        NodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
+        GraphNodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
         int id = repository.AddMapping(mapping);
 
-        NodeMapping updated = GetMapping("m1-updated", Node.SOURCE_ITEM);
+        GraphNodeMapping updated = GetMapping("m1-updated", Node.SOURCE_ITEM);
         updated.Id = id;
         repository.AddMapping(updated);
 
-        NodeMapping? fetched = repository.GetMapping(id);
+        GraphNodeMapping? fetched = repository.GetMapping(id);
         Assert.NotNull(fetched);
         Assert.Equal("m1-updated", fetched!.Name);
         Assert.Single(repository.Mappings);
@@ -68,7 +68,7 @@ public sealed class RamMappingRepositoryTest
     public void AddMappingByName_NonZeroId_Throws()
     {
         RamMappingRepository repository = new();
-        NodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
+        GraphNodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
         mapping.Id = 42;
 
         Assert.Throws<InvalidOperationException>(
@@ -79,7 +79,7 @@ public sealed class RamMappingRepositoryTest
     public void AddMappingByName_New_AddsMapping()
     {
         RamMappingRepository repository = new();
-        NodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
+        GraphNodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
 
         int id = repository.AddMappingByName(mapping);
 
@@ -91,10 +91,10 @@ public sealed class RamMappingRepositoryTest
     public void AddMappingByName_ExistingName_ReplacesCaseInsensitive()
     {
         RamMappingRepository repository = new();
-        NodeMapping mapping = GetMapping("M1", Node.SOURCE_ITEM);
+        GraphNodeMapping mapping = GetMapping("M1", Node.SOURCE_ITEM);
         int id = repository.AddMappingByName(mapping);
 
-        NodeMapping updated = GetMapping("m1", Node.SOURCE_ITEM,
+        GraphNodeMapping updated = GetMapping("m1", Node.SOURCE_ITEM,
             facet: "person");
         repository.AddMappingByName(updated);
 
@@ -106,7 +106,7 @@ public sealed class RamMappingRepositoryTest
     public void DeleteMapping_Existing_Removes()
     {
         RamMappingRepository repository = new();
-        NodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
+        GraphNodeMapping mapping = GetMapping("m1", Node.SOURCE_ITEM);
         int id = repository.AddMapping(mapping);
 
         repository.DeleteMapping(id);
@@ -129,11 +129,11 @@ public sealed class RamMappingRepositoryTest
     public void GetMappings_FiltersByParentSourceNameFacetGroupFlagsTitlePartTypeRole()
     {
         RamMappingRepository repository = new();
-        NodeMapping root = GetMapping("person-mapping", Node.SOURCE_ITEM,
+        GraphNodeMapping root = GetMapping("person-mapping", Node.SOURCE_ITEM,
             facet: "person", group: "alpha.*", title: "Some Title",
             partType: "it.vedph.metadata", partRole: "role1", flags: 0x03);
         int rootId = repository.AddMapping(root);
-        NodeMapping child = GetMapping("child", Node.SOURCE_PART);
+        GraphNodeMapping child = GetMapping("child", Node.SOURCE_PART);
         child.ParentId = rootId;
         repository.AddMapping(child);
 
@@ -202,7 +202,7 @@ public sealed class RamMappingRepositoryTest
     {
         RamMappingRepository repository = new();
 
-        DataPage<NodeMapping> page = repository.GetMappings(
+        DataPage<GraphNodeMapping> page = repository.GetMappings(
             new NodeMappingFilter { PageSize = 10 }, false);
 
         Assert.Equal(0, page.Total);
@@ -216,7 +216,7 @@ public sealed class RamMappingRepositoryTest
         for (int i = 1; i <= 3; i++)
             repository.AddMapping(GetMapping($"m{i}", Node.SOURCE_ITEM));
 
-        DataPage<NodeMapping> page = repository.GetMappings(
+        DataPage<GraphNodeMapping> page = repository.GetMappings(
             new NodeMappingFilter { PageSize = 0 }, false);
 
         Assert.Equal(3, page.Items.Count);

@@ -1,4 +1,4 @@
-﻿using Cadmus.Codicology.Graph;
+using Cadmus.Codicology.Graph;
 using Cadmus.Graph;
 using Cadmus.Graph.Adapters;
 using Cadmus.Graph.Extras;
@@ -13,7 +13,7 @@ namespace Cadmus.GraphStudio.Api.Controllers;
 [Route("api/mappings")]
 public sealed class MappingController : ControllerBase
 {
-    private readonly JsonNodeMapper _mapper;
+    private readonly JsonGraphNodeMapper _mapper;
 
     public MappingController()
     {
@@ -66,7 +66,7 @@ public sealed class MappingController : ControllerBase
             // apply mappings
             foreach (NodeMappingBindingModel mapping in model.Mappings)
             {
-                NodeMapping m = mapping.ToNodeMapping();
+                GraphNodeMapping m = mapping.ToNodeMapping();
                 _mapper.Map(model.Source, m, set);
             }
 

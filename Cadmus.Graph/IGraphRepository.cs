@@ -1,4 +1,4 @@
-﻿using Cadmus.Core.Config;
+using Cadmus.Core.Config;
 using Fusi.Tools;
 using Fusi.Tools.Data;
 using Microsoft.Extensions.Caching.Memory;
@@ -189,7 +189,7 @@ public interface IGraphRepository : IUidBuilder, IMappingRepository
     /// </summary>
     /// <param name="filter">The filter to match.</param>
     /// <returns>List of mappings.</returns>
-    IList<NodeMapping> FindMappings(RunNodeMappingFilter filter);
+    IList<GraphNodeMapping> FindMappings(RunNodeMappingFilter filter);
 
     /// <summary>
     /// Gets the specified page of triples.

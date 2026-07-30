@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text.Json;
 using Xunit;
 
@@ -25,7 +25,7 @@ public sealed class NodeMappingOutputJsonConverterTest
     [Fact]
     public void Serialize_Roundtrip_Ok()
     {
-        NodeMapping mapping = new()
+        GraphNodeMapping mapping = new()
         {
             Id = 1,
             Name = "test",
@@ -72,7 +72,7 @@ public sealed class NodeMappingOutputJsonConverterTest
         };
         string json = JsonSerializer.Serialize(mapping, _options);
 
-        NodeMapping? mapping2 = JsonSerializer.Deserialize<NodeMapping>(json, _options);
+        GraphNodeMapping? mapping2 = JsonSerializer.Deserialize<GraphNodeMapping>(json, _options);
         Assert.NotNull(mapping2);
         // assert that each property has the same value
         Assert.Equal(mapping.Id, mapping2.Id);

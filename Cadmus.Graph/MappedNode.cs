@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 namespace Cadmus.Graph;
 
 /// <summary>
-/// A node defined in a <see cref="NodeMapping"/>.
+/// A node defined in a <see cref="GraphNodeMapping"/>.
 /// </summary>
 public class MappedNode
 {

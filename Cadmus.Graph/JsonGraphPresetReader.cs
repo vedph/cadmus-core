@@ -1,4 +1,4 @@
-﻿using Cadmus.Core.Config;
+using Cadmus.Core.Config;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -87,12 +87,12 @@ public sealed class JsonGraphPresetReader : IGraphPresetReader
     /// <param name="stream">The stream.</param>
     /// <returns>Node mappings.</returns>
     /// <exception cref="ArgumentNullException">stream</exception>
-    public IList<NodeMapping> LoadMappings(Stream stream)
+    public IList<GraphNodeMapping> LoadMappings(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
         using StreamReader reader = new(stream, Encoding.UTF8);
-        return JsonSerializer.Deserialize<IList<NodeMapping>>(
+        return JsonSerializer.Deserialize<IList<GraphNodeMapping>>(
             reader.ReadToEnd(),
             _options) ?? [];
     }

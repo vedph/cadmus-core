@@ -1,4 +1,4 @@
-﻿using Fusi.Tools.Data;
+using Fusi.Tools.Data;
 
 namespace Cadmus.Graph;
 
@@ -15,21 +15,21 @@ public interface IMappingRepository
     /// <param name="descendants">True to load the descendants of each mapping.
     /// </param>
     /// <returns>Page.</returns>
-    DataPage<NodeMapping> GetMappings(NodeMappingFilter filter, bool descendants);
+    DataPage<GraphNodeMapping> GetMappings(NodeMappingFilter filter, bool descendants);
 
     /// <summary>
     /// Gets the mapping with the specified ID.
     /// </summary>
     /// <param name="id">The identifier.</param>
     /// <returns>Mapping or null if not found.</returns>
-    NodeMapping? GetMapping(int id);
+    GraphNodeMapping? GetMapping(int id);
 
     /// <summary>
     /// Adds or updates the specified mapping by its name.
     /// </summary>
     /// <param name="mapping">The mapping.</param>
     /// <returns>The ID of the mapping.</returns>
-    int AddMapping(NodeMapping mapping);
+    int AddMapping(GraphNodeMapping mapping);
 
     /// <summary>
     /// Deletes the mapping with the specified ID.

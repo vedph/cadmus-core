@@ -5,9 +5,9 @@ namespace Cadmus.Graph.Test;
 
 public sealed class NodeMappingTest
 {
-    private static NodeMapping GetMapping()
+    private static GraphNodeMapping GetMapping()
     {
-        return new NodeMapping
+        return new GraphNodeMapping
         {
             Id = 1,
             Ordinal = 2,
@@ -28,7 +28,7 @@ public sealed class NodeMappingTest
     [Fact]
     public void IsScalarMatch_NoPattern_AlwaysTrue()
     {
-        NodeMapping mapping = new();
+        GraphNodeMapping mapping = new();
 
         Assert.True(mapping.IsScalarMatch(null));
         Assert.True(mapping.IsScalarMatch("anything"));
@@ -37,7 +37,7 @@ public sealed class NodeMappingTest
     [Fact]
     public void IsScalarMatch_WithPattern_NullValue_False()
     {
-        NodeMapping mapping = new() { ScalarPattern = "^true$" };
+        GraphNodeMapping mapping = new() { ScalarPattern = "^true$" };
 
         Assert.False(mapping.IsScalarMatch(null));
     }
@@ -45,7 +45,7 @@ public sealed class NodeMappingTest
     [Fact]
     public void IsScalarMatch_WithPattern_Matching_True()
     {
-        NodeMapping mapping = new() { ScalarPattern = "^true$" };
+        GraphNodeMapping mapping = new() { ScalarPattern = "^true$" };
 
         Assert.True(mapping.IsScalarMatch("true"));
         Assert.False(mapping.IsScalarMatch("false"));
@@ -54,7 +54,7 @@ public sealed class NodeMappingTest
     [Fact]
     public void HasChildren_NoChildren_False()
     {
-        NodeMapping mapping = new();
+        GraphNodeMapping mapping = new();
 
         Assert.False(mapping.HasChildren);
     }
@@ -62,8 +62,8 @@ public sealed class NodeMappingTest
     [Fact]
     public void HasChildren_WithChildren_True()
     {
-        NodeMapping mapping = new();
-        mapping.Children.Add(new NodeMapping { Name = "child" });
+        GraphNodeMapping mapping = new();
+        mapping.Children.Add(new GraphNodeMapping { Name = "child" });
 
         Assert.True(mapping.HasChildren);
     }
@@ -71,10 +71,10 @@ public sealed class NodeMappingTest
     [Fact]
     public void Visit_VisitsAllDescendants()
     {
-        NodeMapping root = new() { Name = "root" };
-        NodeMapping childA = new() { Name = "a" };
-        NodeMapping childB = new() { Name = "b" };
-        NodeMapping grandChild = new() { Name = "a1" };
+        GraphNodeMapping root = new() { Name = "root" };
+        GraphNodeMapping childA = new() { Name = "a" };
+        GraphNodeMapping childB = new() { Name = "b" };
+        GraphNodeMapping grandChild = new() { Name = "a1" };
         childA.Children.Add(grandChild);
         root.Children.Add(childA);
         root.Children.Add(childB);
@@ -92,8 +92,8 @@ public sealed class NodeMappingTest
     [Fact]
     public void Visit_StopsWhenVisitorReturnsFalse()
     {
-        NodeMapping root = new() { Name = "root" };
-        NodeMapping child = new() { Name = "child" };
+        GraphNodeMapping root = new() { Name = "root" };
+        GraphNodeMapping child = new() { Name = "child" };
         root.Children.Add(child);
 
         List<string?> names = [];
@@ -109,10 +109,10 @@ public sealed class NodeMappingTest
     [Fact]
     public void Clone_DeepCopiesMappingAndChildren()
     {
-        NodeMapping mapping = GetMapping();
-        mapping.Children.Add(new NodeMapping { Name = "child" });
+        GraphNodeMapping mapping = GetMapping();
+        mapping.Children.Add(new GraphNodeMapping { Name = "child" });
 
-        NodeMapping clone = mapping.Clone();
+        GraphNodeMapping clone = mapping.Clone();
 
         Assert.NotSame(mapping, clone);
         Assert.Equal(mapping.Id, clone.Id);
@@ -134,7 +134,7 @@ public sealed class NodeMappingTest
     [Fact]
     public void ToString_IncludesFiltersAndSource()
     {
-        NodeMapping mapping = GetMapping();
+        GraphNodeMapping mapping = GetMapping();
 
         string s = mapping.ToString();
 
@@ -150,7 +150,7 @@ public sealed class NodeMappingTest
     [Fact]
     public void ToString_NoFilters_OmitsBrackets()
     {
-        NodeMapping mapping = new()
+        GraphNodeMapping mapping = new()
         {
             Id = 5,
             Name = "plain",

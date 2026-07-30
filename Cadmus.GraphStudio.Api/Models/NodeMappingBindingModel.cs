@@ -1,4 +1,4 @@
-﻿using Cadmus.Graph;
+using Cadmus.Graph;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -104,9 +104,9 @@ public sealed class NodeMappingBindingModel
         Source = "";
     }
 
-    public NodeMapping ToNodeMapping()
+    public GraphNodeMapping ToNodeMapping()
     {
-        return new NodeMapping
+        return new GraphNodeMapping
         {
             Id = Id,
             ParentId = ParentId,
@@ -125,7 +125,7 @@ public sealed class NodeMappingBindingModel
             ScalarPattern = ScalarPattern,
             Output = Output?.ToNodeMappingOutput(),
             Children = Children?.Select(m => m.ToNodeMapping())?.ToArray()
-                ?? Array.Empty<NodeMapping>()
+                ?? Array.Empty<GraphNodeMapping>()
         };
     }
 }

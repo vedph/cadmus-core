@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 
 namespace Cadmus.Graph.Ef;
 
@@ -111,7 +111,7 @@ public class EfMapping
         Source = "";
     }
 
-    public EfMapping(NodeMapping source)
+    public EfMapping(GraphNodeMapping source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
@@ -187,9 +187,9 @@ public class EfMapping
         }
     }
 
-    public NodeMapping ToNodeMapping(int parentId)
+    public GraphNodeMapping ToNodeMapping(int parentId)
     {
-        return new NodeMapping
+        return new GraphNodeMapping
         {
             Id = Id,
             ParentId = parentId,

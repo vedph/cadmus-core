@@ -24,6 +24,7 @@
   <Project Path="Cadmus.Cli.Core/Cadmus.Cli.Core.csproj" />
   <Project Path="Cadmus.Core.Test/Cadmus.Core.Test.csproj" />
   <Project Path="Cadmus.Core/Cadmus.Core.csproj" />
+  <Project Path="Cadmus.Export.Json/Cadmus.Export.Json.csproj" Id="7e4caa18-790e-41f5-abfe-9ea963c8a000" />
   <Project Path="Cadmus.Export.ML.Test/Cadmus.Export.ML.Test.csproj" />
   <Project Path="Cadmus.Export.ML/Cadmus.Export.ML.csproj" />
   <Project Path="Cadmus.Export.Rdf.Test/Cadmus.Export.Rdf.Test.csproj" />

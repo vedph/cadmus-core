@@ -1,4 +1,4 @@
-﻿using Cadmus.Core;
+using Cadmus.Core;
 using Cadmus.General.Parts;
 using Cadmus.Refs.Bricks;
 using Fusi.Antiquity.Chronology;
@@ -26,7 +26,7 @@ public sealed class GraphUpdaterTest
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
             repository.AddMapping(mapping);
         // create source data
         IItem item = new Item

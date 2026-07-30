@@ -1,4 +1,4 @@
-﻿using Cadmus.Core.Config;
+using Cadmus.Core.Config;
 using Fusi.Tools;
 using Fusi.Tools.Configuration;
 using Fusi.Tools.Data;
@@ -1216,7 +1216,7 @@ public abstract class EfGraphRepository : IUidBuilder,
 #pragma warning restore RCS1155 // Use StringComparison when comparing strings.
 
     private static void PopulateMappingChildren(IList<EfMappingLink>? links,
-        NodeMapping mapping, CadmusGraphDbContext context)
+        GraphNodeMapping mapping, CadmusGraphDbContext context)
     {
         if (links == null) return;
 
@@ -1230,18 +1230,18 @@ public abstract class EfGraphRepository : IUidBuilder,
                 .FirstOrDefault(m => m.Id == link.ChildId);
             if (child == null) continue;    // defensive
 
-            NodeMapping m = child.ToNodeMapping(mapping.Id);
+            GraphNodeMapping m = child.ToNodeMapping(mapping.Id);
             mapping.Children.Add(m);
             PopulateMappingChildren(child.ChildLinks, m, context);
         }
     }
 
-    private NodeMapping GetPopulatedMapping(EfMapping mapping,
+    private GraphNodeMapping GetPopulatedMapping(EfMapping mapping,
         CadmusGraphDbContext context)
     {
         // use the cached mapping if any
         if (Cache != null && Cache.TryGetValue($"{CACHE_KEY_PREFIX}-{mapping.Id}",
-            out NodeMapping? m))
+            out GraphNodeMapping? m))
         {
             return m!;
         }
@@ -1262,7 +1262,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// </param>
     /// <returns>The page.</returns>
     /// <exception cref="ArgumentNullException">filter</exception>
-    public DataPage<NodeMapping> GetMappings(NodeMappingFilter filter,
+    public DataPage<GraphNodeMapping> GetMappings(NodeMappingFilter filter,
         bool descendants)
     {
         ArgumentNullException.ThrowIfNull(filter);
@@ -1274,9 +1274,9 @@ public abstract class EfGraphRepository : IUidBuilder,
         int total = mappings.Count();
         if (total == 0)
         {
-            return new DataPage<NodeMapping>(
+            return new DataPage<GraphNodeMapping>(
                 filter.PageNumber, filter.PageSize, 0,
-                Array.Empty<NodeMapping>());
+                Array.Empty<GraphNodeMapping>());
         }
 
         mappings = mappings.OrderBy(m => m.Name.ToLower()).ThenBy(m => m.Id);
@@ -1287,12 +1287,12 @@ public abstract class EfGraphRepository : IUidBuilder,
 
         if (descendants)
         {
-            return new DataPage<NodeMapping>(filter.PageNumber, filter.PageSize,
+            return new DataPage<GraphNodeMapping>(filter.PageNumber, filter.PageSize,
                 total, results.ConvertAll(m => GetPopulatedMapping(m, context)));
         }
         else
         {
-            return new DataPage<NodeMapping>(filter.PageNumber, filter.PageSize,
+            return new DataPage<GraphNodeMapping>(filter.PageNumber, filter.PageSize,
                 total, results.ConvertAll(m => m.ToNodeMapping(0)));
         }
     }
@@ -1303,7 +1303,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// </summary>
     /// <param name="id">The identifier.</param>
     /// <returns>The mapping or null if not found.</returns>
-    public NodeMapping? GetMapping(int id)
+    public GraphNodeMapping? GetMapping(int id)
     {
         using CadmusGraphDbContext context = GetContext();
 
@@ -1317,7 +1317,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         return GetPopulatedMapping(mapping, context);
     }
 
-    private static void AddOrUpdateChildMapping(NodeMapping mapping,
+    private static void AddOrUpdateChildMapping(GraphNodeMapping mapping,
         EfMapping parent, CadmusGraphDbContext context)
     {
         EfMapping efMapping = new(mapping);
@@ -1433,7 +1433,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         // recursively add/update children
         if (mapping.Children?.Count > 0)
         {
-            foreach (NodeMapping child in mapping.Children)
+            foreach (GraphNodeMapping child in mapping.Children)
                 AddOrUpdateChildMapping(child, efMapping, context);
         }
     }
@@ -1445,7 +1445,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// added.</param>
     /// <returns>The mapping ID.</returns>
     /// <exception cref="ArgumentNullException">mapping</exception>
-    public int AddMapping(NodeMapping mapping)
+    public int AddMapping(GraphNodeMapping mapping)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         if (mapping.ParentId != 0)
@@ -1470,7 +1470,7 @@ public abstract class EfGraphRepository : IUidBuilder,
             // add all the children recursively or update them when they exist
             if (mapping.Children?.Count > 0)
             {
-                foreach (NodeMapping child in mapping.Children)
+                foreach (GraphNodeMapping child in mapping.Children)
                     AddOrUpdateChildMapping(child, newMapping, context);
             }
 
@@ -1503,7 +1503,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// <param name="filter">The filter to match.</param>
     /// <returns>List of mappings.</returns>
     /// <exception cref="ArgumentNullException">filter</exception>
-    public IList<NodeMapping> FindMappings(RunNodeMappingFilter filter)
+    public IList<GraphNodeMapping> FindMappings(RunNodeMappingFilter filter)
     {
         ArgumentNullException.ThrowIfNull(filter);
 
@@ -1547,7 +1547,7 @@ public abstract class EfGraphRepository : IUidBuilder,
             ?? throw new InvalidDataException("Invalid JSON mappings document");
 
         int n = 0;
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
         {
             AddMapping(mapping);
             n++;
@@ -1563,7 +1563,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     {
         NodeMappingDocument doc = new();
         NodeMappingFilter filter = new();
-        DataPage<NodeMapping> page = GetMappings(filter, true);
+        DataPage<GraphNodeMapping> page = GetMappings(filter, true);
         do
         {
             doc.DocumentMappings.AddRange(page.Items);

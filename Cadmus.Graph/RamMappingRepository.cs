@@ -1,4 +1,4 @@
-﻿using Fusi.Tools.Data;
+using Fusi.Tools.Data;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,7 +21,7 @@ public class RamMappingRepository : IMappingRepository
     /// <summary>
     /// Gets all the mappings in this repository.
     /// </summary>
-    public List<NodeMapping> Mappings { get; }
+    public List<GraphNodeMapping> Mappings { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RamMappingRepository"/> class.
@@ -41,8 +41,8 @@ public class RamMappingRepository : IMappingRepository
 
     private int GetNextId() => Interlocked.Increment(ref _nextId);
 
-    private static IQueryable<NodeMapping> ApplyNodeMappingFilter(
-        NodeMappingFilter filter, IQueryable<NodeMapping> mappings)
+    private static IQueryable<GraphNodeMapping> ApplyNodeMappingFilter(
+        NodeMappingFilter filter, IQueryable<GraphNodeMapping> mappings)
     {
         if (filter.ParentId != null)
             mappings = mappings.Where(m => m.ParentId == filter.ParentId);
@@ -102,16 +102,16 @@ public class RamMappingRepository : IMappingRepository
     /// </param>
     /// <returns>The page.</returns>
     /// <exception cref="ArgumentNullException">filter</exception>
-    public DataPage<NodeMapping> GetMappings(NodeMappingFilter filter,
+    public DataPage<GraphNodeMapping> GetMappings(NodeMappingFilter filter,
         bool descendants)
     {
-        IQueryable<NodeMapping> mappings =
+        IQueryable<GraphNodeMapping> mappings =
             ApplyNodeMappingFilter(filter, Mappings.AsQueryable());
 
         int total = mappings.Count();
         if (total == 0)
         {
-            return new DataPage<NodeMapping>(
+            return new DataPage<GraphNodeMapping>(
                 filter.PageNumber, filter.PageSize, 0,
                 []);
         }
@@ -120,7 +120,7 @@ public class RamMappingRepository : IMappingRepository
             .Skip(filter.PageSize == 0? 0 : filter.GetSkipCount())
             .Take(filter.PageSize == 0? total : filter.PageSize);
 
-        return new DataPage<NodeMapping>(filter.PageNumber,
+        return new DataPage<GraphNodeMapping>(filter.PageNumber,
             filter.PageSize, total, [.. mappings]);
     }
 
@@ -129,7 +129,7 @@ public class RamMappingRepository : IMappingRepository
     /// </summary>
     /// <param name="id">The identifier.</param>
     /// <returns>The mapping or null if not found.</returns>
-    public NodeMapping? GetMapping(int id) => Mappings.Find(m => m.Id == id);
+    public GraphNodeMapping? GetMapping(int id) => Mappings.Find(m => m.Id == id);
 
     /// <summary>
     /// Deletes the mapping with the specified ID.
@@ -137,7 +137,7 @@ public class RamMappingRepository : IMappingRepository
     /// <param name="id">The identifier.</param>
     public void DeleteMapping(int id)
     {
-        NodeMapping? mapping = GetMapping(id);
+        GraphNodeMapping? mapping = GetMapping(id);
         if (mapping != null) Mappings.Remove(mapping);
     }
 
@@ -148,7 +148,7 @@ public class RamMappingRepository : IMappingRepository
     /// </summary>
     /// <param name="mapping">The mapping.</param>
     /// <returns>The mapping ID.</returns>
-    public int AddMapping(NodeMapping mapping)
+    public int AddMapping(GraphNodeMapping mapping)
     {
         ArgumentNullException.ThrowIfNull(mapping);
 
@@ -169,13 +169,13 @@ public class RamMappingRepository : IMappingRepository
     /// <exception cref="ArgumentNullException">mapping</exception>
     /// <exception cref="InvalidOperationException">Adding mappings by name
     /// requires ID=0</exception>
-    public int AddMappingByName(NodeMapping mapping)
+    public int AddMappingByName(GraphNodeMapping mapping)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         if (mapping.Id != 0)
             throw new InvalidOperationException("Adding mappings by name requires ID=0");
 
-        NodeMapping? old = Mappings.Find(m => m.Name?.Equals(mapping.Name,
+        GraphNodeMapping? old = Mappings.Find(m => m.Name?.Equals(mapping.Name,
             StringComparison.OrdinalIgnoreCase) == true);
 
         if (old != null) Mappings.Remove(old);
@@ -204,7 +204,7 @@ public class RamMappingRepository : IMappingRepository
             ?? throw new InvalidDataException("Invalid JSON mappings document");
 
         int n = 0;
-        foreach (NodeMapping mapping in doc.GetMappings())
+        foreach (GraphNodeMapping mapping in doc.GetMappings())
         {
             AddMapping(mapping);
             n++;

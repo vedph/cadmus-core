@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Cadmus.Graph;
 
@@ -15,7 +15,7 @@ public sealed class GraphUpdaterExplanation
     /// <summary>
     /// Gets the mappings used in the update, in their order of application.
     /// </summary>
-    public IList<NodeMapping> Mappings { get; }
+    public IList<GraphNodeMapping> Mappings { get; }
 
     /// <summary>
     /// Gets the metadata for the update.
