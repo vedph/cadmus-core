@@ -128,7 +128,7 @@
     <PackageVersion Include="Proteus.Core" Version="13.0.4" />
     <PackageVersion Include="Proteus.Entries" Version="13.0.4" />
     <PackageVersion Include="Proteus.Text.Xml" Version="13.0.4" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.16" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.17" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Exceptions" Version="8.4.0" />
@@ -140,7 +140,7 @@
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageVersion Include="SqlKata.Execution" Version="4.0.1" />
-    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.21.0" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
     <PackageVersion Include="TaxoStore.Api.Controllers" Version="0.0.5" />
     <PackageVersion Include="TaxoStore.Core" Version="0.0.5" />
     <PackageVersion Include="TaxoStore.PgSql" Version="0.0.5" />
