@@ -1,5 +1,5 @@
 ﻿using Cadmus.Core.Storage;
-using Cadmus.Graph.Adapters;
+using Cadmus.Export.Mapping;
 using System.Collections.Generic;
 
 namespace Cadmus.Graph.Ef.Test;
@@ -21,7 +21,7 @@ internal sealed class MockItemEidMetadataSource : IMetadataSource
         _eid = eid;
     }
 
-    public void Supply(GraphSource source, IDictionary<string, object> metadata,
+    public void Supply(MapperSource source, IDictionary<string, object> metadata,
         ICadmusRepository? repository, object? context = null)
     {
         if (_pid != null) metadata["metadata-pid"] = _pid;

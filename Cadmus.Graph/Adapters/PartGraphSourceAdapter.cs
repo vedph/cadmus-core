@@ -1,4 +1,5 @@
 ﻿using Cadmus.Core;
+using Cadmus.Export.Mapping;
 using System.Collections.Generic;
 
 namespace Cadmus.Graph.Adapters;
@@ -27,7 +28,7 @@ public sealed class PartGraphSourceAdapter : JsonGraphSourceAdapter,
     /// <returns>
     /// Adapted object or null.
     /// </returns>
-    protected override object? Adapt(GraphSource source,
+    protected override object? Adapt(MapperSource source,
         RunNodeMappingFilter filter, IDictionary<string, object> metadata)
     {
         // item

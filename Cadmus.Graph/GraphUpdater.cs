@@ -1,4 +1,5 @@
 using Cadmus.Core;
+using Cadmus.Export.Mapping;
 using Cadmus.Graph.Adapters;
 using System;
 using System.Collections.Generic;
@@ -133,7 +134,7 @@ public class GraphUpdater
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        _mapper.Context = new GraphSource(item);
+        _mapper.Context = new MapperSource(item);
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
 
         (object? result, RunNodeMappingFilter filter) =
@@ -154,7 +155,7 @@ public class GraphUpdater
         ArgumentNullException.ThrowIfNull(part);
 
         // create the source
-        _mapper.Context = new GraphSource(item, part);
+        _mapper.Context = new MapperSource(item, part);
 
         // supply metadata if requested
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
@@ -177,7 +178,7 @@ public class GraphUpdater
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        _mapper.Context = new GraphSource(item);
+        _mapper.Context = new MapperSource(item);
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
 
         (object? result, RunNodeMappingFilter filter) =
@@ -199,7 +200,7 @@ public class GraphUpdater
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(part);
 
-        _mapper.Context = new GraphSource(item, part);
+        _mapper.Context = new MapperSource(item, part);
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
 
         (object? result, RunNodeMappingFilter filter) =

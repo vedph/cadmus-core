@@ -7,6 +7,7 @@ using System.Text;
 using System.Linq;
 using System.Globalization;
 using Cadmus.Graph.Adapters;
+using Cadmus.Export.Mapping;
 
 namespace Cadmus.Graph;
 
@@ -48,7 +49,7 @@ public abstract class NodeMapper : DataDictionary
     /// this rather refers to the source's context. For instance, when
     /// mapping a part you would still need to know about its parent item.
     /// </summary>
-    public GraphSource? Context { get; set; }
+    public MapperSource? Context { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether applied mappings tracing is

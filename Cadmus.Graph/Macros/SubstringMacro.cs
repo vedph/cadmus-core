@@ -1,4 +1,4 @@
-﻿using Cadmus.Graph.Adapters;
+﻿using Cadmus.Export.Mapping;
 using Fusi.Tools.Configuration;
 using System;
 
@@ -22,7 +22,7 @@ public sealed class SubstringMacro : INodeMappingMacro
     /// 1=the start index; 2=the length (optional).</param>
     /// <returns>Result or null.</returns>
     /// <exception cref="ArgumentNullException">template</exception>
-    public string? Run(GraphSource? context, string[]? args)
+    public string? Run(MapperSource? context, string[]? args)
     {
         if (args == null || args.Length == 0) return null;
 

@@ -1,7 +1,7 @@
 ﻿using Cadmus.Core;
 using Cadmus.Core.Storage;
+using Cadmus.Export.Mapping;
 using Cadmus.General.Parts;
-using Cadmus.Graph.Adapters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,7 +36,7 @@ public sealed class ItemEidMetadataSource : IMetadataSource
     /// <param name="context">The optional context.</param>
     /// <exception cref="ArgumentNullException">source or metadata or repository
     /// </exception>
-    public void Supply(GraphSource source, IDictionary<string, object> metadata,
+    public void Supply(MapperSource source, IDictionary<string, object> metadata,
         ICadmusRepository? repository, object? context = null)
     {
         ArgumentNullException.ThrowIfNull(source);

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cadmus.Export.Mapping;
+using System;
 using System.Collections.Generic;
 using System.Text.Json;
 
@@ -33,7 +34,7 @@ public abstract class JsonGraphSourceAdapter
     /// <param name="filter">The filter to set.</param>
     /// <param name="metadata">The metadata to set.</param>
     /// <returns>Adapted object or null.</returns>
-    protected abstract object? Adapt(GraphSource source,
+    protected abstract object? Adapt(MapperSource source,
         RunNodeMappingFilter filter, IDictionary<string, object> metadata);
 
     /// <summary>
@@ -46,7 +47,7 @@ public abstract class JsonGraphSourceAdapter
     /// object, plus the filter), or null.</returns>
     /// <exception cref="ArgumentNullException">source or metadata</exception>
     public (object? result, RunNodeMappingFilter filter) Adapt(
-        GraphSource source, IDictionary<string, object> metadata)
+        MapperSource source, IDictionary<string, object> metadata)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(metadata);

@@ -1,4 +1,5 @@
-﻿using Cadmus.Graph.Adapters;
+﻿using Cadmus.Export.Mapping;
+using Cadmus.Graph.Adapters;
 using Fusi.Antiquity.Chronology;
 using Fusi.Tools.Configuration;
 using System;
@@ -46,7 +47,7 @@ public sealed class HistoricalDateMacro : INodeMappingMacro
     /// <c>text</c>.</param>
     /// <returns>Result or null.</returns>
     /// <exception cref="ArgumentNullException">template</exception>
-    public string? Run(GraphSource? context, string[]? args)
+    public string? Run(MapperSource? context, string[]? args)
     {
         if (args == null || args.Length == 0) return null;
 

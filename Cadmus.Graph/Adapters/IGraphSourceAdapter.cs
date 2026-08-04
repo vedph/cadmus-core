@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Cadmus.Export.Mapping;
+using System.Collections.Generic;
 
 namespace Cadmus.Graph.Adapters;
 
@@ -16,6 +17,6 @@ public interface IGraphSourceAdapter
     /// by the adapter.</param>
     /// <returns>Tuple with 1=adaptation result (adapted object or null, plus
     /// the filter).</returns>
-    (object? result, RunNodeMappingFilter filter) Adapt(GraphSource source,
+    (object? result, RunNodeMappingFilter filter) Adapt(MapperSource source,
         IDictionary<string, object> metadata);
 }

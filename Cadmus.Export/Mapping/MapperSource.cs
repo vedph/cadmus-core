@@ -1,13 +1,13 @@
 ﻿using Cadmus.Core;
 using System;
 
-namespace Cadmus.Graph.Adapters;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
-/// Source data for graph mapping. This can be either an item, or an
-/// item's part, or a thesaurus.
+/// Source data for Cadmus objects mapping. This can be either an item or an
+/// item's part.
 /// </summary>
-public class GraphSource
+public class MapperSource
 {
     /// <summary>
     /// Gets the item.
@@ -20,22 +20,22 @@ public class GraphSource
     public IPart? Part { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="GraphSource"/> class.
+    /// Initializes a new instance of the <see cref="MapperSource"/> class.
     /// </summary>
     /// <param name="item">The item.</param>
     /// <exception cref="ArgumentNullException">item</exception>
-    public GraphSource(IItem item)
+    public MapperSource(IItem item)
     {
         Item = item ?? throw new ArgumentNullException(nameof(item));
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="GraphSource"/> class.
+    /// Initializes a new instance of the <see cref="MapperSource"/> class.
     /// </summary>
     /// <param name="item">The item.</param>
     /// <param name="part">The part.</param>
     /// <exception cref="ArgumentNullException">item or part</exception>
-    public GraphSource(IItem item, IPart part)
+    public MapperSource(IItem item, IPart part)
     {
         Item = item ?? throw new ArgumentNullException(nameof(item));
         Part = part ?? throw new ArgumentNullException(nameof(part));

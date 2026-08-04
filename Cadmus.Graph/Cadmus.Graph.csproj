@@ -38,5 +38,8 @@
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
 		<PackageReference Include="Cadmus.Core" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\Cadmus.Export\Cadmus.Export.csproj" />
+	</ItemGroup>
 
 </Project>

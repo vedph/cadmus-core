@@ -1,4 +1,5 @@
 ﻿using Cadmus.Core.Storage;
+using Cadmus.Export.Mapping;
 using Cadmus.Graph.Adapters;
 using System.Collections.Generic;
 
@@ -18,6 +19,6 @@ public interface IMetadataSource
     /// <param name="repository">The optional Cadmus repository.</param>
     /// <param name="context">An optional context object, eventually used
     /// by implementors.</param>
-    void Supply(GraphSource source, IDictionary<string, object> metadata,
+    void Supply(MapperSource source, IDictionary<string, object> metadata,
         ICadmusRepository? repository, object? context = null);
 }

@@ -1,4 +1,4 @@
-﻿using Cadmus.Graph.Adapters;
+﻿using Cadmus.Export.Mapping;
 
 namespace Cadmus.Graph;
 
@@ -15,5 +15,5 @@ public interface INodeMappingMacro
     /// <param name="args">The optional arguments. This is a simple array
     /// of tokens, whose meaning depends on the function implementation.</param>
     /// <returns>Result or null.</returns>
-    string? Run(GraphSource? context, string[]? args);
+    string? Run(MapperSource? context, string[]? args);
 }

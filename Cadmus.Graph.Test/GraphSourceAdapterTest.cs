@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cadmus.Core;
 using Cadmus.Graph.Adapters;
 using Cadmus.General.Parts;
+using Cadmus.Export.Mapping;
 using Xunit;
 
 namespace Cadmus.Graph.Test;
@@ -12,7 +13,7 @@ public sealed class GraphSourceTest
     [Fact]
     public void Ctor_ItemOnly_NullItem_Throws()
     {
-        Assert.Throws<ArgumentNullException>(() => new GraphSource((IItem)null!));
+        Assert.Throws<ArgumentNullException>(() => new MapperSource((IItem)null!));
     }
 
     [Fact]
@@ -20,7 +21,7 @@ public sealed class GraphSourceTest
     {
         Item item = new();
 
-        GraphSource source = new(item);
+        MapperSource source = new(item);
 
         Assert.Same(item, source.Item);
         Assert.Null(source.Part);
@@ -32,7 +33,7 @@ public sealed class GraphSourceTest
         MetadataPart part = new();
 
         Assert.Throws<ArgumentNullException>(
-            () => new GraphSource(null!, part));
+            () => new MapperSource(null!, part));
     }
 
     [Fact]
@@ -41,7 +42,7 @@ public sealed class GraphSourceTest
         Item item = new();
 
         Assert.Throws<ArgumentNullException>(
-            () => new GraphSource(item, null!));
+            () => new MapperSource(item, null!));
     }
 
     [Fact]
@@ -50,7 +51,7 @@ public sealed class GraphSourceTest
         Item item = new();
         MetadataPart part = new();
 
-        GraphSource source = new(item, part);
+        MapperSource source = new(item, part);
 
         Assert.Same(item, source.Item);
         Assert.Same(part, source.Part);
@@ -61,7 +62,7 @@ public sealed class GraphSourceTest
     {
         Item item = new() { Title = "Sample" };
 
-        GraphSource source = new(item);
+        MapperSource source = new(item);
 
         Assert.Equal(item.ToString(), source.ToString());
     }
@@ -72,7 +73,7 @@ public sealed class GraphSourceTest
         Item item = new();
         MetadataPart part = new();
 
-        GraphSource source = new(item, part);
+        MapperSource source = new(item, part);
 
         Assert.Equal(part.ToString(), source.ToString());
     }
@@ -96,7 +97,7 @@ public sealed class ItemGraphSourceAdapterTest
     {
         ItemGraphSourceAdapter adapter = new();
         Item item = GetItem();
-        GraphSource source = new(item);
+        MapperSource source = new(item);
         Dictionary<string, object> metadata = [];
 
         (object? result, RunNodeMappingFilter filter) =
@@ -117,7 +118,7 @@ public sealed class ItemGraphSourceAdapterTest
     {
         ItemGraphSourceAdapter adapter = new();
         Item item = GetItem("alpha");
-        GraphSource source = new(item);
+        MapperSource source = new(item);
         Dictionary<string, object> metadata = [];
 
         adapter.Adapt(source, metadata);
@@ -132,7 +133,7 @@ public sealed class ItemGraphSourceAdapterTest
     {
         ItemGraphSourceAdapter adapter = new();
         Item item = GetItem("alpha/beta");
-        GraphSource source = new(item);
+        MapperSource source = new(item);
         Dictionary<string, object> metadata = [];
 
         adapter.Adapt(source, metadata);
@@ -153,7 +154,7 @@ public sealed class PartGraphSourceAdapterTest
     {
         PartGraphSourceAdapter adapter = new();
         Item item = new();
-        GraphSource source = new(item);
+        MapperSource source = new(item);
         Dictionary<string, object> metadata = [];
 
         (object? result, _) = adapter.Adapt(source, metadata);
@@ -171,7 +172,7 @@ public sealed class PartGraphSourceAdapterTest
             ItemId = item.Id,
             RoleId = "role1"
         };
-        GraphSource source = new(item, part);
+        MapperSource source = new(item, part);
         Dictionary<string, object> metadata = [];
 
         (object? result, RunNodeMappingFilter filter) =
@@ -196,7 +197,7 @@ public sealed class PartGraphSourceAdapterTest
         PartGraphSourceAdapter adapter = new();
         Item item = new();
         MetadataPart part = new() { ItemId = item.Id };
-        GraphSource source = new(item, part);
+        MapperSource source = new(item, part);
         Dictionary<string, object> metadata = [];
 
         adapter.Adapt(source, metadata);

@@ -1,4 +1,4 @@
-﻿using Cadmus.Graph.Adapters;
+﻿using Cadmus.Export.Mapping;
 using Fusi.Tools;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
@@ -30,7 +30,7 @@ public interface INodeMapper : IHasDataDictionary
     /// this rather refers to the source's context. For instance, when
     /// mapping a part you would still need to know about its parent item.
     /// </summary>
-    GraphSource? Context { get; set; }
+    MapperSource? Context { get; set; }
 
     /// <summary>
     /// Adds the specified macro.

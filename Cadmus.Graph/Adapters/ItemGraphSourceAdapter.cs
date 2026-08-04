@@ -1,4 +1,5 @@
 ﻿using Cadmus.Core;
+using Cadmus.Export.Mapping;
 using System.Collections.Generic;
 
 namespace Cadmus.Graph.Adapters;
@@ -16,7 +17,7 @@ public sealed class ItemGraphSourceAdapter : JsonGraphSourceAdapter,
     public const string M_ITEM_FACET = "item-facet";
     public const string M_ITEM_GROUP = "item-group";
 
-    internal static void ExtractItemMetadata(GraphSource source,
+    internal static void ExtractItemMetadata(MapperSource source,
         RunNodeMappingFilter filter, IDictionary<string, object> metadata)
     {
         IItem? item = source.Item;
@@ -57,7 +58,7 @@ public sealed class ItemGraphSourceAdapter : JsonGraphSourceAdapter,
     /// <returns>
     /// Adapted object or null.
     /// </returns>
-    protected override object? Adapt(GraphSource source,
+    protected override object? Adapt(MapperSource source,
         RunNodeMappingFilter filter, IDictionary<string, object> metadata)
     {
         ExtractItemMetadata(source, filter, metadata);

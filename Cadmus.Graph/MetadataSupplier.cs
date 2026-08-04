@@ -1,4 +1,5 @@
 ﻿using Cadmus.Core.Storage;
+using Cadmus.Export.Mapping;
 using Cadmus.Graph.Adapters;
 using System;
 using System.Collections.Generic;
@@ -54,7 +55,7 @@ public class MetadataSupplier
     /// <param name="metadata">The target metadata to update.</param>
     /// <param name="context">The optional context object.</param>
     /// <exception cref="ArgumentNullException">source or metadata</exception>
-    public void Supply(GraphSource source, IDictionary<string, object> metadata,
+    public void Supply(MapperSource source, IDictionary<string, object> metadata,
         object? context = null)
     {
         ArgumentNullException.ThrowIfNull(source);

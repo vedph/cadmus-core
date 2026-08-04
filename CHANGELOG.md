@@ -1,5 +1,8 @@
 # History
 
+- 2026-08-04: preparations for further mapping generalization:
+  - `GraphSource` renamed into `MapperSource` and moved in `Cadmus.Export`.
+
 ## 16.0.0
 
 - 2026-07-30: ⚠️ generalized some features of the `Cadmus.Graph` project's mapping components to reuse them in a slightly different context. `JsonNodeMapper` was used to build RDF nodes and triples from a JSON object and relies on `NodeMapping`'s. This represented the mapping of a single node in the tree of properties which underlies a JSON object. This node was selected via JMESPath for maximum flexibility; and `NodeMapping`s could be nested as they reflected the nesting of properties in a JSON object. We need to generalize the whole select-and-process logic in mapper and mappings decoupling it from the specific RDF output. To this end, a new abstract class was created to represent the mapping model and logic, completely decoupled from the specific output one wants to emit for each processed node. Then, a `GraphNodeMapping` was derived from it, adding the output generation part specific to RDF graph.
