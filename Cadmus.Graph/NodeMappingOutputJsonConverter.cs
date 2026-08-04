@@ -93,7 +93,7 @@ public class NodeMappingOutputJsonConverter : JsonConverter<NodeMappingOutput>
     }
 
     /// <summary>
-    /// Read the object.
+    /// ReadAsync the object.
     /// </summary>
     /// <param name="reader">Reader.</param>
     /// <param name="typeToConvert">Type to convert.</param>

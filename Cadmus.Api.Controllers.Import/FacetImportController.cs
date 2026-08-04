@@ -89,7 +89,7 @@ public sealed class FacetImportController : ControllerBase
                 newFacets.Add(facet);
             }
 
-            _logger?.LogInformation("Read {Count} facet(s) from file",
+            _logger?.LogInformation("ReadAsync {Count} facet(s) from file",
                 newFacets.Count);
 
             List<string> ids = [];

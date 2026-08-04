@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Text;
 
-namespace Cadmus.Export.Json;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
 /// A filter for item parts. This is a utility class used to determine which
