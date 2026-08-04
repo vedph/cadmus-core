@@ -1,4 +1,10 @@
+using Cadmus.Export.Mapping;
 using Fusi.Tools.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
 
 namespace Cadmus.Graph;
 
@@ -7,10 +13,102 @@ namespace Cadmus.Graph;
 /// <para>Tag: <c>node-mapper.json</c>.</para>
 /// </summary>
 /// <seealso cref="JsonNodeMapper{TTarget}" />
-/// <seealso cref="INodeMapper" />
+/// <seealso cref="IGraphNodeMapper" />
 [Tag("node-mapper.json")]
-public sealed class JsonGraphNodeMapper : JsonNodeMapper<GraphSet>, INodeMapper
+public sealed class JsonGraphNodeMapper : JsonNodeMapper<GraphSet>, IGraphNodeMapper
 {
+    public IUidBuilder UidBuilder { get; set; }
+
+    /// <summary>
+    /// Gets or sets the context nodes of this mapper. These are the nodes
+    /// created during the mapping process, keyed under some arbitrary
+    /// identifier defined in the mapping configuration.
+    /// </summary>
+    private readonly Dictionary<string, UriNode> _contextNodes;
+
+    public JsonGraphNodeMapper()
+    {
+        // by default use a RAM-based builder
+        UidBuilder = new RamUidBuilder();
+        _contextNodes = [];
+    }
+
+    private string ResolveNode(string template)
+    {
+        // - {?node} or {?node:uri} => uri
+        // - {?node:label} => label
+        // - {?node:sid} => sid
+        // - {?node:src_type} => source type
+        string key;
+        string? prop = null;
+        int i = template.LastIndexOf(':');
+        if (i > -1)
+        {
+            key = template[..i];
+            prop = template[(i + 1)..];
+        }
+        else
+        {
+            key = template;
+        }
+        if (!_contextNodes.TryGetValue(key, out UriNode? node)) return "";
+        return prop switch
+        {
+            "label" => node.Label ?? "",
+            "sid" => node.Sid ?? "",
+            "src_type" => node.SourceType.ToString(CultureInfo.InvariantCulture),
+            _ => node.Uri ?? "",
+        };
+    }
+
+    private string ResolveNode(TemplateNode node)
+    {
+        if (node.ChildrenCount == 0) return "";
+
+        StringBuilder sb = new();
+        foreach (TemplateNode child in node.Children
+            .Where(child => child.Value != null))
+        {
+            sb.Append(child.Value);
+        }
+
+        string value = sb.ToString();
+        switch (node.Type)
+        {
+            case TemplateNodeType.Node:
+                return ResolveNode(value);
+
+            case TemplateNodeType.Metadatum:
+                if (Data.TryGetValue(value, out object? d))
+                    return d?.ToString() ?? "";
+                break;
+
+            case TemplateNodeType.Expression:
+                return ResolveDataExpression(value);
+
+            case TemplateNodeType.Macro:
+                return ResolveMacro(value);
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// Fill the specified template by resolving macros (<c>!{...}</c>),
+    /// node placeholders (<c>?{...}</c>), metadata placeholders
+    /// (<c>${...}</c>), and data expression placeholders <c>@{...}</c>.
+    /// </summary>
+    /// <param name="template">The template.</param>
+    /// <param name="uidFilter">True to apply <see cref="UidFilter"/> to
+    /// the result before returning it.</param>
+    protected override string ResolveTemplate(string template, bool uidFilter)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+
+        TemplateTree tree = TemplateTree.Create(template);
+        string resolved = tree.Resolve(ResolveNode);
+        return uidFilter ? UidFilter.Apply(resolved) : resolved;
+    }
+
     private void AddNodes(string sid, GraphNodeMapping mapping, GraphSet target)
     {
         foreach (var p in mapping.Output!.Nodes)
@@ -25,7 +123,7 @@ public sealed class JsonGraphNodeMapper : JsonNodeMapper<GraphSet>, INodeMapper
                 Label = string.IsNullOrEmpty(p.Value.Label) ?
                     uri : ResolveTemplate(p.Value.Label, false)
             };
-            ContextNodes[p.Key] = node;
+            _contextNodes[p.Key] = node;
             target.Nodes.Add(node);
         }
     }

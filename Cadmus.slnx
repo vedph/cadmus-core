@@ -22,6 +22,8 @@
   <Project Path="Cadmus.Api/Cadmus.Api.csproj" />
   <Project Path="Cadmus.Bricks.Api/Cadmus.Bricks.Api.csproj" />
   <Project Path="Cadmus.Cli.Core/Cadmus.Cli.Core.csproj" />
+  <Project Path="Cadmus.Codicology.Mapping.Test/Cadmus.Codicology.Mapping.Test.csproj" Id="cbfaa9b0-e56f-4be6-b7ce-4df43cef50bc" />
+  <Project Path="Cadmus.Codicology.Mapping/Cadmus.Codicology.Mapping.csproj" Id="c0285214-bad5-436a-8c01-c4cc74a0a9f4" />
   <Project Path="Cadmus.Core.Test/Cadmus.Core.Test.csproj" />
   <Project Path="Cadmus.Core/Cadmus.Core.csproj" />
   <Project Path="Cadmus.Export.Json/Cadmus.Export.Json.csproj" Id="7e4caa18-790e-41f5-abfe-9ea963c8a000" />

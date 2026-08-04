@@ -1,3 +1,4 @@
+using Cadmus.Export.Mapping;
 using Fusi.Tools.Data;
 
 namespace Cadmus.Graph;

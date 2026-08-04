@@ -1,3 +1,4 @@
+using Cadmus.Export.Mapping;
 using Xunit;
 using System.Text.Json;
 using System.IO;
@@ -31,12 +32,13 @@ public sealed class JsonNodeMapperTest
             PropertyNameCaseInsensitive = true
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
 
         return JsonSerializer.Deserialize<IList<GraphNodeMapping>>(reader.ReadToEnd(),
             options) ?? Array.Empty<GraphNodeMapping>();
     }
 
-    private static void ResetMapperMetadata(INodeMapper mapper)
+    private static void ResetMapperMetadata(IGraphNodeMapper mapper)
     {
         mapper.Data.Clear();
 

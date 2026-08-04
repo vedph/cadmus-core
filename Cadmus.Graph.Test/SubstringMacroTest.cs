@@ -1,4 +1,4 @@
-using Cadmus.Graph.Macros;
+using Cadmus.Export.Mapping;
 using Xunit;
 
 namespace Cadmus.Graph.Test;

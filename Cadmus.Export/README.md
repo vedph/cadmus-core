@@ -172,3 +172,21 @@ The implementation of `Compose` depends on the output being generated. For insta
   - `FSTeiItemComposer`: file-based TEI composer.
 - `TeiOffItemComposer`: TEI standoff composer. This is an abstract class, and builds a text tree and renders txt from it. It then uses its JSON renderers dictionary (keyed by layer type part ID + `:` + layer part role ID) to render each layer and write it to some output stream (keyed by the layer part role ID).
   - `FSTeiOffItemComposer`: file-based standoff TEI composer.
+
+  ## Mapping
+
+  The `Mapping` namespace in this library contains components used to map Cadmus objects to other formats, like RDF (in `Cadmus.Graph`), via mappings (`NodeMapping`'s).
+
+  Mappings represent the mapping of a single node in the tree of properties underlying a source object (typically a JSON object), selected using a source expression (usually JMESPath for JSON), independently of the specific output to be generated for each processed node. Derived classes provide specific output and logic for each output type.
+
+  Mappings can be nested thus building a tree structure, which is thus parallel to that of the source object. Each mapping can have a list of child mappings, which are processed in order after the parent mapping has been processed.
+
+  The generic logic to handle mappings is defined by interface `INodeMapper<TTarget>` where `TTarget` is the type of the target object to be generated. The interface defines some infrastructural properties and methods, plus a method `Map` which takes a source object, a specific mapping, and a target object.
+
+  This interface is implemented by a chain of components:
+
+  1. `NodeMapper` is the base abstract class for the implementation, providing most of the infrastructural code.
+  2. `JsonNodeMapper<TTarget>` derives from `NodeMapper` and implements the `Map` method for a JSON-based source object, recursively applying the received mapping and its descendants. It uses JMESPath to select the source node.
+  3. `JsonGraphNodeMapper` (in project `Cadmus.Graph`) derives from `JsonNodeMapper<IGraph>` and builds an RDF graph as the target object. This implements `IGraphNodeMapper` which derives from `INodeMapper<GraphSet>`.
+  
+  >Serialization note: any future code path that serializes a `GraphNodeMapping`/`NodeMapping` through a `JsonSerializerOptions` that doesn't include this registration will throw at runtime. In existing code, every place that touches raw `NodeMappingDocument`/`GraphNodeMapping` JSON builds its own `JsonSerializerOptions` explicitly, adding the converter to every one of those. Keep this in mind if you ever add an endpoint that serializes mappings directly.

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Cadmus.Graph;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
 /// A document including node mappings. This is a utility class used to
@@ -16,13 +16,13 @@ public class NodeMappingDocument
     /// Gets or sets the named mappings. These mappings are reused across
     /// the document via their names.
     /// </summary>
-    public Dictionary<string, GraphNodeMapping> NamedMappings { get; set; }
+    public Dictionary<string, NodeMapping> NamedMappings { get; set; }
 
     /// <summary>
     /// Gets or sets the mappings in the document. These can be either
     /// references to named mappings, or inline mappings.
     /// </summary>
-    public List<GraphNodeMapping> DocumentMappings { get; set; }
+    public List<NodeMapping> DocumentMappings { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NodeMappingDocument"/> class.
@@ -33,7 +33,7 @@ public class NodeMappingDocument
         DocumentMappings = [];
     }
 
-    private void ResolveNamedMappings(GraphNodeMapping mapping)
+    private void ResolveNamedMappings(NodeMapping mapping)
     {
         if (!mapping.HasChildren) return;
 
@@ -41,11 +41,11 @@ public class NodeMappingDocument
         {
             if (mapping.Children[i].Name != null &&
                 NamedMappings.TryGetValue(
-                    mapping.Children[i].Name!, out GraphNodeMapping? named))
+                    mapping.Children[i].Name!, out NodeMapping? named))
             {
                 mapping.Children[i] = named.Clone();
             }
-            ResolveNamedMappings((GraphNodeMapping)mapping.Children[i]);
+            ResolveNamedMappings(mapping.Children[i]);
         }
     }
 
@@ -54,12 +54,12 @@ public class NodeMappingDocument
     /// inlined.
     /// </summary>
     /// <returns>Mappings.</returns>
-    public IEnumerable<GraphNodeMapping> GetMappings()
+    public IEnumerable<NodeMapping> GetMappings()
     {
-        foreach (GraphNodeMapping mapping in DocumentMappings)
+        foreach (NodeMapping mapping in DocumentMappings)
         {
-            GraphNodeMapping resolved = (NamedMappings.TryGetValue(
-                mapping.Name!, out GraphNodeMapping? value) ? value : mapping).Clone();
+            NodeMapping resolved = (NamedMappings.TryGetValue(
+                mapping.Name!, out NodeMapping? value) ? value : mapping).Clone();
 
             if (resolved.HasChildren) ResolveNamedMappings(resolved);
 

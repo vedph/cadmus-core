@@ -33,6 +33,7 @@ $projectOrder = @(
     "Cadmus.Mongo\Cadmus.Mongo.csproj",
     "Proteus.Rendering\Proteus.Rendering.csproj",
     "Cadmus.Export\Cadmus.Export.csproj",
+    "Cadmus.Codicology.Mapping\Cadmus.Codicology.Mapping.csproj",
     "Cadmus.Export.ML\Cadmus.Export.ML.csproj",
     "Cadmus.Export.Rdf\Cadmus.Export.Rdf.csproj",
     "Cadmus.Graph\Cadmus.Graph.csproj",

@@ -1,5 +1,6 @@
 using Cadmus.Api.Controllers;
 using Cadmus.Core.Config;
+using Cadmus.Export.Mapping;
 using Cadmus.Graph;
 using Cadmus.Graph.Ef;
 using Cadmus.Graph.Ef.PgSql;

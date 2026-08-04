@@ -1,3 +1,4 @@
+using Cadmus.Export.Mapping;
 using System.Collections.Generic;
 using System.Text.Json;
 using Xunit;
@@ -20,6 +21,7 @@ public sealed class NodeMappingOutputJsonConverterTest
             Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
         _options.Converters.Add(new NodeMappingOutputJsonConverter());
+        _options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
     }
 
     [Fact]

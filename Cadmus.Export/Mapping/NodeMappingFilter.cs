@@ -1,9 +1,9 @@
 ﻿using Fusi.Tools.Data;
 
-namespace Cadmus.Graph;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
-/// A filter for <see cref="GraphNodeMapping"/>.
+/// A filter for <see cref="NodeMapping"/>.
 /// </summary>
 public class NodeMappingFilter : PagingOptions
 {

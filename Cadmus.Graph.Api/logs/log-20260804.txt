@@ -1,0 +1,11 @@
+2026-08-04 11:53:52.929 +02:00 [INF] Database cadmus-graph exists
+2026-08-04 11:53:53.087 +02:00 [INF] Now listening on: http://localhost:5153
+2026-08-04 11:53:53.310 +02:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-08-04 11:53:53.312 +02:00 [INF] Hosting environment: Development
+2026-08-04 11:53:53.315 +02:00 [INF] Content root path: D:\Projects\Cadmus\Cadmus\Cadmus.Graph.Api
+2026-08-04 11:53:56.059 +02:00 [INF] HTTP GET /swagger responded 404 in 3.0149 ms
+2026-08-04 11:55:35.983 +02:00 [INF] Database cadmus-graph exists
+2026-08-04 11:55:36.166 +02:00 [INF] Now listening on: http://localhost:5153
+2026-08-04 11:55:36.389 +02:00 [INF] Application started. Press Ctrl+C to shut down.
+2026-08-04 11:55:36.394 +02:00 [INF] Hosting environment: Development
+2026-08-04 11:55:36.396 +02:00 [INF] Content root path: D:\Projects\Cadmus\Cadmus\Cadmus.Graph.Api

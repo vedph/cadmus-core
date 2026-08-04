@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-namespace Cadmus.Graph;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
 /// Base node mapping. This represents the mapping of a single node in the
@@ -13,9 +12,15 @@ namespace Cadmus.Graph;
 /// selected via some source expression (e.g. a JMES path), independently
 /// of the specific output to be generated for each processed node. Derive
 /// from this class to define the output-specific properties of a mapping
-/// (e.g. <see cref="GraphNodeMapping"/> for RDF graph output).
+/// (e.g. GraphNodeMapping for RDF graph output).
+/// <para>
+/// As this is abstract, System.Text.Json cannot (de)serialize it on its
+/// own: consumers using a concrete derived type must register a
+/// <see cref="NodeMappingJsonConverter{T}"/> closed over that type into
+/// the <see cref="System.Text.Json.JsonSerializerOptions"/> used for
+/// (de)serializing mappings.
+/// </para>
 /// </summary>
-[JsonConverter(typeof(NodeMappingJsonConverter))]
 public abstract class NodeMapping
 {
     private IList<NodeMapping>? _children;

@@ -1,3 +1,4 @@
+using Cadmus.Export.Mapping;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -19,6 +20,7 @@ public sealed class NodeMappingDocumentTest
             //DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
         };
         _options.Converters.Add(new NodeMappingOutputJsonConverter());
+        _options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
     }
 
     [Fact]
@@ -63,7 +65,8 @@ public sealed class NodeMappingDocumentTest
             (TestHelper.LoadResourceText("MappingsDocDepth3.json"), _options);
 
         Assert.NotNull(doc);
-        List<GraphNodeMapping> mappings = doc.GetMappings().ToList();
+        List<GraphNodeMapping> mappings =
+            doc.GetMappings().Cast<GraphNodeMapping>().ToList();
         Assert.Equal(2, mappings.Count);
 
         // work

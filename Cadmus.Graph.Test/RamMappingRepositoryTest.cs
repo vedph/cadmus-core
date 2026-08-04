@@ -1,3 +1,4 @@
+using Cadmus.Export.Mapping;
 using System;
 using System.IO;
 using Fusi.Tools.Data;

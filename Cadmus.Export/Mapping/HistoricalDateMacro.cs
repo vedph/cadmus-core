@@ -1,13 +1,11 @@
-﻿using Cadmus.Export.Mapping;
-using Cadmus.Graph.Adapters;
-using Fusi.Antiquity.Chronology;
+﻿using Fusi.Antiquity.Chronology;
 using Fusi.Tools.Configuration;
 using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
-namespace Cadmus.Graph.Macros;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
 /// Historical date macro. This parses a <see cref="HistoricalDate"/> from

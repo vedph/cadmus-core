@@ -1,3 +1,4 @@
+using Cadmus.Export.Mapping;
 using Cadmus.Graph;
 using SharpCompress.Common;
 using Spectre.Console;
@@ -38,12 +39,14 @@ internal sealed class GraphDerefMappingsCommand :
                     .UnsafeRelaxedJsonEscaping
             };
             options.Converters.Add(new NodeMappingOutputJsonConverter());
+            options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
 
             NodeMappingDocument? doc =
                 JsonSerializer.Deserialize<NodeMappingDocument>(json, options)
                 ?? throw new InvalidFormatException("Invalid JSON mappings document");
 
-            List<GraphNodeMapping> mappings = [.. doc.GetMappings()];
+            List<GraphNodeMapping> mappings =
+                [.. doc.GetMappings().Cast<GraphNodeMapping>()];
             using StreamWriter writer = new(settings.OutputPath!, false,
                 Encoding.UTF8);
             writer.Write(JsonSerializer.Serialize(mappings, options));

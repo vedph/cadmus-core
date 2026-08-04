@@ -1,3 +1,4 @@
+using Cadmus.Export.Mapping;
 using Fusi.Tools.Data;
 using System;
 using System.Collections.Generic;
@@ -37,6 +38,7 @@ public class RamMappingRepository : IMappingRepository
             WriteIndented = true,
         };
         _jsonOptions.Converters.Add(new NodeMappingOutputJsonConverter());
+        _jsonOptions.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
     }
 
     private int GetNextId() => Interlocked.Increment(ref _nextId);

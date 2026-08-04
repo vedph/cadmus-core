@@ -1,8 +1,7 @@
-﻿using Cadmus.Export.Mapping;
-using Fusi.Tools.Configuration;
+﻿using Fusi.Tools.Configuration;
 using System;
 
-namespace Cadmus.Graph.Macros;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
 /// Substring macro. This returns a substring of the received string.

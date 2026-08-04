@@ -4,7 +4,7 @@ using System.Text.Json;
 using DevLab.JmesPath;
 using Microsoft.Extensions.Logging;
 
-namespace Cadmus.Graph;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
 /// Base class for JSON-based node mappers. This class implements the
@@ -94,6 +94,20 @@ public abstract class JsonNodeMapper<TTarget> : NodeMapper
     /// <param name="target">The target object collecting the output.</param>
     protected abstract void BuildOutput(string? sid, NodeMapping mapping,
         TTarget target);
+
+    /// <summary>
+    /// Resolves the specified template (e.g. a <see cref="NodeMapping.Sid"/>
+    /// template) by filling in its placeholders (macros, metadata, data
+    /// expressions, and any output-specific placeholder, like a reference to
+    /// a graph node for a RDF target) with their values. Derived classes
+    /// implement this according to the placeholder syntax and context
+    /// relevant to their specific output.
+    /// </summary>
+    /// <param name="template">The template.</param>
+    /// <param name="uidFilter">True to apply a UID-safe filter to the
+    /// resolved result before returning it.</param>
+    /// <returns>The resolved template.</returns>
+    protected abstract string ResolveTemplate(string template, bool uidFilter);
 
     private void ApplyMapping(string? sid, string json, NodeMapping mapping,
         TTarget target, int itemIndex = -1)

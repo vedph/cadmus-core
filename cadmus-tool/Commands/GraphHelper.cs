@@ -1,4 +1,5 @@
 using Cadmus.Cli.Services;
+using Cadmus.Export.Mapping;
 using Cadmus.Graph;
 using Cadmus.Graph.Ef;
 using Cadmus.Graph.Ef.PgSql;
@@ -31,6 +32,7 @@ internal static class GraphHelper
             PropertyNameCaseInsensitive = true
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
 
         mappings.AddRange(JsonSerializer.Deserialize<IList<GraphNodeMapping>>(
             json ?? "{}",

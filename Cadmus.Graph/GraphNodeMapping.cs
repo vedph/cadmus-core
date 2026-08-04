@@ -1,3 +1,4 @@
+using Cadmus.Export.Mapping;
 using System.Text;
 
 namespace Cadmus.Graph;

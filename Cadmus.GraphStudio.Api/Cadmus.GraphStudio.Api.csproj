@@ -7,16 +7,20 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Cadmus.Codicology.Graph" />
+		<PackageReference Include="Fusi.Tools" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
 		<PackageReference Include="Scalar.AspNetCore" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">
+		<ProjectReference Include="..\Cadmus.Codicology.Mapping\Cadmus.Codicology.Mapping.csproj" />
+		<ProjectReference Include="..\Cadmus.Export\Cadmus.Export.csproj" />
 		<ProjectReference Include="..\Cadmus.Graph\Cadmus.Graph.csproj" />
 		<ProjectReference Include="..\Cadmus.Graph.Extras\Cadmus.Graph.Extras.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
+		<PackageReference Include="Cadmus.Codicology.Mapping" />
+		<PackageReference Include="Cadmus.Export" />
 		<PackageReference Include="Cadmus.Graph" />
 		<PackageReference Include="Cadmus.Graph.Extras" />
 	</ItemGroup>

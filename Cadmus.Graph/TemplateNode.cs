@@ -21,7 +21,7 @@ public sealed class TemplateNode
     /// </summary>
     public IList<TemplateNode> Children
     {
-        get => _children ??= new List<TemplateNode>();
+        get => _children ??= [];
     }
 
     /// <summary>

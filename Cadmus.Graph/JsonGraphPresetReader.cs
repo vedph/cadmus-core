@@ -1,4 +1,5 @@
 using Cadmus.Core.Config;
+using Cadmus.Export.Mapping;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -31,6 +32,7 @@ public sealed class JsonGraphPresetReader : IGraphPresetReader
             PropertyNameCaseInsensitive = true
         };
         _options.Converters.Add(new NodeMappingOutputJsonConverter());
+        _options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
     }
 
     private IEnumerable<T> Read<T>(Stream stream)

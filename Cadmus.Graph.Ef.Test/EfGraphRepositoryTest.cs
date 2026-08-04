@@ -1,5 +1,6 @@
 using Cadmus.Core;
 using Cadmus.Core.Config;
+using Cadmus.Export.Mapping;
 using Cadmus.General.Parts;
 using Cadmus.Refs.Bricks;
 using Fusi.Antiquity.Chronology;
@@ -1435,6 +1436,7 @@ public abstract class EfGraphRepositoryTest
             PropertyNameCaseInsensitive = true,
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
@@ -1753,6 +1755,7 @@ public abstract class EfGraphRepositoryTest
             PropertyNameCaseInsensitive = true,
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
@@ -1950,6 +1953,7 @@ public abstract class EfGraphRepositoryTest
             PropertyNameCaseInsensitive = true,
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
@@ -2012,6 +2016,7 @@ public abstract class EfGraphRepositoryTest
             PropertyNameCaseInsensitive = true,
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
@@ -2191,6 +2196,7 @@ public abstract class EfGraphRepositoryTest
             PropertyNameCaseInsensitive = true,
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB
@@ -2435,6 +2441,7 @@ public abstract class EfGraphRepositoryTest
             PropertyNameCaseInsensitive = true,
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB

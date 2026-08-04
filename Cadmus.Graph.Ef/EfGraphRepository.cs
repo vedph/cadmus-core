@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Diagnostics;
+using Cadmus.Export.Mapping;
 
 namespace Cadmus.Graph.Ef;
 
@@ -1525,6 +1526,7 @@ public abstract class EfGraphRepository : IUidBuilder,
             WriteIndented = true,
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
         return options;
     }
 

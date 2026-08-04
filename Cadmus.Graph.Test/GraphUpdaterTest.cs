@@ -1,4 +1,5 @@
 using Cadmus.Core;
+using Cadmus.Export.Mapping;
 using Cadmus.General.Parts;
 using Cadmus.Refs.Bricks;
 using Fusi.Antiquity.Chronology;
@@ -23,6 +24,7 @@ public sealed class GraphUpdaterTest
             PropertyNameCaseInsensitive = true,
         };
         options.Converters.Add(new NodeMappingOutputJsonConverter());
+        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
         NodeMappingDocument doc = JsonSerializer.Deserialize<NodeMappingDocument>
             (json, options)!;
         // save mappings into DB

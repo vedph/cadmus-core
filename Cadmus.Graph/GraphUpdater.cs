@@ -13,7 +13,7 @@ namespace Cadmus.Graph;
 public class GraphUpdater
 {
     private readonly IGraphRepository _repository;
-    private readonly INodeMapper _mapper;
+    private readonly IGraphNodeMapper _mapper;
     private readonly ItemGraphSourceAdapter _itemAdapter;
     private readonly PartGraphSourceAdapter _partAdapter;
 

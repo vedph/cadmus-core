@@ -1,6 +1,4 @@
-﻿using Cadmus.Export.Mapping;
-
-namespace Cadmus.Graph;
+﻿namespace Cadmus.Export.Mapping;
 
 /// <summary>
 /// Node mapping macro function.

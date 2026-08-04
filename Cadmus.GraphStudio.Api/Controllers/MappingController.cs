@@ -1,4 +1,4 @@
-using Cadmus.Codicology.Graph;
+using Cadmus.Codicology.Mapping;
 using Cadmus.Graph;
 using Cadmus.Graph.Adapters;
 using Cadmus.Graph.Extras;

@@ -1,15 +1,14 @@
-﻿using Cadmus.Export.Mapping;
-using Fusi.Tools;
+﻿using Fusi.Tools;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 
-namespace Cadmus.Graph;
+namespace Cadmus.Export.Mapping;
 
 /// <summary>
 /// Node mapper interface. A node mapper is responsible for mapping a source
-/// into a graph set, using a mapping definition.
+/// into a target, using a mapping definition.
 /// </summary>
-public interface INodeMapper : IHasDataDictionary
+public interface INodeMapper<TTarget> : IHasDataDictionary
 {
     /// <summary>
     /// Gets or sets the optional logger to use.
@@ -17,18 +16,9 @@ public interface INodeMapper : IHasDataDictionary
     ILogger? Logger { get; set; }
 
     /// <summary>
-    /// Gets or sets the URI builder function. This is used to build URIs
-    /// from SID and UID.
-    /// </summary>
-    IUidBuilder UidBuilder { get; set; }
-
-    /// <summary>
     /// The object representing the mapping source context, usually
     /// corresponding to the context of mapping's source, like an
     /// item and/or a part.
-    /// The source is directly passed to <see cref="INodeMapper.Map"/>;
-    /// this rather refers to the source's context. For instance, when
-    /// mapping a part you would still need to know about its parent item.
     /// </summary>
     MapperSource? Context { get; set; }
 
@@ -64,5 +54,5 @@ public interface INodeMapper : IHasDataDictionary
     /// <param name="source">The source.</param>
     /// <param name="mapping">The mapping.</param>
     /// <param name="target">The target.</param>
-    void Map(object source, NodeMapping mapping, GraphSet target);
+    void Map(object source, NodeMapping mapping, TTarget target);
 }
