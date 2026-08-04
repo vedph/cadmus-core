@@ -1,9 +1,10 @@
 # History
 
-- 2026-08-04: preparations for further mapping generalization:
+- 2026-08-04: further mapping generalization:
   - `GraphSource` renamed into `MapperSource` and moved into `Cadmus.Export`.
   - ⚠️ moved all mapping components to `Cadmus.Export` under a new `Mapping` namespace, adjusting them accordingly.
   - added `Cadmus.Codicology.Mapping` project from `Cadmus.Codicology` to include the correponding mapping macro in this solution.
+  - added `JsonExporter` and its dependencies to export Cadmus items into transformed JSON.
 
 ## 16.0.0
 
