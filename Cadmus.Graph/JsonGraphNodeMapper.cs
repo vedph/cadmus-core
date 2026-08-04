@@ -10,11 +10,11 @@ namespace Cadmus.Graph;
 
 /// <summary>
 /// JSON-based node mapper building RDF nodes and triples.
-/// <para>Tag: <c>node-mapper.json</c>.</para>
+/// <para>Tag: <c>node-mapper.json.graph</c>.</para>
 /// </summary>
 /// <seealso cref="JsonNodeMapper{TTarget}" />
 /// <seealso cref="IGraphNodeMapper" />
-[Tag("node-mapper.json")]
+[Tag("node-mapper.json.graph")]
 public sealed class JsonGraphNodeMapper : JsonNodeMapper<GraphSet>, IGraphNodeMapper
 {
     public IUidBuilder UidBuilder { get; set; }
@@ -98,15 +98,15 @@ public sealed class JsonGraphNodeMapper : JsonNodeMapper<GraphSet>, IGraphNodeMa
     /// (<c>${...}</c>), and data expression placeholders <c>@{...}</c>.
     /// </summary>
     /// <param name="template">The template.</param>
-    /// <param name="uidFilter">True to apply <see cref="UidFilter"/> to
+    /// <param name="filter">True to apply <see cref="UidFilter"/> to
     /// the result before returning it.</param>
-    protected override string ResolveTemplate(string template, bool uidFilter)
+    protected override string ResolveTemplate(string template, bool filter)
     {
         ArgumentNullException.ThrowIfNull(template);
 
         TemplateTree tree = TemplateTree.Create(template);
         string resolved = tree.Resolve(ResolveNode);
-        return uidFilter ? UidFilter.Apply(resolved) : resolved;
+        return filter ? UidFilter.Apply(resolved) : resolved;
     }
 
     private void AddNodes(string sid, GraphNodeMapping mapping, GraphSet target)

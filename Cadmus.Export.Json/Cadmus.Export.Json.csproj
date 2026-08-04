@@ -21,6 +21,10 @@
 		<Deterministic>true</Deterministic>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Fluid.Core" />
+	</ItemGroup>
+
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">
 		<ProjectReference Include="..\Cadmus.Export\Cadmus.Export.csproj" />
 	</ItemGroup>

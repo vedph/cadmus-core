@@ -104,10 +104,11 @@ public abstract class JsonNodeMapper<TTarget> : NodeMapper
     /// relevant to their specific output.
     /// </summary>
     /// <param name="template">The template.</param>
-    /// <param name="uidFilter">True to apply a UID-safe filter to the
-    /// resolved result before returning it.</param>
+    /// <param name="filter">True to apply a filter to the resolved result
+    /// before returning it. The filter logic, if any, is up to the
+    /// implementor.</param>
     /// <returns>The resolved template.</returns>
-    protected abstract string ResolveTemplate(string template, bool uidFilter);
+    protected abstract string ResolveTemplate(string template, bool filter);
 
     private void ApplyMapping(string? sid, string json, NodeMapping mapping,
         TTarget target, int itemIndex = -1)
