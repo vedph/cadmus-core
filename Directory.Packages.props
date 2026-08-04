@@ -84,8 +84,8 @@
     <PackageVersion Include="Fusi.Cli.Auth" Version="7.0.3" />
     <PackageVersion Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" Version="5.0.0" />
     <PackageVersion Include="Fusi.Text" Version="7.0.2" />
-    <PackageVersion Include="Fusi.Tools" Version="9.0.0" />
-    <PackageVersion Include="Fusi.Tools.Configuration" Version="9.0.0" />
+    <PackageVersion Include="Fusi.Tools" Version="9.0.1" />
+    <PackageVersion Include="Fusi.Tools.Configuration" Version="9.0.1" />
     <PackageVersion Include="Fusi.Xml" Version="7.0.1" />
     <PackageVersion Include="Fusi.Xml.Extras" Version="7.0.1" />
     <PackageVersion Include="JmesPath.Net" Version="1.1.0" />
