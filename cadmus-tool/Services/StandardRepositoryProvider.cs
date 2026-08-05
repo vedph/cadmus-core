@@ -31,13 +31,13 @@ public sealed class StandardRepositoryProvider : IRepositoryProvider
     {
         ConnectionString = "";
         TagAttributeToTypeMap map = new();
-        map.Add(new[]
-        {
+        map.Add(
+        [
             // Cadmus.General.Parts
             typeof(NotePart).GetTypeInfo().Assembly,
             // Cadmus.Philology.Parts
             typeof(ApparatusLayerFragment).GetTypeInfo().Assembly,
-        });
+        ]);
 
         _partTypeProvider = new StandardPartTypeProvider(map);
     }
@@ -60,8 +60,7 @@ public sealed class StandardRepositoryProvider : IRepositoryProvider
     {
         // create the repository (no need to use container here)
         MongoCadmusRepository repository =
-            new(
-                _partTypeProvider,
+            new(_partTypeProvider,
                 new StandardItemSortKeyBuilder());
 
         repository.Configure(new MongoCadmusRepositoryOptions
