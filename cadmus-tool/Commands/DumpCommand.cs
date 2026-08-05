@@ -1,6 +1,6 @@
-﻿using Cadmus.Core.Storage;
+﻿using Cadmus.Cli.Services;
+using Cadmus.Core.Storage;
 using Cadmus.Export;
-using Cadmus.Migration.Cli.Services;
 using Fusi.Tools;
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
@@ -12,7 +12,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cadmus.Migration.Cli.Commands;
+namespace Cadmus.Cli.Commands;
 
 internal sealed class DumpCommand : AsyncCommand<DumpCommandSettings>
 {
@@ -97,7 +97,7 @@ internal sealed class DumpCommand : AsyncCommand<DumpCommandSettings>
         {
             // get connection string
             string connectionString = string.Format(CultureInfo.InvariantCulture,
-                ConfigurationService.Configuration!.GetConnectionString("Default")!,
+                CliAppContext.Configuration.GetConnectionString("Mongo")!,
                 settings.DatabaseName);
 
             // create output directory if it does not exist

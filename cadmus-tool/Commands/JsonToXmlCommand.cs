@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace Cadmus.Migration.Cli.Commands;
+namespace Cadmus.Cli.Commands;
 
 internal sealed class JsonToXmlCommand : AsyncCommand<JsonToXmlCommandSettings>
 {

@@ -1,9 +1,9 @@
-﻿using Cadmus.Core;
+﻿using Cadmus.Cli.Services;
+using Cadmus.Core;
 using Cadmus.Core.Storage;
 using Cadmus.Export;
 using Cadmus.Export.Config;
 using Cadmus.Export.ML;
-using Cadmus.Migration.Cli.Services;
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -13,7 +13,7 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cadmus.Migration.Cli.Commands;
+namespace Cadmus.Cli.Commands;
 
 /// <summary>
 /// Render items via item composers.
@@ -33,19 +33,6 @@ internal sealed class RenderItemsCommand : AsyncCommand<RenderItemsCommandSettin
         AnsiConsole.WriteLine($"Composer key: {settings.ComposerKey}\n");
     }
 
-    private static AppContextService GetContextService(string dbName)
-    {
-        ArgumentNullException.ThrowIfNull(dbName);
-
-        return new AppContextService(
-            new CadmusMigCliContextServiceConfig
-            {
-                ConnectionString = string.Format(CultureInfo.InvariantCulture,
-                    ConfigurationService.Configuration!
-                        .GetConnectionString("Default")!, dbName),
-            });
-    }
-
     protected override Task<int> ExecuteAsync(CommandContext context,
         RenderItemsCommandSettings settings, CancellationToken cancel)
     {
@@ -54,20 +41,17 @@ internal sealed class RenderItemsCommand : AsyncCommand<RenderItemsCommandSettin
         try
         {
             string cs = string.Format(
-                ConfigurationService.Configuration!.GetConnectionString("Default")!,
+                CliAppContext.Configuration.GetConnectionString("Mongo")!,
                 settings.DatabaseName);
-
-            AppContextService contextService =
-                GetContextService(settings.DatabaseName);
 
             // load rendering config
             AnsiConsole.WriteLine("Loading rendering config...");
-            string config = CommandHelper.LoadFileContent(settings.ConfigPath!);
+            string config = CliHelper.LoadFileContent(settings.ConfigPath!);
 
             // get preview factory from its provider
             AnsiConsole.WriteLine("Building preview factory...");
             ICadmusRenderingFactoryProvider? provider =
-                AppContextService.GetPreviewFactoryProvider(
+                CliAppContext.GetPreviewFactoryProvider(
                     settings.PreviewFactoryProviderTag);
             if (provider == null)
             {
@@ -78,12 +62,10 @@ internal sealed class RenderItemsCommand : AsyncCommand<RenderItemsCommandSettin
                 typeof(FSTeiOffItemComposer).Assembly);
             factory.ConnectionString = cs;
 
-            // get the Cadmus repository from the specified plugin
+            // get the Cadmus repository
             AnsiConsole.WriteLine("Building repository factory...");
-            ICadmusRepository repository = contextService.GetCadmusRepository(
-                settings.RepositoryProviderTag)
-                ?? throw new InvalidOperationException(
-                    "Unable to create Cadmus repository");
+            ICadmusRepository repository = CliHelper.GetCadmusRepository(
+                settings.RepositoryProviderTag, cs);
 
             // create the preview item composer
             AnsiConsole.WriteLine("Creating item composer...");

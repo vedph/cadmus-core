@@ -1,5 +1,5 @@
-﻿using Cadmus.Export.Rdf;
-using Cadmus.Migration.Cli.Services;
+﻿using Cadmus.Cli.Services;
+using Cadmus.Export.Rdf;
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cadmus.Migration.Cli.Commands;
+namespace Cadmus.Cli.Commands;
 
 internal sealed class ExportRdfCommand : AsyncCommand<ExportRdfCommandSettings>
 {
@@ -45,7 +45,7 @@ internal sealed class ExportRdfCommand : AsyncCommand<ExportRdfCommandSettings>
 
         try
         {
-            string cs = string.Format(ConfigurationService.Configuration!
+            string cs = string.Format(CliAppContext.Configuration
                 .GetConnectionString("Graph")!, settings.DatabaseName);
 
             RdfExporter exporter = new(cs, new RdfExportSettings

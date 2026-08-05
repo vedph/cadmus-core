@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
-using Serilog.Extensions.Logging;
+﻿using Cadmus.Cli.Core;
+using Cadmus.Export.Config;
+using Microsoft.Extensions.Configuration;
 using Serilog;
+using Serilog.Extensions.Logging;
 using System.IO;
 using System.Reflection;
 
@@ -48,5 +50,23 @@ internal static class CliAppContext
             }
             return _logger;
         }
+    }
+
+    /// <summary>
+    /// Gets the preview factory provider with the specified plugin tag
+    /// (assuming that the plugin has a (single) implementation of
+    /// <see cref="ICadmusRenderingFactoryProvider"/>).
+    /// </summary>
+    /// <param name="pluginTag">The tag of the component in its plugin,
+    /// or null to use the standard preview factory provider.</param>
+    /// <returns>The provider.</returns>
+    public static ICadmusRenderingFactoryProvider? GetPreviewFactoryProvider(
+        string? pluginTag = null)
+    {
+        if (pluginTag == null)
+            return new StandardRenderingFactoryProvider();
+
+        return PluginFactoryProvider
+            .GetFromTag<ICadmusRenderingFactoryProvider>(pluginTag);
     }
 }

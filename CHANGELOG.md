@@ -1,5 +1,8 @@
 # History
 
+- 2026-08-05:
+  - merged `cadmus-mig` into `cadmus-tool`.
+  - completed `JsonExporter` factory infrastructure.
 - 2026-08-04: further mapping generalization:
   - `GraphSource` renamed into `MapperSource` and moved into `Cadmus.Export`.
   - ⚠️ moved all mapping components to `Cadmus.Export` under a new `Mapping` namespace, adjusting them accordingly.

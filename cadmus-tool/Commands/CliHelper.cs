@@ -1,16 +1,23 @@
 ﻿using Cadmus.Cli.Core;
-using Cadmus.Core.Storage;
-using System.IO;
-using Cadmus.Core;
 using Cadmus.Cli.Services;
+using Cadmus.Core;
+using Cadmus.Core.Storage;
 using Cadmus.Seed;
 using Spectre.Console;
 using System;
+using System.IO;
+using System.Text;
 
 namespace Cadmus.Cli.Commands;
 
 internal static class CliHelper
 {
+    public static string LoadFileContent(string path)
+    {
+        using StreamReader reader = new(path, Encoding.UTF8);
+        return reader.ReadToEnd();
+    }
+
     public static ICadmusRepository GetCadmusRepository(string? tag,
         string connStr)
     {

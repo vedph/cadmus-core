@@ -59,6 +59,9 @@
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">
 		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
 		<ProjectReference Include="..\Cadmus.Cli.Core\Cadmus.Cli.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.Export.ML\Cadmus.Export.ML.csproj" />
+		<ProjectReference Include="..\Cadmus.Export.Rdf\Cadmus.Export.Rdf.csproj" />
+		<ProjectReference Include="..\Cadmus.Export\Cadmus.Export.csproj" />
 		<ProjectReference Include="..\Cadmus.General.Parts\Cadmus.General.Parts.csproj" />
 		<ProjectReference Include="..\Cadmus.Graph\Cadmus.Graph.csproj" />
 		<ProjectReference Include="..\Cadmus.Graph.Ef.PgSql\Cadmus.Graph.Ef.PgSql.csproj" />
@@ -78,6 +81,9 @@
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
 		<PackageReference Include="Cadmus.Core" />
 		<PackageReference Include="Cadmus.Cli.Core" />
+		<PackageReference Include="Cadmus.Export.ML" />
+		<PackageReference Include="Cadmus.Export.Rdf" />
+		<PackageReference Include="Cadmus.Export" />
 		<PackageReference Include="Cadmus.General.Parts" />
 		<PackageReference Include="Cadmus.Graph" />
 		<PackageReference Include="Cadmus.Graph.Ef.PgSql" />

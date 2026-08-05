@@ -111,6 +111,18 @@ public static class Program
                 config.AddCommand<RunMongoScriptCommand>("run-mongo")
                     .WithDescription("Run a MongoDB script.");
 
+                // migration
+                config.AddCommand<RenderItemsCommand>("render")
+                    .WithDescription("Render items");
+                config.AddCommand<DumpCommand>("dump")
+                    .WithDescription("Dump objects from a Cadmus database");
+                config.AddCommand<DumpThesauriCommand>("dump-thesauri")
+                    .WithDescription("Dump thesauri from a Cadmus database");
+                config.AddCommand<ExportRdfCommand>("export-rdf")
+                    .WithDescription("Export RDF data from a Cadmus graph database");
+                config.AddCommand<JsonToXmlCommand>("json-to-xml")
+                    .WithDescription("Convert item/part JSON to XML");
+
                 // from Fusi.Cli.Auth
                 config.AddCommand<AddUserCommand>("add-user")
                     .WithDescription("Add a user account");

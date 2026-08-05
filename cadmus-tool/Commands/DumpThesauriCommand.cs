@@ -1,5 +1,5 @@
-﻿using Cadmus.Export;
-using Cadmus.Migration.Cli.Services;
+﻿using Cadmus.Cli.Services;
+using Cadmus.Export;
 using Fusi.Tools;
 using Microsoft.Extensions.Configuration;
 using Spectre.Console;
@@ -11,7 +11,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Cadmus.Migration.Cli.Commands;
+namespace Cadmus.Cli.Commands;
 
 internal sealed class DumpThesauriCommand : AsyncCommand<DumpThesauriCommandSettings>
 {
@@ -31,7 +31,7 @@ internal sealed class DumpThesauriCommand : AsyncCommand<DumpThesauriCommandSett
         {
             // get connection string
             string connectionString = string.Format(CultureInfo.InvariantCulture,
-                ConfigurationService.Configuration!.GetConnectionString("Default")!,
+                CliAppContext.Configuration.GetConnectionString("Mongo")!,
                 settings.DatabaseName);
 
             MongoThesaurusDumper dumper = new(
