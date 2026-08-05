@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace Cadmus.Export.Config;
 
@@ -120,4 +121,12 @@ public sealed class JsonExporterFactory(IHost host) : ComponentFactory(host)
     /// <returns>The collector defined in this factory configuration.</returns>
     public IItemIdCollector GetItemIdCollector() =>
         GetComponent<IItemIdCollector>("Source/ItemIdCollector", true)!;
+
+    /// <summary>
+    /// Gets the optional item part filter from <c>source/partFilter</c>.
+    /// </summary>
+    /// <returns>The item part filter defined in this factory configuration,
+    /// or <c>null</c> if not defined.</returns>
+    public ItemPartFilter? GetPartFilter() =>
+        GetObjectFromJson<ItemPartFilter>("Source/PartFilter");
 }
