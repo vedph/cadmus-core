@@ -120,6 +120,8 @@ public static class Program
                     .WithDescription("Dump thesauri from a Cadmus database");
                 config.AddCommand<ExportRdfCommand>("export-rdf")
                     .WithDescription("Export RDF data from a Cadmus graph database");
+                config.AddCommand<ExportJsonCommand>("export-json")
+                    .WithDescription("Export JSON data from a Cadmus database");
                 config.AddCommand<JsonToXmlCommand>("json-to-xml")
                     .WithDescription("Convert item/part JSON to XML");
 

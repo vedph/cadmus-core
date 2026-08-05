@@ -1,5 +1,6 @@
 ﻿using Cadmus.Cli.Core;
 using Cadmus.Export.Config;
+using Cadmus.Export.Json;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Serilog.Extensions.Logging;
@@ -68,5 +69,21 @@ internal static class CliAppContext
 
         return PluginFactoryProvider
             .GetFromTag<ICadmusRenderingFactoryProvider>(pluginTag);
+    }
+
+    /// <summary>
+    /// Gets the JSON exporter factory provider with the specified plugin tag.
+    /// </summary>
+    /// <param name="pluginTag">The tag of the component in its plugin,
+    /// or null to use the standard JSON exporter factory provider.</param>
+    /// <returns>The provider.</returns>
+    public static IJsonExporterFactoryProvider? GetJsonExporterFactoryProvider(
+        string? pluginTag = null)
+    {
+        if (pluginTag == null)
+            return new StandardJsonExporterFactoryProvider();
+
+        return PluginFactoryProvider
+            .GetFromTag<IJsonExporterFactoryProvider>(pluginTag);
     }
 }

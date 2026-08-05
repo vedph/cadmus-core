@@ -100,6 +100,9 @@
 		<PackageReference Include="Cadmus.Seed.General.Parts" />
 		<PackageReference Include="Cadmus.Seed.Philology.Parts" />
 	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\Cadmus.Export.Json\Cadmus.Export.Json.csproj" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<Resource Include="appsettings.json" />
