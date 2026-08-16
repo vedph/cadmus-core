@@ -42,6 +42,7 @@ The projects were just copied into this solution from the above repositories, an
   - `Cadmus.Graph.Extras`: semantic data graph extensions
 - **migration**:
   - `Cadmus.Export`: core models and logic for data export
+  - `Cadmus.Export.Json`: data export and remapping to JSON
   - `Cadmus.Export.ML`: data export to markup languages
   - `Cadmus.Export.Rdf`: data export to RDF
   - `Cadmus.Import`: core models and logic for data import
