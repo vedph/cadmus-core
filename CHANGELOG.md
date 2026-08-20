@@ -1,5 +1,6 @@
 # History
 
+- 2026-08-20: updated packages (incorporating Proteus v14). This affected `Cadmus.Export` and `Proteus.Rendering` which required some refactoring for filters.
 - 2026-08-16: updated packages.
 - 2026-08-05:
   - merged `cadmus-mig` into `cadmus-tool`.

@@ -2,6 +2,7 @@
 using Fusi.Tools.Configuration;
 using Proteus.Core.Text;
 using System;
+using System.Threading.Tasks;
 
 namespace Cadmus.Export.Filters;
 
@@ -33,7 +34,7 @@ public sealed class AppenderTextFilter : TextFilter<string>,
     /// <param name="text">The text.</param>
     /// <param name="context">The optional context.</param>
     /// <returns>Filtered text or null.</returns>
-    protected override object? DoApply(string? text,
+    protected override async Task<object?> DoApplyAsync(string? text,
         IHasDataDictionary? context = null)
     {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(_text))

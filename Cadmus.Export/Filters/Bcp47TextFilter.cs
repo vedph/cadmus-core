@@ -7,6 +7,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Cadmus.Export.Filters;
 
@@ -119,7 +120,7 @@ public sealed class Bcp47TextFilter : TextFilter<string>,
     /// <param name="text">The text.</param>
     /// <param name="context">The optional context.</param>
     /// <returns>Filtered text or null.</returns>
-    protected override object? DoApply(string? text,
+    protected override async Task<object?> DoApplyAsync(string? text,
         IHasDataDictionary? context = null)
     {
         if (string.IsNullOrEmpty(text) || _bcp47Regex == null) return text;

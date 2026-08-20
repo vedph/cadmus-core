@@ -1,4 +1,5 @@
 ﻿using Cadmus.Export.Filters;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Cadmus.Export.Test.Filters;
@@ -16,30 +17,31 @@ public sealed class SourceIdRendererFilterTest
     }
 
     [Fact]
-    public void Apply_NoTags_Unchanged()
+    public async Task Apply_NoTags_Unchanged()
     {
         SourceIdTextFilter filter = new();
 
-        string? result = filter.Apply("hello world", GetContext())?.ToString();
+        string? result = (await filter.ApplyAsync("hello world", GetContext()))
+            ?.ToString();
 
         Assert.NotNull(result);
         Assert.Equal("hello world", result);
     }
 
     [Fact]
-    public void Apply_TagsWithoutMatch_Unresolved()
+    public async Task Apply_TagsWithoutMatch_Unresolved()
     {
         SourceIdTextFilter filter = new();
 
-        string? result = filter.Apply("hello #[unknown]# world",
-            GetContext())?.ToString();
+        string? result = (await filter.ApplyAsync("hello #[unknown]# world",
+            GetContext()))?.ToString();
 
         Assert.NotNull(result);
         Assert.Equal("hello unknown world", result);
     }
 
     [Fact]
-    public void Apply_TagsWithoutMatchWithOmit_Omitted()
+    public async Task Apply_TagsWithoutMatchWithOmit_Omitted()
     {
         SourceIdTextFilter filter = new();
         filter.Configure(new SourceIdRendererFilterOptions
@@ -47,21 +49,21 @@ public sealed class SourceIdRendererFilterTest
             OmitUnresolved = true
         });
 
-        string? result = filter.Apply("hello #[unknown]# world",
-            GetContext())?.ToString();
+        string? result = (await filter.ApplyAsync("hello #[unknown]# world",
+            GetContext()))?.ToString();
 
         Assert.NotNull(result);
         Assert.Equal("hello  world", result);
     }
 
     [Fact]
-    public void Apply_TagsWithMatch_Ok()
+    public async Task Apply_TagsWithMatch_Ok()
     {
         SourceIdTextFilter filter = new();
 
-        string? result = filter.Apply(
+        string? result = (await filter.ApplyAsync(
             "hello #[seg/db66b931-d468-4478-a6ae-d9e56e9431b9/0]# world",
-            GetContext())?.ToString();
+            GetContext()))?.ToString();
 
         Assert.NotNull(result);
         Assert.Equal("hello seg1 world", result);

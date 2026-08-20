@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Cadmus.Export.Filters;
 
@@ -43,7 +44,7 @@ public sealed class MongoThesTextFilter : TextFilter<string>,
     /// <param name="text">The text.</param>
     /// <param name="context">The optional renderer context.</param>
     /// <returns>The filtered text.</returns>
-    protected override object? DoApply(string? text,
+    protected override async Task<object?> DoApplyAsync(string? text,
         IHasDataDictionary? context = null)
     {
         if (_idRegex == null || string.IsNullOrEmpty(text)) return text;

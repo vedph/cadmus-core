@@ -222,8 +222,8 @@ public sealed class AppParallelTextTreeFilter : ITextTreeFilter,
     /// <param name="source">The source being rendered.</param>
     /// <returns>The root node of the new tree.</returns>
     /// <exception cref="ArgumentNullException">tree</exception>
-    public TreeNode<ExportedSegment> Apply(TreeNode<ExportedSegment> tree,
-        object? source = null)
+    public TreeNode<ExportedSegment> Apply(
+        TreeNode<ExportedSegment> tree, object? source = null)
     {
         ArgumentNullException.ThrowIfNull(tree);
         if (source == null) return tree;

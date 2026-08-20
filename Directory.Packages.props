@@ -126,9 +126,9 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="NPOI" Version="2.8.0" />
     <PackageVersion Include="Polly" Version="8.7.0" />
-    <PackageVersion Include="Proteus.Core" Version="13.0.5" />
-    <PackageVersion Include="Proteus.Entries" Version="13.0.5" />
-    <PackageVersion Include="Proteus.Text.Xml" Version="13.0.5" />
+    <PackageVersion Include="Proteus.Core" Version="14.0.0" />
+    <PackageVersion Include="Proteus.Entries" Version="14.0.0" />
+    <PackageVersion Include="Proteus.Text.Xml" Version="14.0.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.16.20" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
@@ -137,7 +137,7 @@
     <PackageVersion Include="Serilog.Extensions.Logging" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
-    <PackageVersion Include="Serilog.Sinks.Postgresql.Alternative" Version="4.2.0" />
+    <PackageVersion Include="Serilog.Sinks.Postgresql.Alternative" Version="4.3.0" />
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageVersion Include="SqlKata.Execution" Version="4.0.1" />

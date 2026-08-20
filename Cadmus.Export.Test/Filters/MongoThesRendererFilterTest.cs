@@ -6,6 +6,7 @@ using Cadmus.General.Parts;
 using Cadmus.Mongo;
 using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Cadmus.Export.Test.Filters;
@@ -73,7 +74,7 @@ public sealed class MongoThesRendererFilterTest
     }
 
     [Fact]
-    public void Apply_NoMatch_Unchanged()
+    public async Task Apply_NoMatch_Unchanged()
     {
         InitDatabase();
         MongoThesTextFilter filter = new();
@@ -82,13 +83,14 @@ public sealed class MongoThesRendererFilterTest
             ConnectionString = TestHelper.CS,
         });
 
-        string? result = filter.Apply("No match here")?.ToString();
+        string? result = (string?)await filter.ApplyAsync("No match here",
+            new CadmusRendererContext { Repository = GetRepository() });
 
         Assert.Equal("No match here", result);
     }
 
     [Fact]
-    public void Apply_Match_Ok()
+    public async Task Apply_Match_Ok()
     {
         InitDatabase();
         MongoThesTextFilter filter = new();
@@ -97,8 +99,8 @@ public sealed class MongoThesRendererFilterTest
             ConnectionString = TestHelper.CS,
         });
 
-        string? result = filter.Apply("My color is: $colors:r!",
-            new CadmusRendererContext { Repository = GetRepository() })?.ToString();
+        string? result = (string?)await filter.ApplyAsync("My color is: $colors:r!",
+            new CadmusRendererContext { Repository = GetRepository() });
 
         Assert.Equal("My color is: red!", result);
     }

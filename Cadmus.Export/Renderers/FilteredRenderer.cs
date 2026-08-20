@@ -47,8 +47,12 @@ public abstract class FilteredRenderer
 
         if (Filters.Count > 0)
         {
+            // blocking is deliberate: ApplyFilters is called from a sync
+            // rendering pipeline, and no filter currently does real async
+            // I/O, so this cannot deadlock; revisit if that changes.
             foreach (ITextFilter filter in Filters.Where(f => !f.IsDisabled))
-                result = filter.Apply(result, context);
+                result = filter.ApplyAsync(result, context)
+                    .GetAwaiter().GetResult();
         }
 
         return (string)(_adapter.Adapt(result, typeof(string), false) ?? "");
