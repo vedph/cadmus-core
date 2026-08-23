@@ -3,9 +3,7 @@ using Fluid.Values;
 using Fusi.Antiquity.Chronology;
 using Fusi.Tools.Configuration;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -54,6 +52,7 @@ public sealed class HistoricalDateFluidFilter : IFluidFilter
             arguments.At(0).ToStringValue() == "text";
 
         // parse HistoricalDate
+        // TODO: get JSON
         HistoricalDate? date = ParseDate(input.ToStringValue());
         if (date is null) return new ValueTask<FluidValue>(NilValue.Instance);
 
