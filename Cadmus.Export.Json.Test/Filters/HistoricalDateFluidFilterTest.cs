@@ -10,11 +10,12 @@ public sealed class HistoricalDateFluidFilterTest
     {
         JsonNodeMapping mapping = new()
         {
-            Source = ".",
-            Output = "{\"date\": {{ value | _hd | json }} }"
+            Source = "date",
+            Output = "{\"when\": {{ value | _hd | json }} }"
         };
         JsonObject target = [];
         JsonTemplateNodeMapper mapper = new();
+
         HistoricalDateFluidFilter filter = new();
         mapper.Filters.AddFilter("_hd", filter.Apply);
 
@@ -28,6 +29,6 @@ public sealed class HistoricalDateFluidFilterTest
 
         mapper.Map(json, mapping, target);
 
-        Assert.Equal(123, target["date"]?.GetValue<int>());
+        Assert.Equal(123, target["when"]?.GetValue<int>());
     }
 }
