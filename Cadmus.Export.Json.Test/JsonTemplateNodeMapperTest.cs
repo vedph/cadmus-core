@@ -2,6 +2,7 @@ using Cadmus.Export.Json;
 using Fluid;
 using Fluid.Values;
 using System;
+using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
@@ -74,6 +75,27 @@ public sealed class JsonTemplateNodeMapperTest
         JsonObject person = target["person"]!.AsObject();
         Assert.Equal("Jane", person["firstName"]!.GetValue<string>());
         Assert.Equal("Doe", person["lastName"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Map_NestedProperties_MergesUnderProperties()
+    {
+        JsonNodeMapping mapping = new()
+        {
+            Source = ".",
+            Output = "{\"address\": {" +
+            "\"street\": \"{{ value.street }}\", " +
+            "\"city\": \"{{ value.city }}\"" +
+            "}}"
+        };
+        JsonObject target = [];
+        JsonTemplateNodeMapper mapper = new();
+        const string json = "{\"street\": \"123 Main St\", \"city\": \"Anytown\"}";
+
+        mapper.Map(json, mapping, target);
+
+        Assert.Equal("123 Main St", target["address"]!["street"]!.GetValue<string>());
+        Assert.Equal("Anytown", target["address"]!["city"]!.GetValue<string>());
     }
 
     [Fact]

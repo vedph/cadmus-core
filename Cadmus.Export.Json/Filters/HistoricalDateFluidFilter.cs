@@ -2,9 +2,6 @@
 using Fluid.Values;
 using Fusi.Antiquity.Chronology;
 using Fusi.Tools.Configuration;
-using System;
-using System.Diagnostics;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Cadmus.Export.Json.Filters;
@@ -12,27 +9,32 @@ namespace Cadmus.Export.Json.Filters;
 /// <summary>
 /// A Fluid filter to format a <see cref="HistoricalDate"/>. The input value is
 /// expected to be a JSON representation of a <see cref="HistoricalDate"/>.
+/// <para>Tag: <c>fluid-filter.historical-date</c>.</para>
 /// </summary>
 [Tag("fluid-filter.historical-date")]
 public sealed class HistoricalDateFluidFilter : IFluidFilter
 {
-    private static readonly JsonSerializerOptions _options = new()
+    /// <summary>
+    /// Parses the specified Fluid value into a <see cref="HistoricalDate"/>.
+    /// If the value is a string, it is expected to be a string representation
+    /// of <see cref="HistoricalDate"/>; if it is an object, it is expected
+    /// to be a dictionary object representing the structure of a
+    /// <see cref="HistoricalDate"/> as derived from its JSON serialization.
+    /// </summary>
+    /// <param name="value">The value to parse.</param>
+    /// <returns>The parsed <see cref="HistoricalDate"/>, or <c>null</c> if
+    /// parsing fails.  </returns>
+    private static HistoricalDate? ParseDate(FluidValue value)
     {
-        AllowTrailingCommas = true,
-        PropertyNameCaseInsensitive = true,
-    };
-
-    private static HistoricalDate? ParseDate(string json)
-    {
-        try
+        if (value is StringValue str)
         {
-            return JsonSerializer.Deserialize<HistoricalDate>(json, _options);
+            return HistoricalDate.Parse(str.ToStringValue()) ?? null;
         }
-        catch (Exception ex)
+        else if (value is ObjectValue obj)
         {
-            Debug.WriteLine(ex.ToString());
-            return null;
+            // TODO parse dictionary into HistoricalDate
         }
+        return null;
     }
 
     /// <summary>
@@ -52,9 +54,9 @@ public sealed class HistoricalDateFluidFilter : IFluidFilter
             arguments.At(0).ToStringValue() == "text";
 
         // parse HistoricalDate
-        // TODO: get JSON
-        HistoricalDate? date = ParseDate(input.ToStringValue());
-        if (date is null) return new ValueTask<FluidValue>(NilValue.Instance);
+        HistoricalDate? date = ParseDate(input);
+        if (date is null)
+            return new ValueTask<FluidValue>(NilValue.Instance);
 
         // return text or value
         if (text)
