@@ -2,9 +2,6 @@ using Fluid;
 using Fluid.Values;
 using Fusi.Antiquity.Chronology;
 using Fusi.Tools.Configuration;
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Cadmus.Export.Json.Filters;
@@ -18,120 +15,51 @@ namespace Cadmus.Export.Json.Filters;
 public sealed class HistoricalDateFluidFilter : IFluidFilter
 {
     /// <summary>
-    /// Converts a dictionary to a Datation object by extracting its properties.
+    /// Reads a <see cref="Datation"/> from the specified Fluid value, using
+    /// Fluid's own member access API (<see cref="FluidValue.GetValueAsync"/>)
+    /// rather than trying to unwrap the value's backing store: this way the
+    /// same code works no matter how Fluid represents the object internally
+    /// (e.g. a <see cref="DictionaryValue"/> built from a
+    /// <c>Dictionary&lt;string, object&gt;</c>, or an <see cref="ObjectValue"/>
+    /// built from a POCO).
     /// </summary>
-    private static Datation? DictionaryToDatation(object? obj)
+    private static async ValueTask<Datation?> ParseDatationAsync(
+        FluidValue value, TemplateContext context)
     {
-        if (obj == null) return null;
-
-        if (obj is not IDictionary<string, object> dict) return null;
+        if (value is null || value.IsNil()) return null;
 
         Datation datation = new();
 
-        // Extract properties (case-insensitive)
-        Dictionary<string, object> dictLower =
-            new(dict, StringComparer.OrdinalIgnoreCase);
+        FluidValue v = await value.GetValueAsync("value", context);
+        if (!v.IsNil()) datation.Value = (int)v.ToNumberValue();
 
-        if (dictLower.TryGetValue("value", out var valueObj) &&
-            valueObj is not null)
-        {
-            datation.Value = Convert.ToInt32(valueObj);
-        }
+        FluidValue isCentury = await value.GetValueAsync("isCentury", context);
+        if (!isCentury.IsNil()) datation.IsCentury = isCentury.ToBooleanValue();
 
-        if (dictLower.TryGetValue("iscentury", out var isCenturyObj) &&
-            isCenturyObj is not null)
-        {
-            datation.IsCentury = Convert.ToBoolean(isCenturyObj);
-        }
+        FluidValue isSpan = await value.GetValueAsync("isSpan", context);
+        if (!isSpan.IsNil()) datation.IsSpan = isSpan.ToBooleanValue();
 
-        if (dictLower.TryGetValue("isspan", out var isSpanObj) &&
-            isSpanObj is not null)
-        {
-            datation.IsSpan = Convert.ToBoolean(isSpanObj);
-        }
+        FluidValue isApproximate = await value.GetValueAsync(
+            "isApproximate", context);
+        if (!isApproximate.IsNil())
+            datation.IsApproximate = isApproximate.ToBooleanValue();
 
-        if (dictLower.TryGetValue("isapproximate", out var isApproximateObj) &&
-            isApproximateObj is not null)
-        {
-            datation.IsApproximate = Convert.ToBoolean(isApproximateObj);
-        }
+        FluidValue isDubious = await value.GetValueAsync("isDubious", context);
+        if (!isDubious.IsNil()) datation.IsDubious = isDubious.ToBooleanValue();
 
-        if (dictLower.TryGetValue("isdubious", out var isDubiousObj) &&
-            isDubiousObj is not null)
-        {
-            datation.IsDubious = Convert.ToBoolean(isDubiousObj);
-        }
+        FluidValue day = await value.GetValueAsync("day", context);
+        if (!day.IsNil()) datation.Day = (short)day.ToNumberValue();
 
-        if (dictLower.TryGetValue("day", out var dayObj) && dayObj is not null)
-        {
-            datation.Day = Convert.ToInt16(dayObj);
-        }
+        FluidValue month = await value.GetValueAsync("month", context);
+        if (!month.IsNil()) datation.Month = (short)month.ToNumberValue();
 
-        if (dictLower.TryGetValue("month", out var monthObj) && monthObj is not null)
-        {
-            datation.Month = Convert.ToInt16(monthObj);
-        }
+        FluidValue hint = await value.GetValueAsync("hint", context);
+        if (!hint.IsNil()) datation.Hint = hint.ToStringValue();
 
-        if (dictLower.TryGetValue("hint", out var hintObj) && hintObj is not null)
-        {
-            datation.Hint = hintObj.ToString();
-        }
-
-        if (dictLower.TryGetValue("slide", out var slideObj) && slideObj is not null)
-        {
-            datation.Slide = Convert.ToInt32(slideObj);
-        }
+        FluidValue slide = await value.GetValueAsync("slide", context);
+        if (!slide.IsNil()) datation.Slide = (int)slide.ToNumberValue();
 
         return datation;
-    }
-
-    /// <summary>
-    /// Converts a Fluid value representing a Datation to a Datation object.
-    /// </summary>
-    private static Datation? FluidValueToDatation(FluidValue value)
-    {
-        if (value is DictionaryValue dictValue)
-        {
-            // Extract the underlying dictionary using reflection
-            var underlying = dictValue.ToObjectValue();
-            if (underlying is IDictionary<string, object> dict)
-            {
-                return DictionaryToDatation(underlying);
-            }
-
-            // If ToObjectValue() returned something else, try to convert it to
-            // JSON and deserialize to handle the ObjectDictionaryFluidIndexable case
-            try
-            {
-                string json = JsonSerializer.Serialize(underlying);
-                JsonSerializerOptions options = new()
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                using JsonDocument doc = JsonDocument.Parse(json);
-                JsonElement root = doc.RootElement;
-                Dictionary<string, object> tempDict = new();
-                foreach (var prop in root.EnumerateObject())
-                {
-                    tempDict[prop.Name] = prop.Value.GetRawText();
-                }
-                return DictionaryToDatation(tempDict);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-        else if (value is ObjectValue objValue)
-        {
-            var underlying = objValue.ToObjectValue();
-            if (underlying is IDictionary<string, object> dict)
-            {
-                return DictionaryToDatation(underlying);
-            }
-        }
-
-        return null;
     }
 
     /// <summary>
@@ -142,61 +70,29 @@ public sealed class HistoricalDateFluidFilter : IFluidFilter
     /// <see cref="HistoricalDate"/> as derived from its JSON serialization.
     /// </summary>
     /// <param name="value">The value to parse.</param>
+    /// <param name="context">The template context, used to resolve member
+    /// access on <paramref name="value"/>.</param>
     /// <returns>The parsed <see cref="HistoricalDate"/>, or <c>null</c> if
-    /// parsing fails.  </returns>
-    private static HistoricalDate? ParseDate(FluidValue value)
+    /// parsing fails.</returns>
+    private static async ValueTask<HistoricalDate?> ParseDateAsync(
+        FluidValue value, TemplateContext context)
     {
         if (value is StringValue str)
-        {
-            return HistoricalDate.Parse(str.ToStringValue()) ?? null;
-        }
-        else if (value is DictionaryValue || value is ObjectValue)
-        {
-            // extract the underlying object from the Fluid value
-            var underlying = (value as ObjectValue)?.ToObjectValue() ?? 
-                           (value as DictionaryValue)?.ToObjectValue();
+            return HistoricalDate.Parse(str.ToStringValue());
 
-            if (underlying is IDictionary<string, object> dict)
-            {
-                HistoricalDate historicalDate = new();
+        if (value is null || value.IsNil()) return null;
 
-                if (dict.TryGetValue("a", out var aObj))
-                {
-                    var datationA = DictionaryToDatation(aObj);
-                    if (datationA != null)
-                    {
-                        historicalDate.A = datationA;
-                    }
-                }
+        HistoricalDate date = new();
 
-                if (dict.TryGetValue("b", out var bObj))
-                {
-                    var datationB = DictionaryToDatation(bObj);
-                    if (datationB != null)
-                    {
-                        historicalDate.B = datationB;
-                    }
-                }
+        FluidValue a = await value.GetValueAsync("a", context);
+        Datation? datationA = await ParseDatationAsync(a, context);
+        if (datationA != null) date.A = datationA;
 
-                return historicalDate;
-            }
+        FluidValue b = await value.GetValueAsync("b", context);
+        Datation? datationB = await ParseDatationAsync(b, context);
+        if (datationB != null) date.B = datationB;
 
-            // if it's not a plain dictionary, serialize to JSON and back
-            try
-            {
-                string json = JsonSerializer.Serialize(underlying);
-                JsonSerializerOptions options = new()
-                {
-                    PropertyNameCaseInsensitive = true
-                };
-                return JsonSerializer.Deserialize<HistoricalDate>(json, options);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-        return null;
+        return date;
     }
 
     /// <summary>
@@ -208,7 +104,7 @@ public sealed class HistoricalDateFluidFilter : IFluidFilter
     /// textual representation; else it returns the numeric sort value.</param>
     /// <param name="context">The template context.</param>
     /// <returns>The filtered value.</returns>
-    public ValueTask<FluidValue> Apply(FluidValue input,
+    public async ValueTask<FluidValue> Apply(FluidValue input,
         FilterArguments arguments, TemplateContext context)
     {
         // argument 0 is "text" for text, else it means "value"
@@ -216,20 +112,12 @@ public sealed class HistoricalDateFluidFilter : IFluidFilter
             arguments.At(0).ToStringValue() == "text";
 
         // parse HistoricalDate
-        HistoricalDate? date = ParseDate(input);
-        if (date is null)
-            return new ValueTask<FluidValue>(NilValue.Instance);
+        HistoricalDate? date = await ParseDateAsync(input, context);
+        if (date is null) return NilValue.Instance;
 
         // return text or value
-        if (text)
-        {
-            return new ValueTask<FluidValue>(new StringValue(
-                date?.ToString() ?? ""));
-        }
-        else
-        {
-            return new ValueTask<FluidValue>(NumberValue.Create(
-                (decimal)(date?.GetSortValue() ?? 0)));
-        }
+        if (text) return new StringValue(date.ToString() ?? "");
+
+        return NumberValue.Create((decimal)date.GetSortValue());
     }
 }
