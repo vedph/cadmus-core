@@ -3,6 +3,7 @@ using Fluid;
 using Fluid.Values;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
@@ -227,4 +228,38 @@ public sealed class JsonTemplateNodeMapperTest
         Assert.Throws<InvalidOperationException>(
             () => mapper.Map(json, mapping, target));
     }
+
+    #region Cadmus Item
+    private string LoadResourceText(string name)
+    {
+        string resourceName = $"Cadmus.Export.Json.Test.Assets.{name}";
+        using Stream? stream = GetType().Assembly
+            .GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException(
+                $"Resource '{resourceName}' not found.");
+        using StreamReader reader = new(stream);
+        return reader.ReadToEnd();
+    }
+
+    [Fact]
+    public void BuildOutput_CadmusItem_Categories_ItemsMapped()
+    {
+        JsonNodeMapping mapping = new()
+        {
+            Source = "_parts[?typeId=='it.vedph.categories' && roleId=='ins-fn']" +
+                ".content.categories",
+            Output = "[{{ value | json }}]",
+            TargetProperty = "functions"
+        };
+        JsonObject target = [];
+        JsonTemplateNodeMapper mapper = new();
+        string json = LoadResourceText("Item.json");
+        
+        mapper.Map(json, mapping, target);
+
+        // expected functions array property with 2 items
+        JsonArray functions = target["functions"]!.AsArray();
+        Assert.Equal(2, functions.Count);
+    }
+    #endregion
 }
