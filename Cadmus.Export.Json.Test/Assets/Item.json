@@ -1,7 +1,7 @@
 {
   "_id": "80b23b04-625d-4a7c-8cfa-d512034af643",
   "title": "ISic000822",
-  "description": "",
+  "description": "Insediamento con necropoli nei Monti Iblei, documentato tra il VII e l'inizio del V secolo a.C.",
   "facetId": "inscription",
   "groupId": null,
   "sortKey": "isic000822",
@@ -307,7 +307,7 @@
       "roleId": "ins-lng",
       "thesaurusScope": null,
       "content": {
-        "categories": [ "Ancient Greek" ],
+        "categories": [ "grc" ],
         "id": "1dc341ba-15a1-4a95-a2b0-1203a8b97238",
         "itemId": "80b23b04-625d-4a7c-8cfa-d512034af643",
         "typeId": "it.vedph.categories",
