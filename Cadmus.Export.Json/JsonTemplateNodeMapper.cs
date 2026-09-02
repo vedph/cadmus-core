@@ -62,6 +62,24 @@ public sealed class JsonTemplateNodeMapper : JsonNodeMapper<JsonObject>
         _templates = [];
     }
 
+    /// <summary>
+    /// Registers each of the specified filters into <see cref="Filters"/>,
+    /// so that it becomes usable from the templates rendered by this mapper
+    /// under its corresponding keyword (e.g. a filter registered under
+    /// keyword <c>historical-date</c> can be invoked from a template as
+    /// <c>{{ value | historical-date }}</c>).
+    /// </summary>
+    /// <param name="filters">The filters to register, keyed by the Fluid
+    /// filter keyword each of them should be invoked with.</param>
+    /// <exception cref="ArgumentNullException">filters</exception>
+    public void SetFilters(IDictionary<string, IFluidFilter> filters)
+    {
+        ArgumentNullException.ThrowIfNull(filters);
+
+        foreach (KeyValuePair<string, IFluidFilter> p in filters)
+            Filters.AddFilter(p.Key, p.Value.Apply);
+    }
+
     private string ResolvePlaceholder(PlaceholderNode node)
     {
         if (node.ChildrenCount == 0) return "";

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 
 namespace Cadmus.Export.Json;
@@ -44,11 +45,14 @@ public sealed class JsonExporter
     public ItemPartFilter? PartFilter { get; set; }
 
     /// <summary>
-    /// The list of custom template filters to make available. If null, no
-    /// filters will be available except for the prebuilt ones, which are always
-    /// present.
+    /// The optional custom template filters to make available to the Fluid
+    /// templates used to render <see cref="Mappings"/>' output, keyed by
+    /// the Fluid filter keyword each of them is to be invoked with from a
+    /// template (e.g. a filter under key <c>historical-date</c> is used as
+    /// <c>{{ value | historical-date }}</c>). If null, no custom filters
+    /// will be available besides Fluid's own built-in ones (e.g. <c>json</c>).
     /// </summary>
-    public List<IFluidFilter>? TemplateFilters { get; set; }
+    public IDictionary<string, IFluidFilter>? TemplateFilters { get; set; }
 
     /// <summary>
     /// The list of mappings to apply to the source JSON object. If empty,
@@ -59,7 +63,10 @@ public sealed class JsonExporter
     public List<NodeMapping> Mappings { get; } = [];
 
     /// <summary>
-    /// Export the items collected by the <see cref="_itemIdCollector"/> to JSON.
+    /// Export the items collected by the <see cref="_itemIdCollector"/> to
+    /// JSON, transforming each item's source JSON via <see cref="Mappings"/>
+    /// (rendered by an internal <see cref="JsonTemplateNodeMapper"/>, made
+    /// aware of <see cref="TemplateFilters"/>) into its target JSON.
     /// </summary>
     /// <param name="cancel">A cancellation token.</param>
     /// <param name="progress">An optional progress reporter.</param>
@@ -70,12 +77,27 @@ public sealed class JsonExporter
     {
         ProgressReport? report = progress != null? new ProgressReport(): null;
 
+        JsonTemplateNodeMapper mapper = new()
+        {
+            Logger = Logger
+        };
+        if (TemplateFilters != null) mapper.SetFilters(TemplateFilters);
+
         // for each item ID
         foreach (string itemId in _itemIdCollector.GetIds())
         {
             // get the item with its parts
-            JsonDocument? doc = await _reader.ReadAsync(itemId, PartFilter);
-            if (doc != null) yield return doc;
+            using JsonDocument? doc = await _reader.ReadAsync(itemId, PartFilter);
+            if (doc != null)
+            {
+                // apply all the mappings, merging their output into target
+                JsonObject target = [];
+                string json = doc.RootElement.GetRawText();
+                foreach (NodeMapping mapping in Mappings)
+                    mapper.Map(json, mapping, target);
+
+                yield return JsonDocument.Parse(target.ToJsonString());
+            }
 
             // report progress
             if (progress != null)

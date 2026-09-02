@@ -1,5 +1,6 @@
 # History
 
+- 2026-09-02: complete implementation of `JsonExporter`.
 - 2026-09-01: Added `MongoThesaurusFluidFilter`.
 - 2026-08-30: updated packages.
 - 2026-08-20: updated packages (incorporating Proteus v14). This affected `Cadmus.Export` and `Proteus.Rendering` which required some refactoring for filters.

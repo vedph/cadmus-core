@@ -32,7 +32,11 @@ namespace Cadmus.Export.Json;
 /// </item>
 /// <item>
 /// <term><c>source/templateFilters</c> (optional)</term>
-/// <description>array of template filter configurable objects.</description>
+/// <description>array of template filter configurable objects, each with
+/// a <c>Keys</c> property listing the Fluid filter keyword(s) (e.g.
+/// <c>historical-date</c>) under which the filter is to be registered,
+/// so that it can be invoked from a mapping's output template (e.g.
+/// <c>{{ value | historical-date | json }}</c>).</description>
 /// </item>
 /// <item>
 /// <term><c>namedMappings</c> (optional)</term>
@@ -146,13 +150,33 @@ public sealed class JsonExporterFactory(IHost host) : ComponentFactory(host)
         GetObjectFromJson<ItemPartFilter>("Source/PartFilter");
 
     /// <summary>
-    /// Gets the optional template filters from <c>source/templateFilters</c>.
+    /// Gets the optional template filters from <c>source/templateFilters</c>,
+    /// keyed by the Fluid filter keyword(s) each of them is registered
+    /// under (see <see cref="ComponentFactoryConfigEntry.Keys"/>). An entry
+    /// listing more than one key is registered once per key, all pointing
+    /// to the same filter instance.
     /// </summary>
     /// <returns>The template filters defined in this factory configuration,
-    /// or <c>null</c> if not defined.</returns>
-    public IList<IFluidFilter> GetTemplateFilters() =>
-        GetComponents<IFluidFilter>("Source/TemplateFilters")
-            .Where(f => f != null).ToList()!;
+    /// keyed by their Fluid filter keyword; empty if none are defined.
+    /// </returns>
+    public IDictionary<string, IFluidFilter> GetTemplateFilters()
+    {
+        Dictionary<string, IFluidFilter> filters = [];
+
+        IList<ComponentFactoryConfigEntry> entries =
+            ComponentFactoryConfigEntry.ReadComponentEntries(
+                Configuration, "Source/TemplateFilters");
+        IList<IFluidFilter?> components = GetComponents<IFluidFilter>(entries)!;
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            if (components[i] == null || entries[i].Keys == null) continue;
+            foreach (string key in entries[i].Keys!)
+                filters[key] = components[i]!;
+        }
+
+        return filters;
+    }
 
     /// <summary>
     /// Gets the mappings from <c>mappings</c> (containing full mappings or just
@@ -200,7 +224,7 @@ public sealed class JsonExporterFactory(IHost host) : ComponentFactory(host)
         JsonExporter exporter = new(GetItemJsonReader(), GetItemIdCollector())
         {
             PartFilter = GetPartFilter(),
-            TemplateFilters = [.. GetTemplateFilters()]
+            TemplateFilters = GetTemplateFilters()
         };
         exporter.Mappings.AddRange(GetMappings());
 
