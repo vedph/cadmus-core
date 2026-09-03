@@ -66,8 +66,8 @@
     <PackageVersion Include="Proteus.Rendering.Test" Version="16.0.2" />
     <!-- External dependencies for all packages -->
     <PackageVersion Include="Bogus" Version="35.6.5" />
-    <PackageVersion Include="Cadmus.Codicology.Parts" Version="9.0.5" />
-    <PackageVersion Include="Cadmus.Epigraphy.Parts" Version="9.0.4" />
+    <PackageVersion Include="Cadmus.Codicology.Parts" Version="9.0.6" />
+    <PackageVersion Include="Cadmus.Epigraphy.Parts" Version="9.0.5" />
     <PackageVersion Include="Cadmus.Img.Parts" Version="5.0.0" />
     <PackageVersion Include="Cadmus.Seed.Img.Parts" Version="5.0.0" />
     <PackageVersion Include="Cadmus.Seed.TaxoStore.Parts" Version="0.0.5" />
@@ -79,13 +79,13 @@
     <PackageVersion Include="Fusi.Antiquity" Version="6.0.0" />
     <PackageVersion Include="Fusi.Api.Auth.Controllers" Version="7.0.3" />
     <PackageVersion Include="Fusi.Api.Auth.Models" Version="7.0.3" />
-    <PackageVersion Include="Fusi.DbManager" Version="6.0.1" />
-    <PackageVersion Include="Fusi.DbManager.PgSql" Version="6.0.3" />
+    <PackageVersion Include="Fusi.DbManager" Version="6.0.4" />
+    <PackageVersion Include="Fusi.DbManager.PgSql" Version="6.0.4" />
     <PackageVersion Include="Fusi.Cli.Auth" Version="7.0.3" />
     <PackageVersion Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" Version="5.0.0" />
     <PackageVersion Include="Fusi.Text" Version="7.0.3" />
-    <PackageVersion Include="Fusi.Tools" Version="9.0.1" />
-    <PackageVersion Include="Fusi.Tools.Configuration" Version="9.0.1" />
+    <PackageVersion Include="Fusi.Tools" Version="9.0.2" />
+    <PackageVersion Include="Fusi.Tools.Configuration" Version="9.0.2" />
     <PackageVersion Include="Fusi.Xml" Version="7.0.1" />
     <PackageVersion Include="Fusi.Xml.Extras" Version="7.0.1" />
     <PackageVersion Include="JmesPath.Net" Version="1.1.0" />
@@ -126,9 +126,9 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="NPOI" Version="2.8.0" />
     <PackageVersion Include="Polly" Version="8.7.0" />
-    <PackageVersion Include="Proteus.Core" Version="14.0.0" />
-    <PackageVersion Include="Proteus.Entries" Version="14.0.0" />
-    <PackageVersion Include="Proteus.Text.Xml" Version="14.0.0" />
+    <PackageVersion Include="Proteus.Core" Version="14.0.1" />
+    <PackageVersion Include="Proteus.Entries" Version="14.0.1" />
+    <PackageVersion Include="Proteus.Text.Xml" Version="14.0.1" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.17.2" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />

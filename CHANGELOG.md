@@ -1,5 +1,6 @@
 # History
 
+- 2026-09-03: updated packages.
 - 2026-09-02: complete implementation of `JsonExporter`.
 - 2026-09-01: Added `MongoThesaurusFluidFilter`.
 - 2026-08-30: updated packages.
