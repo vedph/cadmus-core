@@ -1,9 +1,7 @@
-using Cadmus.Export.Json;
-using Fluid;
 using Fluid.Values;
 using System;
-using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
@@ -260,6 +258,40 @@ public sealed class JsonTemplateNodeMapperTest
         // expected functions array property with 2 items
         JsonArray functions = target["functions"]!.AsArray();
         Assert.Equal(2, functions.Count);
+    }
+
+    [Fact]
+    public void BuildOutput_CadmusItem_Location_PropertiesMapped()
+    {
+        JsonNodeMapping mapping = new()
+        {
+            // pick the first location if any
+            Source = "_parts[?typeId=='it.vedph.geo.asserted-locations']" +
+                ".content.locations[0]",
+            Output = "{ " +
+                "\"latitude\": {{value.value.latitude | json}}, " +
+                "\"longitude\": {{value.value.longitude | json}}, " +
+                "\"altitude\": {{value.value.altitude | json}}, " +
+                "\"certainty\": {{value.assertion.rank | json}}}",
+            TargetProperty = "location"
+        };
+        JsonObject target = [];
+        JsonTemplateNodeMapper mapper = new();
+        string json = LoadResourceText("Item.json");
+
+        mapper.Map(json, mapping, target);
+
+        // expected location (from Item.json's single asserted location):
+        /// "location": {
+        ///     "latitude": 37.08415,
+        ///     "longitude": 15.27628,
+        ///     "altitude": null
+        ///   }
+        Assert.Equal(37.08415,
+            target["location"]?["latitude"]?.GetValue<double>());
+        Assert.Equal(15.27628,
+            target["location"]?["longitude"]?.GetValue<double>());
+        Assert.Null(target["location"]?["altitude"]);
     }
     #endregion
 }
