@@ -1,5 +1,9 @@
 # History
 
+## 16.0.4
+
+- 2026-09-11: updated packages (accepting NPOI license).
+
 ## 16.0.3
 
 - 2026-09-04: more tests for JSON exporter.
