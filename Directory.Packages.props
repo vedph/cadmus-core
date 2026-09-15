@@ -69,8 +69,8 @@
     <PackageVersion Include="Cadmus.Epigraphy.Parts" Version="9.0.5" />
     <PackageVersion Include="Cadmus.Img.Parts" Version="5.0.0" />
     <PackageVersion Include="Cadmus.Seed.Img.Parts" Version="5.0.0" />
-    <PackageVersion Include="Cadmus.Seed.TaxoStore.Parts" Version="0.0.5" />
-    <PackageVersion Include="Cadmus.TaxoStore.Parts" Version="0.0.5" />
+    <PackageVersion Include="Cadmus.Seed.TaxoStore.Parts" Version="0.0.8" />
+    <PackageVersion Include="Cadmus.TaxoStore.Parts" Version="0.0.8" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <PackageVersion Include="CsvHelper" Version="33.1.0" />
     <PackageVersion Include="DiffMatchPatch" Version="5.0.0" />
@@ -114,18 +114,18 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
-    <PackageVersion Include="Mol.Api.Controllers" Version="0.0.7" />
-    <PackageVersion Include="Mol.PgSql" Version="0.0.7" />
+    <PackageVersion Include="Mol.Api.Controllers" Version="0.0.8" />
+    <PackageVersion Include="Mol.PgSql" Version="0.0.8" />
     <PackageVersion Include="MongoDB.Bson" Version="3.11.2" />
     <PackageVersion Include="MongoDB.Driver" Version="3.11.2" />
-    <PackageVersion Include="Mufi.Api.Controllers" Version="2.0.1" />
+    <PackageVersion Include="Mufi.Api.Controllers" Version="2.0.2" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="NPOI" Version="2.8.0" />
-    <PackageVersion Include="Polly" Version="8.7.0" />
+    <PackageVersion Include="Polly" Version="8.8.0" />
     <PackageVersion Include="Proteus.Core" Version="14.0.2" />
     <PackageVersion Include="Proteus.Entries" Version="14.0.2" />
     <PackageVersion Include="Proteus.Text.Xml" Version="14.0.2" />
@@ -142,9 +142,10 @@
     <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageVersion Include="SqlKata.Execution" Version="4.0.1" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
-    <PackageVersion Include="TaxoStore.Api.Controllers" Version="0.0.5" />
-    <PackageVersion Include="TaxoStore.Core" Version="0.0.5" />
-    <PackageVersion Include="TaxoStore.PgSql" Version="0.0.5" />
+	<PackageVersion Include="TaxoStore.Api.Controllers" Version="0.0.8" />  
+	<PackageVersion Include="TaxoStore.Cli.Core" Version="0.0.8" />
+    <PackageVersion Include="TaxoStore.Core" Version="0.0.8" />
+    <PackageVersion Include="TaxoStore.PgSql" Version="0.0.8" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
   </ItemGroup>

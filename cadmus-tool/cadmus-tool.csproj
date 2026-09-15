@@ -54,6 +54,7 @@
 		<PackageReference Include="Serilog.Sinks.File" />
 		<PackageReference Include="Spectre.Console" />
 		<PackageReference Include="Spectre.Console.Cli" />
+		<PackageReference Include="TaxoStore.Cli.Core" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">

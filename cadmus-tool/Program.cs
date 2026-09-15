@@ -12,6 +12,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
+using TaxoStore.Cli.Core;
 
 namespace Cadmus.Cli;
 
@@ -143,6 +144,10 @@ public static class Program
 
                 config.AddCommand<UpdateUserCommand>("update-user")
                     .WithDescription("Update metadata for the specified user");
+
+                // from TaxoStore.Cli.Core
+                config.AddCommand<ImportStoreCommand>("import-store")
+                    .WithDescription("Import store data from the specified CSV sources.");
             });
 
             int result = await app.RunAsync(args);

@@ -16,15 +16,7 @@ public sealed class MetadataPart : PartBase
     /// <summary>
     /// Gets or sets the metadata.
     /// </summary>
-    public List<Metadatum> Metadata { get; set; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MetadataPart"/> class.
-    /// </summary>
-    public MetadataPart()
-    {
-        Metadata = new List<Metadatum>();
-    }
+    public List<Metadatum> Metadata { get; set; } = [];
 
     /// <summary>
     /// Get all the key=value pairs (pins) exposed by the implementor.
@@ -55,15 +47,15 @@ public sealed class MetadataPart : PartBase
     /// <returns>Data pins definitions.</returns>
     public override IList<DataPinDefinition> GetDataPinDefinitions()
     {
-        return new List<DataPinDefinition>(new[]
-        {
+        return
+        [
             new DataPinDefinition(DataPinValueType.Integer,
-               "tot-count",
-               "The total count of entries."),
+                "tot-count",
+                "The total count of entries."),
             new DataPinDefinition(DataPinValueType.String,
-               "<NAME>",
-               "The metadata values."),
-        });
+                "<NAME>",
+                "The metadata values."),
+        ];
     }
 
     /// <summary>
@@ -82,14 +74,14 @@ public sealed class MetadataPart : PartBase
         {
             sb.Append(' ');
             int n = 0;
-            foreach (var entry in Metadata)
+            foreach (Metadatum entry in Metadata)
             {
                 if (++n > 3) break;
                 if (n > 1) sb.Append("; ");
                 sb.Append(entry);
             }
             if (Metadata.Count > 3)
-                sb.Append("...(").Append(Metadata.Count).Append(')');
+                sb.Append("... (").Append(Metadata.Count).Append(')');
         }
 
         return sb.ToString();
