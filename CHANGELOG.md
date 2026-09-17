@@ -1,5 +1,7 @@
 # History
 
+## 16.0.5
+
 - 2026-09-15:
   - 🆕 added `TaxoStore` `import-store` command to CLI tool.
   - updated packages.

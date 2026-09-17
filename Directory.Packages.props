@@ -4,65 +4,65 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Unified version for all packages -->
-    <PackageVersion Include="Cadmus.Api.Config" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Api.Controllers.Export" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Api.Controllers.Import" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Api.Controllers" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Api.Models" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Api.Services" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Api" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Bricks.Api" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Core" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Cli.Core" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Core.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Export" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Export.ML" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Export.ML.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Export.Rdf" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Export.Rdf.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Export.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.General.Parts" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.General.Parts.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Graph" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Graph.Api" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Graph.Ef" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Graph.Ef.PgSql" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Graph.Ef.PgSql.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Graph.Ef.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Graph.Extras" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Graph.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Import" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Import.Excel" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Import.Excel.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Import.Proteus" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Import.Proteus.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Import.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Index" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Index.Ef" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Index.Ef.PgSql" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Index.Ef.PgSql.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Index.PgSql" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Index.Sql" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Index.Sql.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Mat.Bricks" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Mongo" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Mongo.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Philology.Parts" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Philology.Parts.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Philology.Tools" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Philology.Tools.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Refs.Bricks" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Seed" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Seed.General.Parts" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Seed.General.Parts.Test" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Seed.Test" Version="16.0.4" />
-    <PackageVersion Include="cadmus-mig" Version="16.0.4" />
-    <PackageVersion Include="cadmus-tool" Version="16.0.4" />
-    <PackageVersion Include="CadmusPreviewBuilder" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Seed.Philology.Parts" Version="16.0.4" />
-    <PackageVersion Include="Cadmus.Seed.Philology.Parts.Test" Version="16.0.4" />
-    <PackageVersion Include="Proteus.Rendering" Version="16.0.4" />
-    <PackageVersion Include="Proteus.Rendering.Test" Version="16.0.4" />
+    <PackageVersion Include="Cadmus.Api.Config" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Api.Controllers.Export" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Api.Controllers.Import" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Api.Controllers" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Api.Models" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Api.Services" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Api" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Bricks.Api" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Core" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Cli.Core" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Core.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Export" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Export.ML" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Export.ML.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Export.Rdf" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Export.Rdf.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Export.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.General.Parts" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.General.Parts.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Graph" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Graph.Api" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Graph.Ef" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Graph.Ef.PgSql" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Graph.Ef.PgSql.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Graph.Ef.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Graph.Extras" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Graph.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Import" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Import.Excel" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Import.Excel.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Import.Proteus" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Import.Proteus.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Import.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Index" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Index.Ef" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Index.Ef.PgSql" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Index.Ef.PgSql.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Index.PgSql" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Index.Sql" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Index.Sql.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Mat.Bricks" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Mongo" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Mongo.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Philology.Parts" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Philology.Parts.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Philology.Tools" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Philology.Tools.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Refs.Bricks" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Seed" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Seed.General.Parts" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Seed.General.Parts.Test" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Seed.Test" Version="16.0.5" />
+    <PackageVersion Include="cadmus-mig" Version="16.0.5" />
+    <PackageVersion Include="cadmus-tool" Version="16.0.5" />
+    <PackageVersion Include="CadmusPreviewBuilder" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Seed.Philology.Parts" Version="16.0.5" />
+    <PackageVersion Include="Cadmus.Seed.Philology.Parts.Test" Version="16.0.5" />
+    <PackageVersion Include="Proteus.Rendering" Version="16.0.5" />
+    <PackageVersion Include="Proteus.Rendering.Test" Version="16.0.5" />
     <!-- External dependencies for all packages -->
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="Cadmus.Codicology.Parts" Version="9.0.6" />
@@ -129,7 +129,7 @@
     <PackageVersion Include="Proteus.Core" Version="14.0.2" />
     <PackageVersion Include="Proteus.Entries" Version="14.0.2" />
     <PackageVersion Include="Proteus.Text.Xml" Version="14.0.2" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.3" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.4" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Exceptions" Version="8.4.0" />
@@ -142,8 +142,8 @@
     <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageVersion Include="SqlKata.Execution" Version="4.0.1" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
-	<PackageVersion Include="TaxoStore.Api.Controllers" Version="0.0.8" />  
-	<PackageVersion Include="TaxoStore.Cli.Core" Version="0.0.8" />
+    <PackageVersion Include="TaxoStore.Api.Controllers" Version="0.0.8" />
+    <PackageVersion Include="TaxoStore.Cli.Core" Version="0.0.8" />
     <PackageVersion Include="TaxoStore.Core" Version="0.0.8" />
     <PackageVersion Include="TaxoStore.PgSql" Version="0.0.8" />
     <PackageVersion Include="xunit" Version="2.9.3" />
