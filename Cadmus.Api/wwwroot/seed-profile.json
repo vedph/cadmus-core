@@ -2239,6 +2239,38 @@
         }
       ]
     },
+    "it.vedph.physical-measurements": {
+      "formulas": {
+        "proportion": {
+          "expression": "$height / $width",
+          "minIntDigits": 1,
+          "maxDecDigits": 2
+        },
+        "size": {
+          "expression": "$height + $width",
+          "intervals": [
+            {
+              "max": 321,
+              "name": "small"
+            },
+            {
+              "min": 322,
+              "max": 490,
+              "name": "medium-small"
+            },
+            {
+              "min": 491,
+              "max": 670,
+              "name": "medium-large"
+            },
+            {
+              "min": 671,
+              "name": "large"
+            }
+          ]
+        }
+      }
+    },
     "it.vedph.pin-links": {
       "lookupProviderOptions": {
         "biblissima": {
