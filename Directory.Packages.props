@@ -89,7 +89,7 @@
     <PackageVersion Include="Fusi.Xml" Version="7.0.1" />
     <PackageVersion Include="Fusi.Xml.Extras" Version="7.0.1" />
     <PackageVersion Include="JmesPath.Net" Version="1.1.0" />
-    <PackageVersion Include="Markdig" Version="1.3.2" />
+    <PackageVersion Include="Markdig" Version="1.4.0" />
     <PackageVersion Include="McMaster.NETCore.Plugins" Version="2.0.0" />
     <PackageVersion Include="MessagingApi" Version="6.0.0" />
     <PackageVersion Include="MessagingApi.SendGrid" Version="6.0.0" />
@@ -118,18 +118,18 @@
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.401" />
     <PackageVersion Include="Mol.Api.Controllers" Version="0.0.8" />
     <PackageVersion Include="Mol.PgSql" Version="0.0.8" />
-    <PackageVersion Include="MongoDB.Bson" Version="3.11.2" />
-    <PackageVersion Include="MongoDB.Driver" Version="3.11.2" />
+    <PackageVersion Include="MongoDB.Bson" Version="3.12.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.12.0" />
     <PackageVersion Include="Mufi.Api.Controllers" Version="2.0.2" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-    <PackageVersion Include="NPOI" Version="2.8.0" />
+    <PackageVersion Include="NPOI" Version="2.8.1" />
     <PackageVersion Include="Polly" Version="8.8.0" />
     <PackageVersion Include="Proteus.Core" Version="14.0.2" />
     <PackageVersion Include="Proteus.Entries" Version="14.0.2" />
     <PackageVersion Include="Proteus.Text.Xml" Version="14.0.2" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.4" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.7" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Exceptions" Version="8.4.0" />
@@ -141,12 +141,11 @@
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.55.0" />
     <PackageVersion Include="SqlKata.Execution" Version="4.0.1" />
-    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
     <PackageVersion Include="TaxoStore.Api.Controllers" Version="0.0.8" />
     <PackageVersion Include="TaxoStore.Cli.Core" Version="0.0.8" />
     <PackageVersion Include="TaxoStore.Core" Version="0.0.8" />
     <PackageVersion Include="TaxoStore.PgSql" Version="0.0.8" />
-    <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+	<PackageVersion Include="xunit.v3" Version="4.0.1" />
   </ItemGroup>
 </Project>

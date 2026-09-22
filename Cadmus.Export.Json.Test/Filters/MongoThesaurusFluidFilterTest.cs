@@ -155,7 +155,8 @@ public sealed class MongoThesaurusFluidFilterTest
         // even after the underlying thesaurus is gone, a previously cached
         // lookup for the same filter instance should still resolve
         MongoClient client = new(CS);
-        client.GetDatabase(DB_NAME).DropCollection(MongoThesaurus.COLLECTION);
+        client.GetDatabase(DB_NAME).DropCollection(MongoThesaurus.COLLECTION,
+            TestContext.Current.CancellationToken);
 
         FluidValue second = await ApplyAsync(filter, "$[languages|ita]");
         Assert.Equal("Italian", second.ToStringValue());

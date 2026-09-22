@@ -8,6 +8,7 @@
     <File Path="Dockerfile-bricks" />
     <File Path="Dockerfile-graph-studio" />
     <File Path="getbuildorder.ps1" />
+    <File Path="global.json" />
     <File Path="nuget.config" />
     <File Path="README.md" />
   </Folder>
