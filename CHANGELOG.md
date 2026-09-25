@@ -1,5 +1,7 @@
 # History
 
+## 16.0.7
+
 - 2026-09-25: 🆕 added repository `ImportItem` and `ExportItem` and the corresponding API controller methods to upload and download an item. This can be used to export a single item from the editor, and later import it into another or the same database with the same schema. The exported item is a JSON file with the following structure:
 
 ```json
