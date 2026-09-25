@@ -658,6 +658,76 @@ public class MongoCadmusRepositoryTest : CadmusRepositoryTestBase
     }
     #endregion
 
+    #region Export/Import
+    [Fact]
+    public void ExportItem_NotExisting_False()
+    {
+        DoExportItem_NotExisting_False();
+    }
+
+    [Fact]
+    public void ExportItem_WithParts_Ok()
+    {
+        DoExportItem_WithParts_Ok();
+    }
+
+    [Fact]
+    public void ExportItem_NoParts_Ok()
+    {
+        DoExportItem_NoParts_Ok();
+    }
+
+    [Fact]
+    public void ImportItem_DeletedNoHistory_SameIds()
+    {
+        DoImportItem_DeletedNoHistory_SameIds();
+    }
+
+    [Fact]
+    public void ImportItem_Deleted_NewIds()
+    {
+        DoImportItem_Deleted_NewIds();
+    }
+
+    [Fact]
+    public void ImportItem_NoHistory_NoHistory()
+    {
+        DoImportItem_NoHistory_NoHistory();
+    }
+
+    [Fact]
+    public void ImportItem_Existing_Throws()
+    {
+        DoImportItem_Existing_Throws();
+    }
+
+    [Fact]
+    public void ImportItem_Clone_NewPartIds()
+    {
+        DoImportItem_Clone_NewPartIds();
+    }
+
+    [Fact]
+    public void ImportItem_NoParts_Added()
+    {
+        DoImportItem_NoParts_Added();
+    }
+
+    [Theory]
+    [InlineData("syntax")]
+    [InlineData("not-object")]
+    [InlineData("no-id")]
+    [InlineData("parts-not-array")]
+    [InlineData("part-no-type")]
+    [InlineData("part-unknown-type")]
+    [InlineData("part-other-item")]
+    [InlineData("part-bad-content")]
+    public void ImportItem_Invalid_Throws(string invalidCase)
+    {
+        DoImportItem_Invalid_Throws(invalidCase);
+    }
+    #endregion
+
     #region Parts
     [Fact]
     public void GetPartsPage_1Any_2()

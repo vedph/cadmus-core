@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Cadmus.Core;
+﻿using Cadmus.Core;
 using Cadmus.Core.Config;
 using Cadmus.Core.Layers;
 using Cadmus.Core.Storage;
@@ -16,6 +9,16 @@ using MongoDB.Bson;
 using MongoDB.Bson.IO;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Thesaurus = Cadmus.Core.Config.Thesaurus;
 
 namespace Cadmus.Mongo;
@@ -31,7 +34,10 @@ public sealed class MongoCadmusRepository : MongoConsumerBase,
 {
     private readonly IPartTypeProvider _partTypeProvider;
     private readonly IItemSortKeyBuilder _itemSortKeyBuilder;
+    private const string PARTS_PROPERTY = "parts";
+
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly JsonSerializerOptions _exportJsonOptions;
     private readonly JsonWriterSettings _jsonSettings;
     private IEditOperationDiffAdapter<YXEditOperation>? _opDiffAdapter;
     private MongoCadmusRepositoryOptions? _options;
@@ -61,6 +67,12 @@ public sealed class MongoCadmusRepository : MongoConsumerBase,
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+        // exported documents are meant to be human-readable and editable
+        _exportJsonOptions = new JsonSerializerOptions(_jsonOptions)
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
     }
 
@@ -1200,6 +1212,209 @@ public sealed class MongoCadmusRepository : MongoConsumerBase,
 
         items.DeleteOne(i => i.Id!.Equals(id));
     }
+
+    /// <summary>
+    /// Exports the item with the specified ID as a JSON document to the
+    /// given writer. The document is the JSON serialization of the item,
+    /// where the <c>parts</c> property (present only when
+    /// <paramref name="includeParts"/> is true) is an array with the full
+    /// JSON serialization of each part, including its <c>typeId</c> and
+    /// <c>roleId</c>. This is the format expected by <see cref="ImportItem"/>.
+    /// </summary>
+    /// <param name="id">The item's identifier.</param>
+    /// <param name="writer">The writer to export the item to. The writer
+    /// is flushed but not closed.</param>
+    /// <param name="includeParts">if set to <c>true</c>, include all the item's
+    /// parts.</param>
+    /// <returns>True if the item was found and exported, false if not found.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">null ID or writer</exception>
+    public bool ExportItem(string id, TextWriter writer, bool includeParts = true)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(writer);
+
+        IItem? item = GetItem(id, includeParts);
+        if (item == null) return false;
+
+        // serialize the item without parts, as parts are typed as IPart
+        // and would lose all their type-specific properties
+        JsonObject root = JsonSerializer.SerializeToNode(item, item.GetType(),
+            _jsonOptions)!.AsObject();
+        root.Remove(PARTS_PROPERTY);
+
+        if (includeParts)
+        {
+            // serialize each part using its concrete type, exactly
+            // like when storing it
+            JsonArray parts = [];
+            foreach (IPart part in item.Parts)
+            {
+                parts.Add(JsonSerializer.SerializeToNode(part, part.GetType(),
+                    _jsonOptions));
+            }
+            root[PARTS_PROPERTY] = parts;
+        }
+
+        writer.Write(root.ToJsonString(_exportJsonOptions));
+        writer.Flush();
+        return true;
+    }
+
+    private static string? GetStringProperty(JsonObject obj, string name)
+    {
+        if (!obj.TryGetPropertyValue(name, out JsonNode? node) || node == null)
+            return null;
+
+        if (node.GetValueKind() != JsonValueKind.String)
+        {
+            throw new InvalidDataException(
+                $"Property \"{name}\" must be a string");
+        }
+        return node.GetValue<string>();
+    }
+
+    private IPart ParseImportedPart(JsonNode? node, string itemId)
+    {
+        if (node is not JsonObject obj)
+        {
+            throw new InvalidDataException(
+                $"Each part of item {itemId} must be a JSON object");
+        }
+
+        string? typeId = GetStringProperty(obj, "typeId");
+        if (string.IsNullOrEmpty(typeId))
+        {
+            throw new InvalidDataException(
+                $"Part without type ID in item {itemId}");
+        }
+        string? roleId = GetStringProperty(obj, "roleId");
+
+        IPart part = InstantiatePart(typeId, roleId, obj.ToJsonString())
+            ?? throw new InvalidDataException("Unknown part type " +
+                $"{PartBase.BuildProviderId(typeId, roleId)} in item {itemId}");
+
+        if (!string.IsNullOrEmpty(part.ItemId) && part.ItemId != itemId)
+        {
+            throw new InvalidDataException(
+                $"Part {part.Id} belongs to item {part.ItemId} " +
+                $"rather than to item {itemId}");
+        }
+        return part;
+    }
+
+    private Item ParseImportedItem(string json)
+    {
+        if (JsonNode.Parse(json) is not JsonObject root)
+            throw new InvalidDataException("Item document must be a JSON object");
+
+        // detach parts from the item, as they must be typed one by one
+        JsonNode? partsNode = root[PARTS_PROPERTY];
+        if (partsNode != null && partsNode is not JsonArray)
+            throw new InvalidDataException("Item parts must be a JSON array");
+        root.Remove(PARTS_PROPERTY);
+
+        // the item ID is required to validate its parts
+        if (string.IsNullOrEmpty(GetStringProperty(root, "id")))
+            throw new InvalidDataException("Item without ID");
+
+        Item item = root.Deserialize<Item>(_jsonOptions)
+            ?? throw new InvalidDataException("Unable to deserialize item");
+        if (string.IsNullOrEmpty(item.FacetId))
+            throw new InvalidDataException($"Item {item.Id} without facet ID");
+        item.Title ??= "";
+        item.Description ??= "";
+        item.SortKey ??= "";
+        item.CreatorId ??= "";
+        item.UserId ??= "";
+
+        if (partsNode is JsonArray parts)
+        {
+            item.Parts = [.. parts.Select(p => ParseImportedPart(p, item.Id))];
+        }
+        return item;
+    }
+
+    /// <summary>
+    /// Imports a new item with its parts from a JSON document read from the
+    /// given reader, as produced by <see cref="ExportItem"/>. An imported
+    /// item is always a new record: importing an item whose ID is already
+    /// present in the database is not allowed. Should the item or any of its
+    /// parts have an ID found in history (e.g. because they were deleted),
+    /// or any part have an ID already in use, they get a new ID, as deleted
+    /// records cannot be resurrected. The whole document is validated before
+    /// saving anything.
+    /// </summary>
+    /// <param name="reader">The reader to import the item from.</param>
+    /// <param name="userId">The ID of the user performing the import. When
+    /// specified, this is set as the creator and user ID of the item and of
+    /// its parts.</param>
+    /// <param name="history">if set to <c>true</c>, the history should be
+    /// affected.</param>
+    /// <returns>The imported item with its parts, having their final IDs.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">null reader</exception>
+    /// <exception cref="JsonException">invalid JSON</exception>
+    /// <exception cref="InvalidDataException">invalid item document
+    /// </exception>
+    /// <exception cref="InvalidOperationException">item already exists
+    /// </exception>
+    public IItem ImportItem(TextReader reader, string? userId = null,
+        bool history = true)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+
+        Item item = ParseImportedItem(reader.ReadToEnd());
+
+        EnsureClientCreated(_options!.ConnectionString!);
+        IMongoDatabase db = Client!.GetDatabase(_databaseName);
+
+        if (db.GetCollection<MongoItem>(MongoItem.COLLECTION)
+            .Find(i => i.Id == item.Id).Any())
+        {
+            throw new InvalidOperationException(
+                $"Item {item.Id} already exists");
+        }
+
+        // a deleted item cannot be resurrected: if its ID is in history,
+        // the imported item is a new record with its own new ID
+        if (db.GetCollection<MongoHistoryItem>(MongoHistoryItem.COLLECTION)
+            .Find(h => h.ReferenceId == item.Id).Any())
+        {
+            item.Id = Guid.NewGuid().ToString();
+        }
+
+        // the same holds for parts, whose IDs must also be unique
+        List<string> ids = item.Parts.ConvertAll(p => p.Id);
+        HashSet<string> usedIds =
+        [
+            .. db.GetCollection<MongoPart>(MongoPart.COLLECTION)
+                .Find(p => ids.Contains(p.Id))
+                .Project(p => p.Id).ToList(),
+            .. db.GetCollection<MongoHistoryPart>(MongoHistoryPart.COLLECTION)
+                .Find(h => ids.Contains(h.ReferenceId))
+                .Project(h => h.ReferenceId).ToList()
+        ];
+
+        // save as a newly created item with newly created parts
+        DateTime now = DateTime.UtcNow;
+        item.TimeCreated = now;
+        if (userId != null) item.CreatorId = item.UserId = userId;
+        AddItem(item, history);
+
+        foreach (IPart part in item.Parts)
+        {
+            // Add fails for empty IDs, IDs in use, and duplicates in the file
+            if (string.IsNullOrEmpty(part.Id) || !usedIds.Add(part.Id))
+                part.Id = Guid.NewGuid().ToString();
+            part.ItemId = item.Id;
+            part.TimeCreated = now;
+            if (userId != null) part.CreatorId = part.UserId = userId;
+            AddPart(part, history);
+        }
+
+        return item;
+    }
     #endregion
 
     #region Parts
@@ -1212,10 +1427,10 @@ public sealed class MongoCadmusRepository : MongoConsumerBase,
         return (IPart?)JsonSerializer.Deserialize(content, type, _jsonOptions);
     }
 
-    private IList<IPart> InstantiateParts(IEnumerable<MongoPart> parts,
+    private List<IPart> InstantiateParts(IEnumerable<MongoPart> parts,
         bool throwOnNull = true)
     {
-        List<IPart> results = new();
+        List<IPart> results = [];
 
         foreach (MongoPart mongoPart in parts)
         {

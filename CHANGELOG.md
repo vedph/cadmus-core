@@ -1,5 +1,16 @@
 # History
 
+- 2026-09-25: 🆕 added repository `ImportItem` and `ExportItem` and the corresponding API controller methods to upload and download an item. This can be used to export a single item from the editor, and later import it into another or the same database with the same schema. The exported item is a JSON file with the following structure:
+
+```json
+{
+  "item": { ... },
+  "parts": [ ... ]
+}
+```
+
+When importing into a database an item with the same ID cannot exist. So we are always adding new item and parts. If the item exists in history only, the imported item and its part IDs are regenerated to avoid conflicts in the history. If it exists in the items collection, the import fails.
+
 ## 16.0.6
 
 - 2026-09-22:

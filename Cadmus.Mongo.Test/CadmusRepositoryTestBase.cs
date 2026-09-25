@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Cadmus.Core;
@@ -1207,6 +1209,313 @@ public abstract class CadmusRepositoryTestBase
         Assert.Equal("it.vedph.token-text-layer", part.TypeId);
         Assert.True(part.IsAbsent);
         Assert.Equal(0, part.FragmentCount);
+    }
+    #endregion
+
+    #region Export/Import
+    private static string ExportItem(ICadmusRepository repository, string id,
+        bool includeParts = true)
+    {
+        StringWriter writer = new();
+        Assert.True(repository.ExportItem(id, writer, includeParts));
+        return writer.ToString();
+    }
+
+    private static IItem ImportItem(ICadmusRepository repository, string json,
+        string? userId = null, bool history = true) =>
+        repository.ImportItem(new StringReader(json), userId, history);
+
+    private static int GetItemHistoryCount(ICadmusRepository repository,
+        string id, EditStatus? status = null) =>
+        repository.GetHistoryItems(new HistoryItemFilter
+        {
+            ReferenceId = id,
+            Status = status,
+            PageSize = 100
+        }).Total;
+
+    private static int GetPartHistoryCount(ICadmusRepository repository,
+        string id, EditStatus? status = null) =>
+        repository.GetHistoryParts(new HistoryPartFilter
+        {
+            ReferenceId = id,
+            Status = status,
+            PageSize = 100
+        }).Total;
+
+    protected void DoExportItem_NotExisting_False()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+        StringWriter writer = new();
+
+        Assert.False(repository.ExportItem("NotExisting", writer));
+        Assert.Equal("", writer.ToString());
+    }
+
+    protected void DoExportItem_WithParts_Ok()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+
+        string json = ExportItem(repository, "item-001");
+
+        using JsonDocument doc = JsonDocument.Parse(json);
+        JsonElement root = doc.RootElement;
+        Assert.Equal("item-001", root.GetProperty("id").GetString());
+        Assert.Equal("Item 1", root.GetProperty("title").GetString());
+        Assert.Equal("alpha", root.GetProperty("facetId").GetString());
+        Assert.Equal(1, root.GetProperty("flags").GetInt32());
+
+        // parts must be serialized with all their type-specific properties
+        JsonElement[] parts = [.. root.GetProperty("parts").EnumerateArray()];
+        Assert.Equal(3, parts.Length);
+
+        JsonElement categories = parts.Single(
+            p => p.GetProperty("id").GetString() == "part-001");
+        Assert.Equal("item-001", categories.GetProperty("itemId").GetString());
+        Assert.Equal("categories", categories.GetProperty("roleId").GetString());
+        Assert.Equal(["alpha", "beta"], categories.GetProperty("categories")
+            .EnumerateArray().Select(e => e.GetString()));
+
+        JsonElement note = parts.Single(
+            p => p.GetProperty("id").GetString() == "part-002");
+        Assert.Equal("Some notes.", note.GetProperty("text").GetString());
+
+        JsonElement layer = parts.Single(
+            p => p.GetProperty("id").GetString() == "part-003");
+        Assert.Equal(2, layer.GetProperty("fragments").GetArrayLength());
+    }
+
+    protected void DoExportItem_NoParts_Ok()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+
+        string json = ExportItem(repository, "item-001", false);
+
+        using JsonDocument doc = JsonDocument.Parse(json);
+        Assert.Equal("item-001", doc.RootElement.GetProperty("id").GetString());
+        Assert.False(doc.RootElement.TryGetProperty("parts", out _));
+    }
+
+    private static void AssertItem001Content(IItem item)
+    {
+        Assert.Equal("Item 1", item.Title);
+        Assert.Equal("Description of item 1", item.Description);
+        Assert.Equal("alpha", item.FacetId);
+        Assert.Equal(1, item.Flags);
+
+        Assert.Equal(3, item.Parts.Count);
+        Assert.All(item.Parts, p => Assert.Equal(item.Id, p.ItemId));
+        Assert.Equal(["alpha", "beta"], item.Parts.OfType<CategoriesPart>()
+            .Single().Categories);
+        Assert.Equal("Some notes.", item.Parts.OfType<NotePart>().Single().Text);
+        Assert.Equal(2, item.Parts
+            .OfType<TokenTextLayerPart<CommentLayerFragment>>()
+            .Single().Fragments.Count);
+    }
+
+    protected void DoImportItem_DeletedNoHistory_SameIds()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+        string json = ExportItem(repository, "item-001");
+        repository.DeleteItem("item-001", "Killer", false);
+        DateTime now = DateTime.UtcNow.AddSeconds(-1);
+
+        IItem imported = ImportItem(repository, json, "Importer");
+
+        // with no history, the original IDs can be reused
+        Assert.Equal("item-001", imported.Id);
+        Assert.Equal(["part-001", "part-002", "part-003"],
+            imported.Parts.Select(p => p.Id).Order());
+
+        IItem? item = repository.GetItem("item-001");
+        Assert.NotNull(item);
+        AssertItem001Content(item);
+
+        // a new record, created by the importer
+        Assert.Equal("Importer", item.CreatorId);
+        Assert.Equal("Importer", item.UserId);
+        Assert.True(item.TimeCreated >= now);
+        Assert.All(item.Parts, p =>
+        {
+            Assert.Equal("Importer", p.CreatorId);
+            Assert.Equal("Importer", p.UserId);
+            Assert.True(p.TimeCreated >= now);
+        });
+
+        // history
+        Assert.Equal(1, GetItemHistoryCount(repository, "item-001",
+            EditStatus.Created));
+        foreach (string id in new[] { "part-001", "part-002", "part-003" })
+        {
+            Assert.Equal(1, GetPartHistoryCount(repository, id,
+                EditStatus.Created));
+        }
+    }
+
+    protected void DoImportItem_Deleted_NewIds()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+        string json = ExportItem(repository, "item-001");
+        repository.DeleteItem("item-001", "Killer");
+
+        IItem imported = ImportItem(repository, json, "Importer");
+
+        // deleted records cannot be resurrected
+        Assert.NotEqual("item-001", imported.Id);
+        Assert.Null(repository.GetItem("item-001"));
+        string[] oldPartIds = ["part-001", "part-002", "part-003"];
+        Assert.All(imported.Parts, p => Assert.DoesNotContain(p.Id, oldPartIds));
+
+        IItem? item = repository.GetItem(imported.Id);
+        Assert.NotNull(item);
+        AssertItem001Content(item);
+
+        // the new records have their own history
+        Assert.Equal(1, GetItemHistoryCount(repository, item.Id));
+        Assert.Equal(1, GetItemHistoryCount(repository, "item-001"));
+        foreach (IPart part in item.Parts)
+        {
+            Assert.Equal(1, GetPartHistoryCount(repository, part.Id,
+                EditStatus.Created));
+        }
+    }
+
+    protected void DoImportItem_NoHistory_NoHistory()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+        string json = ExportItem(repository, "item-001");
+        repository.DeleteItem("item-001", "Killer", false);
+
+        IItem imported = ImportItem(repository, json, "Importer", false);
+
+        Assert.Equal(0, GetItemHistoryCount(repository, imported.Id));
+        Assert.All(imported.Parts, p =>
+            Assert.Equal(0, GetPartHistoryCount(repository, p.Id)));
+    }
+
+    protected void DoImportItem_Existing_Throws()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+        string json = ExportItem(repository, "item-001")
+            .Replace("\"Item 1\"", "\"Changed\"");
+
+        Assert.Throws<InvalidOperationException>(
+            () => ImportItem(repository, json));
+
+        IItem? item = repository.GetItem("item-001");
+        Assert.NotNull(item);
+        Assert.Equal("Item 1", item.Title);
+        Assert.Equal(0, GetItemHistoryCount(repository, "item-001"));
+    }
+
+    protected void DoImportItem_Clone_NewPartIds()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+
+        // clone item-001 into a new item in the same database, also with
+        // a duplicate part ID in the file
+        JsonObject root = JsonNode.Parse(
+            ExportItem(repository, "item-001"))!.AsObject();
+        root["id"] = "item-new";
+        foreach (JsonNode? part in root["parts"]!.AsArray())
+            part!["itemId"] = "item-new";
+        root["parts"]![1]!["id"] = "part-X";
+        root["parts"]![2]!["id"] = "part-X";
+
+        IItem imported = ImportItem(repository, root.ToJsonString());
+
+        // the item ID is kept, while part IDs in use are replaced
+        Assert.Equal("item-new", imported.Id);
+        List<string> partIds = imported.Parts.ConvertAll(p => p.Id);
+        Assert.Equal(3, partIds.Distinct().Count());
+        Assert.DoesNotContain("part-001", partIds);
+        Assert.Single(partIds, id => id == "part-X");
+
+        AssertItem001Content(repository.GetItem("item-new")!);
+        // the source item is untouched
+        IItem source = repository.GetItem("item-001")!;
+        AssertItem001Content(source);
+        Assert.Equal(["part-001", "part-002", "part-003"],
+            source.Parts.Select(p => p.Id).Order());
+    }
+
+    protected void DoImportItem_NoParts_Added()
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+        string json = ExportItem(repository, "item-001", false)
+            .Replace("item-001", "item-new");
+
+        IItem imported = ImportItem(repository, json);
+
+        Assert.Empty(imported.Parts);
+        IItem? item = repository.GetItem("item-new");
+        Assert.NotNull(item);
+        Assert.Equal("Item 1", item.Title);
+        // user IDs are kept from the file when no user is specified
+        Assert.Equal("Odd", item.CreatorId);
+        Assert.Equal("Odd", item.UserId);
+        Assert.Empty(item.Parts);
+    }
+
+    protected void DoImportItem_Invalid_Throws(string invalidCase)
+    {
+        PrepareDatabase();
+        ICadmusRepository repository = GetRepository();
+
+        // start from a valid document for a new item
+        JsonObject root = JsonNode.Parse(
+            ExportItem(repository, "item-001"))!.AsObject();
+        root["id"] = "item-new";
+        JsonArray parts = root["parts"]!.AsArray();
+        foreach (JsonNode? part in parts) part!["itemId"] = "item-new";
+        JsonObject note = parts.Single(
+            p => (string?)p!["id"] == "part-002")!.AsObject();
+
+        switch (invalidCase)
+        {
+            case "no-id":
+                root.Remove("id");
+                break;
+            case "parts-not-array":
+                root["parts"] = new JsonObject();
+                break;
+            case "part-no-type":
+                note.Remove("typeId");
+                break;
+            case "part-unknown-type":
+                note["typeId"] = "it.vedph.unknown";
+                break;
+            case "part-other-item":
+                note["itemId"] = "item-002";
+                break;
+            case "part-bad-content":
+                note["text"] = new JsonArray();
+                break;
+        }
+        string json = invalidCase switch
+        {
+            "not-object" => new JsonArray(root).ToJsonString(),
+            "syntax" => root.ToJsonString()[..^10],
+            _ => root.ToJsonString()
+        };
+
+        Exception ex = Assert.ThrowsAny<Exception>(
+            () => ImportItem(repository, json));
+        Assert.True(ex is InvalidDataException or JsonException,
+            ex.GetType().Name);
+
+        // nothing was saved
+        Assert.Null(repository.GetItem("item-new"));
+        Assert.Equal(0, GetItemHistoryCount(repository, "item-new"));
     }
     #endregion
 

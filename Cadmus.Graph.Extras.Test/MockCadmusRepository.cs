@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Cadmus.Core;
 using Cadmus.Core.Config;
@@ -78,6 +79,12 @@ internal sealed class MockCadmusRepository : ICadmusRepository
     public HistoryItem? GetHistoryItem(string id) =>
         throw new NotImplementedException();
     public void DeleteHistoryItem(string id) =>
+        throw new NotImplementedException();
+    public bool ExportItem(string id, TextWriter writer,
+        bool includeParts = true) =>
+        throw new NotImplementedException();
+    public IItem ImportItem(TextReader reader, string? userId = null,
+        bool history = true) =>
         throw new NotImplementedException();
 
     public DataPage<PartInfo> GetParts(PartFilter filter) =>

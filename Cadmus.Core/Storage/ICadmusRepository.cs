@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Cadmus.Core.Config;
 using Cadmus.Core.Layers;
@@ -197,6 +198,52 @@ public interface ICadmusRepository
     /// </summary>
     /// <param name="id">The history item's identifier.</param>
     void DeleteHistoryItem(string id);
+
+    /// <summary>
+    /// Exports the item with the specified ID as a JSON document to the
+    /// given writer. The document is the JSON serialization of the item,
+    /// where the <c>parts</c> property (present only when
+    /// <paramref name="includeParts"/> is true) is an array with the full
+    /// JSON serialization of each part, including its <c>typeId</c> and
+    /// <c>roleId</c>. This is the format expected by <see cref="ImportItem"/>.
+    /// </summary>
+    /// <param name="id">The item's identifier.</param>
+    /// <param name="writer">The writer to export the item to. The writer
+    /// is flushed but not closed.</param>
+    /// <param name="includeParts">if set to <c>true</c>, include all the item's
+    /// parts.</param>
+    /// <returns>True if the item was found and exported, false if not found.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">null ID or writer
+    /// </exception>
+    bool ExportItem(string id, TextWriter writer, bool includeParts = true);
+
+    /// <summary>
+    /// Imports a new item with its parts from a JSON document read from the
+    /// given reader, as produced by <see cref="ExportItem"/>. An imported
+    /// item is always a new record: importing an item whose ID is already
+    /// present in the database is not allowed. Should the item or any of its
+    /// parts have an ID found in history (e.g. because they were deleted),
+    /// or any part have an ID already in use, they get a new ID, as deleted
+    /// records cannot be resurrected. The whole document is validated before
+    /// saving anything.
+    /// </summary>
+    /// <param name="reader">The reader to import the item from.</param>
+    /// <param name="userId">The ID of the user performing the import. When
+    /// specified, this is set as the creator and user ID of the item and of
+    /// its parts.</param>
+    /// <param name="history">if set to <c>true</c>, the history should be
+    /// affected.</param>
+    /// <returns>The imported item with its parts, having their final IDs.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">null reader</exception>
+    /// <exception cref="System.Text.Json.JsonException">invalid JSON</exception>
+    /// <exception cref="InvalidDataException">invalid item document
+    /// </exception>
+    /// <exception cref="System.InvalidOperationException">item already exists
+    /// </exception>
+    IItem ImportItem(TextReader reader, string? userId = null,
+        bool history = true);
     #endregion
 
     #region Parts
