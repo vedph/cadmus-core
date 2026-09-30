@@ -88,6 +88,14 @@ public static class ServiceConfigurator
     #endregion
 
     #region CORS
+    /// <summary>
+    /// Configures the CORS services with the allowed origins defined in
+    /// the configuration under <c>AllowedOrigins</c>. If no origins are defined,
+    /// the default is <c>http://localhost:4200</c>. If the origin is <c>*</c>,
+    /// any origin is allowed.
+    /// </summary>
+    /// <param name="services">The services.</param>
+    /// <param name="config">The configuration.</param>
     public static void ConfigureCorsServices(IServiceCollection services,
         IConfiguration config)
     {
@@ -96,18 +104,30 @@ public static class ServiceConfigurator
         IConfigurationSection section = config.GetSection("AllowedOrigins");
         if (section.Exists())
         {
-            origins = section.AsEnumerable()
-                .Where(p => !string.IsNullOrEmpty(p.Value))
-                .Select(p => p.Value).ToArray()!;
+            origins = [.. section.AsEnumerable()
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Value))
+                    .Select(p => p.Value!.Trim())
+                    .Distinct()];
         }
+
+        // a "*" origin means any origin: the CORS protocol forbids
+        // combining a wildcard origin with credentials, so in this case
+        // we allow any origin without credentials
+        bool anyOrigin = origins.Contains("*");
 
         services.AddCors(o => o.AddPolicy("CorsPolicy", builder =>
         {
-            builder.AllowAnyMethod()
-                .AllowAnyHeader()
+            builder.AllowAnyMethod().AllowAnyHeader();
+
+            if (anyOrigin)
+            {
+                builder.AllowAnyOrigin();
+            }
+            else
+            {
                 // https://github.com/aspnet/SignalR/issues/2110 for AllowCredentials
-                .AllowCredentials()
-                .WithOrigins(origins);
+                builder.AllowCredentials().WithOrigins(origins);
+            }
         }));
     }
     #endregion

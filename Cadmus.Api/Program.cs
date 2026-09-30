@@ -158,12 +158,20 @@ namespace Cadmus.Api
                 WebApplication app = builder.Build();
                 ServiceConfigurator.DumpEnvironmentVars();
 
-                // forward headers for use with an eventual reverse proxy
-                app.UseForwardedHeaders(new ForwardedHeadersOptions
+                // https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer
+                // this must come first, so that the original scheme (https) is
+                // restored before anything (e.g. OpenAPI servers URL) uses it.
+                // By default only loopback proxies are trusted, but the reverse
+                // proxy runs in another container, so clear the known networks
+                // and proxies to trust it
+                ForwardedHeadersOptions forwardedOptions = new()
                 {
                     ForwardedHeaders = ForwardedHeaders.XForwardedFor
                         | ForwardedHeaders.XForwardedProto
-                });
+                };
+                forwardedOptions.KnownIPNetworks.Clear();
+                forwardedOptions.KnownProxies.Clear();
+                app.UseForwardedHeaders(forwardedOptions);
 
                 // development or production
                 if (builder.Environment.IsDevelopment())
