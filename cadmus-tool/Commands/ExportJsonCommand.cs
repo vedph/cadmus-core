@@ -23,7 +23,7 @@ internal sealed class ExportJsonCommand : AsyncCommand<ExportJsonCommandSettings
         AnsiConsole.WriteLine($"Pretty print: {settings.PrettyPrint}");
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context,
+    public override async Task<int> ExecuteAsync(CommandContext context,
         ExportJsonCommandSettings settings, CancellationToken cancellationToken)
     {
         ShowSettings(settings);

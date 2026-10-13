@@ -20,7 +20,7 @@ internal sealed class BuildIndexSqlCommand :
         _options = new PagingOptions();
     }
 
-    protected override Task<int> ExecuteAsync(CommandContext context,
+    public override Task<int> ExecuteAsync(CommandContext context,
         BuildIndexSqlCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[green underline]BUILD INDEX SQL[/]");

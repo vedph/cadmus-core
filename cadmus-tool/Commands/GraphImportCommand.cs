@@ -132,7 +132,7 @@ internal sealed class GraphImportCommand : AsyncCommand<GraphImportCommandSettin
         }
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context,
+    public override async Task<int> ExecuteAsync(CommandContext context,
         GraphImportCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]IMPORT INTO GRAPH[/]");

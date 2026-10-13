@@ -22,7 +22,7 @@ internal sealed class CreateDatabaseCommand :
         mgr.CreateDatabase(dbName, EfPgSqlItemIndexWriter.GetPgSqlSchema(), null);
     }
 
-    protected override Task<int> ExecuteAsync(CommandContext context,
+    public override Task<int> ExecuteAsync(CommandContext context,
        CreateDatabaseCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]CREATE DATABASE[/]");

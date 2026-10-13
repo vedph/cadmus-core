@@ -16,7 +16,7 @@ namespace Cadmus.Cli.Commands;
 
 internal sealed class GraphOneCommand : AsyncCommand<GraphOneCommandSettings>
 {
-    protected override Task<int> ExecuteAsync(CommandContext context,
+    public override Task<int> ExecuteAsync(CommandContext context,
         GraphOneCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]MAP ITEM/PART TO GRAPH[/]");

@@ -12,7 +12,7 @@ namespace Cadmus.Cli.Commands;
 internal sealed class GraphUpdateClassesCommand :
     AsyncCommand<UpdateGraphClassesCommandSettings>
 {
-    protected async override Task<int> ExecuteAsync(CommandContext context,
+    public async override Task<int> ExecuteAsync(CommandContext context,
         UpdateGraphClassesCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]UPDATE GRAPH CLASS NODES[/]");

@@ -38,7 +38,7 @@ internal sealed class ExportRdfCommand : AsyncCommand<ExportRdfCommandSettings>
         AnsiConsole.WriteLine($"Encoding: {settings.Encoding}\n");
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context,
+    public override async Task<int> ExecuteAsync(CommandContext context,
         ExportRdfCommandSettings settings, CancellationToken cancel)
     {
         ShowSettings(settings);

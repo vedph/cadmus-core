@@ -32,7 +32,7 @@ internal sealed class RenderItemsCommand : AsyncCommand<RenderItemsCommandSettin
         AnsiConsole.WriteLine($"Composer key: {settings.ComposerKey}\n");
     }
 
-    protected override Task<int> ExecuteAsync(CommandContext context,
+    public override Task<int> ExecuteAsync(CommandContext context,
         RenderItemsCommandSettings settings, CancellationToken cancel)
     {
         ShowSettings(settings);

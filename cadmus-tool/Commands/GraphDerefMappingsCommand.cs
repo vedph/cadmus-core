@@ -18,7 +18,7 @@ namespace Cadmus.Cli.Commands;
 internal sealed class GraphDerefMappingsCommand :
     AsyncCommand<GraphDerefMappingsCommandSettings>
 {
-    protected override Task<int> ExecuteAsync(CommandContext context,
+    public override Task<int> ExecuteAsync(CommandContext context,
         GraphDerefMappingsCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[green underline]DEREFERENCE MAPPINGS DOCUMENT[/]");

@@ -1,5 +1,8 @@
 # History
 
+## 16.0.8
+
+- 2026-10-13: updated packages.
 - 2026-09-30: handle `*` in CORS implementations.
 
 ## 16.0.7

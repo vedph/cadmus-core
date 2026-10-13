@@ -28,7 +28,7 @@ internal sealed class GetObjectCommand : AsyncCommand<GetObjectCommandSettings>
         writer.Flush();
     }
 
-    protected override Task<int> ExecuteAsync(CommandContext context,
+    public override Task<int> ExecuteAsync(CommandContext context,
         GetObjectCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[green underline]GET OBJECT[/]");

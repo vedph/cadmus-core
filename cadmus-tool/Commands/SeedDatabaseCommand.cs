@@ -25,7 +25,7 @@ internal sealed class SeedDatabaseCommand :
         return reader.ReadToEnd();
     }
 
-    protected override Task<int> ExecuteAsync(CommandContext context,
+    public override Task<int> ExecuteAsync(CommandContext context,
         SeedDatabaseCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]SEED DATABASE[/]");

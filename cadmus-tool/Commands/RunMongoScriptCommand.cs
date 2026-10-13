@@ -73,7 +73,7 @@ internal sealed class RunMongoScriptCommand :
         }
     }
 
-    protected override async Task<int> ExecuteAsync(CommandContext context,
+    public override async Task<int> ExecuteAsync(CommandContext context,
         RunMongoScriptCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]RUN MONGO SCRIPT[/]");

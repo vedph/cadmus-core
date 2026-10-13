@@ -30,7 +30,7 @@ public sealed class ThesaurusImportCommand :
         };
     }
 
-    protected override Task<int> ExecuteAsync(
+    public override Task<int> ExecuteAsync(
         CommandContext context, ThesaurusImportCommandSettings settings,
         CancellationToken cancel)
     {

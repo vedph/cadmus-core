@@ -24,7 +24,7 @@ internal sealed class IndexDatabaseCommand :
         return reader.ReadToEnd();
     }
 
-    protected async override Task<int> ExecuteAsync(CommandContext context,
+    public async override Task<int> ExecuteAsync(CommandContext context,
         IndexDatabaseCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]INDEX DATABASE[/]");

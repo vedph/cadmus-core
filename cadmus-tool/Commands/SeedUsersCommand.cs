@@ -88,7 +88,7 @@ internal sealed class SeedUsersCommand : AsyncCommand<SeedUsersCommandSettings>
     /// <param name="settings">The command settings.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>0 on success, 1 on warning, 2 on error.</returns>
-    protected override async Task<int> ExecuteAsync(
+    public override async Task<int> ExecuteAsync(
         CommandContext context,
         SeedUsersCommandSettings settings,
         CancellationToken cancellationToken)

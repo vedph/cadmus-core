@@ -16,7 +16,7 @@ namespace Cadmus.Cli.Commands;
 
 internal sealed class GraphManyCommand : AsyncCommand<GraphManyCommandSettings>
 {
-    protected override Task<int> ExecuteAsync(CommandContext context,
+    public override Task<int> ExecuteAsync(CommandContext context,
         GraphManyCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]MAP ITEMS TO GRAPH[/]");
