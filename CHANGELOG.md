@@ -1,5 +1,12 @@
 # History
 
+## 16.0.9
+
+- 2026-10-15:
+  - updated packages.
+  - 🆕 added `ItemIdEntrySetExporter` (`it.vedph.entry-set-exporter.cadmus.item-id`) to `Cadmus.Import.Proteus`, dumping the item IDs, titles, metadata part ID and `eid` metadata values of imported items into a JSON file, for multi-pass imports. `Cadmus.Import.Proteus` now depends on `Cadmus.General.Parts`.
+  - 🆕 added `ExportedItemIdSet` to load the output of `ItemIdEntrySetExporter` and look up items by `eid` or item ID.
+
 ## 16.0.8
 
 - 2026-10-13: updated packages.

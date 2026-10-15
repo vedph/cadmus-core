@@ -32,11 +32,13 @@
 
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">
 		<ProjectReference Include="..\Cadmus.Core\Cadmus.Core.csproj" />
+		<ProjectReference Include="..\Cadmus.General.Parts\Cadmus.General.Parts.csproj" />
 		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
 		<ProjectReference Include="..\Cadmus.Import\Cadmus.Import.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
 		<PackageReference Include="Cadmus.Core" />
+		<PackageReference Include="Cadmus.General.Parts" />
 		<PackageReference Include="Cadmus.Mongo" />
 		<PackageReference Include="Cadmus.Import" />
 	</ItemGroup>
