@@ -1,5 +1,9 @@
 # History
 
+## 16.0.10
+
+- 2026-10-16: updated packages (taxonomies store v2).
+
 ## 16.0.9
 
 - 2026-10-15:
