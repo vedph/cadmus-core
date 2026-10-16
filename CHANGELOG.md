@@ -1,8 +1,8 @@
 # History
 
-## 16.0.10
+## 16.0.11
 
-- 2026-10-16: updated packages (taxonomies store v2).
+- 2026-10-16: updated packages (taxonomies store v2, CLI auth fixing runtime issues in tool).
 
 ## 16.0.9
 
