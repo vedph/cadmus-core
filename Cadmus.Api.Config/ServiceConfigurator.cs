@@ -40,6 +40,9 @@ using System.IO;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Net;
+using System.Threading;
 using Cadmus.Graph.Extras;
 using Cadmus.Export;
 using Cadmus.Export.Config;
@@ -132,7 +135,137 @@ public static class ServiceConfigurator
     }
     #endregion
 
+    #region Forwarded headers
+    /// <summary>
+    /// Gets the forwarded headers options for use with a reverse proxy.
+    /// This lets the API (and its rate limiter) see the client's IP address
+    /// and the original scheme (e.g. https) rather than the proxy's ones.
+    /// The <c>X-Forwarded-*</c> headers are honored only when the request
+    /// comes from a trusted proxy, i.e. (besides localhost, which is always
+    /// trusted) one of the proxies listed in <c>ForwardedHeaders:KnownProxies</c>
+    /// (IP addresses) or belonging to the networks listed in
+    /// <c>ForwardedHeaders:KnownNetworks</c> (CIDR, e.g. <c>172.16.0.0/12</c>).
+    /// Setting <c>ForwardedHeaders:TrustAllProxies</c> to true trusts any
+    /// sender: use it only when the API port cannot be reached except via
+    /// the proxy, as otherwise anyone can fake its IP address.
+    /// <c>ForwardedHeaders:ForwardLimit</c> (default 1) is the number of
+    /// proxies in front of the API.
+    /// </summary>
+    /// <param name="config">The configuration.</param>
+    /// <returns>Options.</returns>
+    public static ForwardedHeadersOptions GetForwardedHeadersOptions(
+        IConfiguration config)
+    {
+        IConfigurationSection section = config.GetSection("ForwardedHeaders");
+
+        ForwardedHeadersOptions options = new()
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                | ForwardedHeaders.XForwardedProto,
+            ForwardLimit = Math.Max(1, section.GetValue("ForwardLimit", 1))
+        };
+
+        if (section.GetValue("TrustAllProxies", false))
+        {
+            Log.Warning("Forwarded headers: trusting all proxies");
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+            return options;
+        }
+
+        foreach (string proxy in section.GetSection("KnownProxies")
+            .Get<string[]>() ?? [])
+        {
+            if (IPAddress.TryParse(proxy, out IPAddress? address))
+                options.KnownProxies.Add(address);
+            else
+                Log.Warning("Invalid known proxy address: {Proxy}", proxy);
+        }
+        foreach (string network in section.GetSection("KnownNetworks")
+            .Get<string[]>() ?? [])
+        {
+            if (System.Net.IPNetwork.TryParse(network,
+                out System.Net.IPNetwork net))
+            {
+                options.KnownIPNetworks.Add(net);
+            }
+            else
+            {
+                Log.Warning("Invalid known network: {Network}", network);
+            }
+        }
+
+        Log.Information("Forwarded headers: trusted proxies={Proxies}, " +
+            "networks={Networks}, limit={Limit}",
+            string.Join(", ", options.KnownProxies),
+            string.Join(", ", options.KnownIPNetworks),
+            options.ForwardLimit);
+
+        return options;
+    }
+
+    /// <summary>
+    /// Adds the forwarded headers middleware configured from
+    /// <c>ForwardedHeaders</c> (see <see cref="GetForwardedHeadersOptions"/>).
+    /// Call this first in the pipeline, so that the client IP address and
+    /// scheme are restored before anything else (e.g. the rate limiter,
+    /// HTTPS redirection, or the OpenAPI servers URL) uses them.
+    /// </summary>
+    /// <param name="app">The application builder.</param>
+    /// <param name="config">The configuration.</param>
+    public static void UseForwardedHeaders(IApplicationBuilder app,
+        IConfiguration config)
+    {
+        app.UseForwardedHeaders(GetForwardedHeadersOptions(config));
+    }
+    #endregion
+
     #region Rate limiter
+    // the minimum interval between two rate limit exceeded notifications
+    private static readonly TimeSpan _limitNotificationInterval =
+        TimeSpan.FromMinutes(30);
+    private static long _lastLimitNotificationTicks;
+
+    /// <summary>
+    /// Determines whether a rate limit exceeded notification should be
+    /// sent, i.e. whether no other notification was sent in the last
+    /// <see cref="_limitNotificationInterval"/>. This avoids sending a
+    /// message for each rejected request.
+    /// </summary>
+    /// <returns>True to notify.</returns>
+    private static bool ShouldNotifyLimitExceeded()
+    {
+        long now = DateTime.UtcNow.Ticks;
+        long last = Interlocked.Read(ref _lastLimitNotificationTicks);
+        if (now - last < _limitNotificationInterval.Ticks) return false;
+        return Interlocked.CompareExchange(
+            ref _lastLimitNotificationTicks, now, last) == last;
+    }
+
+    /// <summary>
+    /// Gets the rate limiter partition key for the specified request: this
+    /// is the authenticated user name, or the client IP address for anonymous
+    /// requests. The IP address is correct only when the forwarded headers
+    /// are configured for an eventual reverse proxy (see
+    /// <see cref="GetForwardedHeadersOptions"/>).
+    /// </summary>
+    /// <param name="context">The HTTP context.</param>
+    /// <returns>Key.</returns>
+    public static string GetRateLimitKey(HttpContext context)
+    {
+        if (context.User.Identity?.IsAuthenticated == true
+            && !string.IsNullOrEmpty(context.User.Identity.Name))
+        {
+            return "user:" + context.User.Identity.Name;
+        }
+
+        IPAddress? address = context.Connection.RemoteIpAddress;
+        if (address == null) return "ip:unknown";
+        // the same client may appear as IPv4 or IPv4-mapped IPv6
+        if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
+        return "ip:" + address;
+    }
+
     public static async Task NotifyLimitExceededToRecipients(IConfiguration config,
         IHostEnvironment hostEnvironment)
     {
@@ -189,12 +322,26 @@ public static class ServiceConfigurator
         }
     }
 
+    /// <summary>
+    /// Configures the rate limiter services from the <c>RateLimit</c>
+    /// configuration section, unless <c>RateLimit:IsDisabled</c> is true.
+    /// Each client (the authenticated user name, or the IP address for
+    /// anonymous requests) gets <c>PermitLimit</c> requests (default 10)
+    /// in each <c>TimeWindow</c> (default 00:01:00); up to <c>QueueLimit</c>
+    /// requests (default 0) over the limit are queued, the others get 429.
+    /// Remember to add the middleware with <see cref="UseRateLimiter"/>, and
+    /// to configure the forwarded headers when behind a reverse proxy, or
+    /// all the anonymous clients will share the proxy's IP address quota.
+    /// </summary>
+    /// <param name="services">The services.</param>
+    /// <param name="config">The configuration.</param>
+    /// <param name="hostEnvironment">The host environment.</param>
     public static void ConfigureRateLimiterService(IServiceCollection services,
         IConfiguration config, IHostEnvironment hostEnvironment)
     {
         // nope if Disabled
         IConfigurationSection limit = config.GetSection("RateLimit");
-        if (limit.GetValue("IsDisabled", false))
+        if (IsRateLimiterDisabled(config))
         {
             Log.Information("Rate limiter is disabled");
             return;
@@ -226,16 +373,14 @@ public static class ServiceConfigurator
 
         // https://blog.maartenballiauw.be/post/2022/09/26/aspnet-core-rate-limiting-middleware.html
         // default = 10 requests per minute, per authenticated username,
-        // or hostname if not authenticated.
+        // or client IP address if not authenticated.
         services.AddRateLimiter(options =>
         {
             options.GlobalLimiter = PartitionedRateLimiter
                 .Create<HttpContext, string>(httpContext =>
                 {
-                    string key = httpContext.User.Identity?.Name
-                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                        ?? "unknown";
-                    Log.Information("Rate limit key: {Key}", key);
+                    string key = GetRateLimitKey(httpContext);
+                    Log.Debug("Rate limit key: {Key}", key);
 
                     return RateLimitPartition.GetFixedWindowLimiter(
                         partitionKey: key,
@@ -250,18 +395,25 @@ public static class ServiceConfigurator
 
             options.OnRejected = async (context, token) =>
             {
-                Log.Warning("Rate limit exceeded");
+                Log.Warning("Rate limit exceeded by {Key}: {Path}",
+                    GetRateLimitKey(context.HttpContext),
+                    context.HttpContext.Request.Path);
 
                 // 429 too many requests
                 context.HttpContext.Response.StatusCode = 429;
+                context.HttpContext.Response.ContentType = "application/json";
 
-                // send
-                await NotifyLimitExceededToRecipients(config, hostEnvironment);
+                // send (throttled, as a burst of requests can be rejected)
+                if (ShouldNotifyLimitExceeded())
+                    await NotifyLimitExceededToRecipients(config, hostEnvironment);
 
                 // ret JSON with error
                 if (context.Lease.TryGetMetadata(MetadataName.RetryAfter,
                     out var retryAfter))
                 {
+                    context.HttpContext.Response.Headers.RetryAfter =
+                        ((int)Math.Ceiling(retryAfter.TotalSeconds))
+                        .ToString(CultureInfo.InvariantCulture);
                     await context.HttpContext.Response.WriteAsync("{\"error\": " +
                         "\"Too many requests. Please try again after " +
                         $"{retryAfter.TotalMinutes} minute(s).\"" +
@@ -276,6 +428,30 @@ public static class ServiceConfigurator
                 }
             };
         });
+    }
+
+    /// <summary>
+    /// Determines whether the rate limiter is disabled via
+    /// <c>RateLimit:IsDisabled</c>.
+    /// </summary>
+    /// <param name="config">The configuration.</param>
+    /// <returns>True if disabled.</returns>
+    public static bool IsRateLimiterDisabled(IConfiguration config) =>
+        config.GetValue("RateLimit:IsDisabled", false);
+
+    /// <summary>
+    /// Adds the rate limiter middleware unless disabled (see
+    /// <see cref="ConfigureRateLimiterService"/>). Call this after
+    /// <c>UseAuthentication</c>, so that authenticated users are limited
+    /// by their user name rather than by their IP address, and before
+    /// <c>UseAuthorization</c>.
+    /// </summary>
+    /// <param name="app">The application builder.</param>
+    /// <param name="config">The configuration.</param>
+    public static void UseRateLimiter(IApplicationBuilder app,
+        IConfiguration config)
+    {
+        if (!IsRateLimiterDisabled(config)) app.UseRateLimiter();
     }
     #endregion
 

@@ -7,7 +7,6 @@ using System.Diagnostics;
 using Cadmus.Core.Config;
 using Cadmus.Seed;
 using Serilog.Events;
-using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 using Cadmus.Api.Controllers;
 using System;
@@ -159,19 +158,12 @@ namespace Cadmus.Api
                 ServiceConfigurator.DumpEnvironmentVars();
 
                 // https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer
-                // this must come first, so that the original scheme (https) is
-                // restored before anything (e.g. OpenAPI servers URL) uses it.
-                // By default only loopback proxies are trusted, but the reverse
-                // proxy runs in another container, so clear the known networks
-                // and proxies to trust it
-                ForwardedHeadersOptions forwardedOptions = new()
-                {
-                    ForwardedHeaders = ForwardedHeaders.XForwardedFor
-                        | ForwardedHeaders.XForwardedProto
-                };
-                forwardedOptions.KnownIPNetworks.Clear();
-                forwardedOptions.KnownProxies.Clear();
-                app.UseForwardedHeaders(forwardedOptions);
+                // this must come first, so that the client IP address (used by
+                // the rate limiter) and the original scheme (https) are restored
+                // before anything (e.g. OpenAPI servers URL) uses them.
+                // Only localhost is trusted by default: when behind a reverse
+                // proxy, list it in ForwardedHeaders:KnownProxies/KnownNetworks
+                ServiceConfigurator.UseForwardedHeaders(app, config);
 
                 // development or production
                 if (builder.Environment.IsDevelopment())
@@ -206,11 +198,11 @@ namespace Cadmus.Api
 
                 // CORS
                 app.UseCors("CorsPolicy");
-                // rate limiter
-                if (!config.GetValue<bool>("RateLimit:IsDisabled"))
-                    app.UseRateLimiter();
                 // authentication
                 app.UseAuthentication();
+                // rate limiter (unless RateLimit:IsDisabled): after authentication,
+                // so that its partition key can be the authenticated user name
+                ServiceConfigurator.UseRateLimiter(app, config);
                 app.UseAuthorization();
                 // proxy
                 app.UseResponseCaching();

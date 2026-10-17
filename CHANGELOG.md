@@ -1,5 +1,13 @@
 # History
 
+## 16.0.12
+
+- 2026-10-17: ⚠️ fixed rate limiter behind reverse proxies, where all the clients appeared to have the same IP address (see the _Server Settings_ section in the README):
+  - forwarded headers (`X-Forwarded-For`, `X-Forwarded-Proto`) are now honored only from trusted proxies: localhost, plus those listed in the new `ForwardedHeaders:KnownProxies` (IPs) and `ForwardedHeaders:KnownNetworks` (CIDR) settings. **Breaking**: previously any sender was trusted; to restore this behavior, set `ForwardedHeaders:TrustAllProxies` to `true` (only if the API port is not publicly reachable). Also added `ForwardedHeaders:ForwardLimit`.
+  - added `ServiceConfigurator.UseForwardedHeaders` and `ServiceConfigurator.UseRateLimiter` to `Cadmus.Api.Config`. API projects should use them in `Program.cs` and call `UseRateLimiter` **after** `UseAuthentication`, so that authenticated users are limited by their name rather than by their IP address (previously the rate limiter came first, so all clients were limited by IP).
+  - rate limit partition keys are now prefixed (`user:` or `ip:`), and IPv4-mapped IPv6 addresses are normalized; the key is logged at debug level only.
+  - rejected requests get a `Retry-After` header and JSON content type, and the rate limit email notification is throttled (at most once every 30 minutes).
+
 ## 16.0.11
 
 - 2026-10-16: updated packages (taxonomies store v2, CLI auth fixing runtime issues in tool).
