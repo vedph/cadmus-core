@@ -94,7 +94,7 @@ docker buildx build --platform linux/amd64,linux/arm64 -t vedph2020/cadmus-api:1
 - 🐋 **Cadmus.Bricks.Api**:
 
 ```sh
-docker buildx build -f Dockerfile-bricks --platform linux/amd64,linux/arm64 -t vedph2020/cadmus-bricks-api:14.0.1 -t vedph2020/cadmus-bricks-api:latest --push .
+docker buildx build -f Dockerfile-bricks --platform linux/amd64,linux/arm64 -t vedph2020/cadmus-bricks-api:16.0.12 -t vedph2020/cadmus-bricks-api:latest --push .
 ```
 
 - 🐋 **Cadmus.GraphStudio.Api**:
