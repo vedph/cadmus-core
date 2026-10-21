@@ -163,6 +163,33 @@ namespace Cadmus.Api
                 // before anything (e.g. OpenAPI servers URL) uses them.
                 // Only localhost is trusted by default: when behind a reverse
                 // proxy, list it in ForwardedHeaders:KnownProxies/KnownNetworks
+                // https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer
+                // Forwarded headers (X-Forwarded-For, X-Forwarded-Proto). This must
+                // come first, so that everything after it sees the request as the
+                // client sent it to the reverse proxy:
+                // - X-Forwarded-For restores the client IP address, which the rate
+                //   limiter uses to partition anonymous requests (otherwise all of
+                //   them would share the proxy's IP and its quota);
+                // - X-Forwarded-Proto restores the original scheme (https), which
+                //   HTTPS redirection and the OpenAPI document servers URL use
+                //   (otherwise Scalar calls http:// from an https:// page, and the
+                //   browser blocks it as mixed content).
+                // The headers are honored only when sent by a trusted proxy.
+                // Localhost is always trusted; appsettings.json also trusts the
+                // private networks (10/8, 172.16/12, 192.168/16, fc00::/7), which
+                // covers a dockerized proxy on a Docker network. To override it
+                // without rebuilding the image, use these environment variables:
+                // - ForwardedHeaders__KnownNetworks__0=172.18.0.0/16 (and __1, ...)
+                //   to trust only specific networks (CIDR);
+                // - ForwardedHeaders__KnownProxies__0=172.18.0.5 to trust specific
+                //   proxy IP addresses;
+                // - ForwardedHeaders__TrustAllProxies=true to trust any sender (only
+                //   when the API port can be reached only via the proxy);
+                // - ForwardedHeaders__ForwardLimit=2 when there are 2 proxies in
+                //   a chain (e.g. a CDN in front of nginx).
+                // Do not also set ASPNETCORE_FORWARDEDHEADERS_ENABLED=true: that
+                // adds another forwarded headers middleware, which trusts any
+                // sender and bypasses this configuration.
                 ServiceConfigurator.UseForwardedHeaders(app, config);
 
                 // development or production
