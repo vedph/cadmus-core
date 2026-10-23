@@ -6,7 +6,6 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using System;
 using System.Data.Common;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cadmus.Api.Config.Services;
@@ -21,8 +20,9 @@ public static class HostAuthSeedExtensions
     {
         AuthDatabaseInitializer initializer = new(serviceProvider);
 
+        // the policy must be async to retry failures in async code
         return Policy.Handle<DbException>()
-            .WaitAndRetry(
+            .WaitAndRetryAsync(
             [
                 TimeSpan.FromSeconds(10),
                 TimeSpan.FromSeconds(30),
@@ -37,10 +37,7 @@ public static class HostAuthSeedExtensions
                     $" (sleep {timeSpan}): {exception.Message}";
                 Console.WriteLine(message);
                 logger.LogError(exception, message);
-            }).Execute(async () =>
-            {
-                await initializer.SeedAsync();
-            });
+            }).ExecuteAsync(initializer.SeedAsync);
     }
 
     /// <summary>
@@ -66,7 +63,7 @@ public static class HostAuthSeedExtensions
             if (delay > 0)
             {
                 logger.LogInformation("Waiting {Delay} seconds...", delay);
-                Thread.Sleep(delay * 1000);
+                await Task.Delay(TimeSpan.FromSeconds(delay));
             }
             else
             {

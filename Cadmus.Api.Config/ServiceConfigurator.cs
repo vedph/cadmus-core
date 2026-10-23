@@ -6,6 +6,7 @@ using Cadmus.Graph.Ef.PgSql;
 using Cadmus.Graph.Ef;
 using Cadmus.Graph;
 using Cadmus.Index.Config;
+using Fusi.Api.Auth.Controllers;
 using Fusi.Api.Auth.Models;
 using Fusi.DbManager.PgSql;
 using MessagingApi;
@@ -469,53 +470,9 @@ public static class ServiceConfigurator
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-        // authentication service
-        services
-            .AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme =
-                    JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme =
-                    JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme =
-                    JwtBearerDefaults.AuthenticationScheme;
-            })
-        .AddJwtBearer(options =>
-        {
-            // NOTE: remember to set the values in configuration:
-            // Jwt:SecureKey, Jwt:Audience, Jwt:Issuer
-            IConfigurationSection jwtSection = config.GetSection("Jwt");
-            string? key = jwtSection["SecureKey"];
-            if (string.IsNullOrEmpty(key))
-                throw new InvalidOperationException("Required JWT SecureKey not found");
-
-            options.SaveToken = true;
-            options.RequireHttpsMetadata = false;
-            options.TokenValidationParameters = new TokenValidationParameters()
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidAudience = jwtSection["Audience"],
-                ValidIssuer = jwtSection["Issuer"],
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(key))
-            };
-
-            // support refresh
-            // https://stackoverflow.com/questions/55150099/jwt-token-expiration-time-failing-net-core
-            options.Events = new JwtBearerEvents
-            {
-                OnAuthenticationFailed = context =>
-                {
-                    if (context.Exception.GetType() ==
-                            typeof(SecurityTokenExpiredException))
-                    {
-                        context.Response.Headers.Append("Token-Expired", "true");
-                    }
-                    return Task.CompletedTask;
-                }
-            };
-        });
+        // JWT authentication from the Jwt section: Jwt:SecureKey (at least
+        // 32 chars), Jwt:Issuer, Jwt:Audience, Jwt:ExpirationMinutes
+        services.AddJwtBearerAuthentication(config);
 #if DEBUG
         // use to show more information when troubleshooting JWT issues
         IdentityModelEventSource.ShowPII = true;

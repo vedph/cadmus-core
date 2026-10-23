@@ -1,5 +1,9 @@
 # History
 
+## 16.0.13
+
+- 2026-10-23: updated packages (authorization revision).
+
 ## 16.0.12
 
 - 2026-10-17: ⚠️ fixed rate limiter behind reverse proxies, where all the clients appeared to have the same IP address (see the _Server Settings_ section in the README):

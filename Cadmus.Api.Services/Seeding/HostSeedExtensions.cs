@@ -300,8 +300,9 @@ public static class HostSeedExtensions
     private static Task SeedCadmusAsync(IServiceProvider serviceProvider,
         string? graphSql)
     {
+        // the policy must be async to retry failures in async code
         return Policy.Handle<DbException>()
-            .WaitAndRetry(
+            .WaitAndRetryAsync(
             [
                 TimeSpan.FromSeconds(10),
                 TimeSpan.FromSeconds(30),
@@ -317,7 +318,7 @@ public static class HostSeedExtensions
                 Console.WriteLine(message);
                 logger?.LogError(exception, "Error seeding Cadmus data: {Error}",
                     message);
-            }).Execute(async () =>
+            }).ExecuteAsync(async () =>
             {
                 IConfiguration config =
                     serviceProvider.GetService<IConfiguration>()!;
@@ -333,7 +334,6 @@ public static class HostSeedExtensions
                     graphSql,
                     logger);
                 Console.WriteLine("Seeding Cadmus data completed");
-                return Task.CompletedTask;
             });
     }
 
