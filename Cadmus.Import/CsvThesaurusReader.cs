@@ -1,8 +1,6 @@
 ﻿using Cadmus.Core.Config;
-using CsvHelper.Configuration;
 using CsvHelper;
 using System;
-using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -35,13 +33,14 @@ public sealed class CsvThesaurusReader : IThesaurusReader
     public CsvThesaurusReader(Stream stream)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        CsvConfiguration config = new(CultureInfo.InvariantCulture)
+        CsvReaderOptions options = new()
         {
-            PrepareHeaderForMatch = args => args.Header.ToLower(),
-            TrimOptions = TrimOptions.Trim
+            NormalizeHeaderName = name => name.ToLower(),
+            TrimWhitespace = true
         };
-        _reader = new CsvReader(new StreamReader(stream, Encoding.UTF8), config);
-        if (_reader.Read()) _reader.ReadHeader();
+        // the header is read by the first Read
+        _reader = CsvReader.Create(new StreamReader(stream, Encoding.UTF8),
+            options);
     }
 
     private static ThesaurusEntry GetThesaurusEntry(CsvThesaurusEntry entry)
@@ -140,7 +139,8 @@ public sealed class CsvThesaurusReader : IThesaurusReader
 /// Serializable CSV thesaurus entry. This is used to read the CSV file,
 /// and then convert to a <see cref="ThesaurusEntry"/> when needed.
 /// </summary>
-internal class CsvThesaurusEntry
+[CsvRecord]
+internal partial class CsvThesaurusEntry
 {
     public string? ThesaurusId { get; set; }
     public string? Id { get; set; }

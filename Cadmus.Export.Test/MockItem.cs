@@ -1,11 +1,12 @@
 ﻿using System;
-using CsvHelper.Configuration.Attributes;
+using CsvHelper;
 
 namespace Cadmus.Export.Test;
 
-internal class MockItem
+[CsvRecord]
+internal partial class MockItem
 {
-    [Name("_id")]
+    [CsvColumn("_id")]
     public string Id { get; set; } = "";
     public string Title { get; set; } = "";
     public string Description { get; set; } = "";

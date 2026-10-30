@@ -28,6 +28,17 @@ public abstract class CadmusRepositoryTestBase
 
     protected abstract void PrepareDatabase();
 
+    /// <summary>
+    /// Gets the current UTC time truncated to milliseconds. Use this as the
+    /// reference time to compare with times read from the database, which
+    /// may store them with milliseconds precision.
+    /// </summary>
+    protected static DateTime GetUtcNowMs()
+    {
+        DateTime now = DateTime.UtcNow;
+        return now.AddTicks(-(now.Ticks % TimeSpan.TicksPerMillisecond));
+    }
+
     #region Flags
     protected void DoGetFlagDefinitions_Ok()
     {
@@ -1787,7 +1798,7 @@ public abstract class CadmusRepositoryTestBase
     {
         PrepareDatabase();
         ICadmusRepository repository = GetRepository();
-        DateTime now = DateTime.UtcNow;
+        DateTime now = GetUtcNowMs();
         NotePart part = new()
         {
             Id = "new",
@@ -1835,7 +1846,7 @@ public abstract class CadmusRepositoryTestBase
         Assert.NotNull(part);
         part.Categories.Add("new");
         part.UserId = "Updater";
-        DateTime now = DateTime.UtcNow;
+        DateTime now = GetUtcNowMs();
 
         repository.AddPart(part, history);
 
@@ -1872,7 +1883,7 @@ public abstract class CadmusRepositoryTestBase
     {
         PrepareDatabase();
         ICadmusRepository repository = GetRepository();
-        DateTime now = DateTime.UtcNow;
+        DateTime now = GetUtcNowMs();
         NotePart part = new()
         {
             Id = "new",
@@ -1922,7 +1933,7 @@ public abstract class CadmusRepositoryTestBase
         part.Categories.Add("new");
         part.UserId = "Updater";
         string json = TestHelper.SerializePart(part);
-        DateTime now = DateTime.UtcNow;
+        DateTime now = GetUtcNowMs();
 
         repository.AddPartFromContent(json, history);
 
@@ -1980,7 +1991,7 @@ public abstract class CadmusRepositoryTestBase
     {
         PrepareDatabase();
         ICadmusRepository repository = GetRepository();
-        DateTime now = DateTime.UtcNow;
+        DateTime now = GetUtcNowMs();
 
         repository.DeletePart("part-001", "Killer", history);
 

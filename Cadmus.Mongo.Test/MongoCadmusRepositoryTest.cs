@@ -281,6 +281,7 @@ public class MongoCadmusRepositoryTest : CadmusRepositoryTestBase
     [Fact]
     public void GetDocumentsPage_NoFilterSortByKey_Ok()
     {
+        PrepareDatabase();
         IMongoDatabase db = _client.GetDatabase(DB_NAME);
         var collection = db.GetCollection<BsonDocument>(MongoItem.COLLECTION);
 
@@ -294,14 +295,15 @@ public class MongoCadmusRepositoryTest : CadmusRepositoryTestBase
     [Fact]
     public void GetDocumentsPage_UserIdSortByKey_Ok()
     {
+        PrepareDatabase();
         IMongoDatabase db = _client.GetDatabase(DB_NAME);
         var collection = db.GetCollection<BsonDocument>(MongoItem.COLLECTION);
 
         var page = MongoHelper.GetDocumentsPage(collection,
-            "{\"userId\": \"zeus\"}", "{\"sortKey\":1}", 1, 10);
+            "{\"userId\": \"Odd\"}", "{\"sortKey\":1}", 1, 10);
 
-        Assert.Single(page.Items);
-        Assert.Equal(1, page.Total);
+        Assert.Equal(10, page.Items.Count);
+        Assert.Equal(10, page.Total);
     }
     #endregion
 

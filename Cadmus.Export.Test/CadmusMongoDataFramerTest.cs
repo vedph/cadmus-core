@@ -38,10 +38,6 @@ namespace Cadmus.Export.Test;
 // | p5 (i4) |       | CU    |       |       |       |       |       | D     |       |       |
 // | p6 (i5) |       |       |       |       |       |       |       |       |       | CU    |
 
-// https://github.com/xunit/xunit/issues/1999
-[CollectionDefinition(nameof(NonParallelResourceCollection),
-    DisableParallelization = true)]
-
 [Collection(nameof(NonParallelResourceCollection))]
 public sealed class CadmusMongoDataFramerTest(MongoFixture fixture) :
     IClassFixture<MongoFixture>

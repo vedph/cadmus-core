@@ -11,9 +11,10 @@ using Xunit;
 
 namespace Cadmus.Export.Test.Filters;
 
+[Collection(nameof(NonParallelResourceCollection))]
 public sealed class MongoThesRendererFilterTest
 {
-    private const string DB_NAME = "cadmus-test";
+    private const string DB_NAME = "cadmus-export-test";
     private readonly MongoClient _client;
 
     public MongoThesRendererFilterTest()

@@ -13,7 +13,7 @@ namespace Cadmus.Export.Test;
 
 internal static class TestHelper
 {
-    public static string CS = "mongodb://localhost:27017/cadmus-test";
+    public static string CS = "mongodb://localhost:27017/cadmus-export-test";
 
     public static string LoadResourceText(string name)
     {
@@ -42,7 +42,7 @@ internal static class TestHelper
     {
         return new CadmusRenderingFactory(GetHost(LoadResourceText("Preview.json")))
         {
-            ConnectionString = "mongodb://localhost:27017/cadmus-test"
+            ConnectionString = "mongodb://localhost:27017/cadmus-export-test"
         };
     }
 }

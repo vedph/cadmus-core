@@ -124,7 +124,12 @@ internal static class TestHelper
         tripleCmd.Parameters.Add(new NpgsqlParameter("@sid", DbType.String));
         tripleCmd.Parameters.Add(new NpgsqlParameter("@tag", DbType.String));
 
-        CsvReader csv = new(reader, CultureInfo.InvariantCulture);
+        // no header; empty or missing fields are read as null
+        CsvReader csv = CsvReader.Create(reader, new CsvReaderOptions
+        {
+            HasHeader = false,
+            NullValues = [""]
+        });
         string? currentSection = null;
         Regex nodeUriRegex = new(@"^[^:]+:", RegexOptions.Compiled);
 
@@ -135,7 +140,7 @@ internal static class TestHelper
 
         while (csv.Read())
         {
-            string? f0 = csv.GetField(0);
+            string? f0 = csv.GetStringOrNull(0);
             if (f0 == null || string.IsNullOrWhiteSpace(f0)) continue;
             if (f0.StartsWith('#'))
             {
@@ -149,7 +154,7 @@ internal static class TestHelper
                     {
                         // id,uri
                         string id = f0;
-                        string uri = csv.GetField(1) ?? "";
+                        string uri = csv.GetStringOrNull(1) ?? "";
                         nsCmd.Parameters["@id"].Value = id;
                         nsCmd.Parameters["@uri"].Value = uri;
                         nsCmd.ExecuteNonQuery();
@@ -159,8 +164,8 @@ internal static class TestHelper
                 case "nodes":
                     {
                         string label = f0;
-                        string uri = csv.GetField(1) ?? "";
-                        string sid = csv.GetField(2) ?? $"sid/{uri}";
+                        string uri = csv.GetStringOrNull(1) ?? "";
+                        string sid = csv.GetStringOrNull(2) ?? $"sid/{uri}";
 
                         // add uri_lookup with the node's URI so we can get ids ID
                         uriCmd.Parameters["@uri"].Value = uri;
@@ -185,10 +190,10 @@ internal static class TestHelper
                         // s_uri,p_uri,o_uri or literal,sid
                         string s_uri = f0;
                         int s_id = uriMap[s_uri];
-                        string p_uri = csv.GetField(1) ?? "";
+                        string p_uri = csv.GetStringOrNull(1) ?? "";
                         int p_id = uriMap[p_uri];
-                        string o = csv.GetField(2) ?? "";
-                        string sid = csv.GetField(3) ?? $"sid/triple/{nTriple}";
+                        string o = csv.GetStringOrNull(2) ?? "";
+                        string sid = csv.GetStringOrNull(3) ?? $"sid/triple/{nTriple}";
                         nTriple++;
 
                         bool isOid = nodeUriRegex.IsMatch(o);

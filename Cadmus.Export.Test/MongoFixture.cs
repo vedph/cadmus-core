@@ -1,12 +1,10 @@
 ﻿using Cadmus.Mongo;
 using CsvHelper;
-using CsvHelper.Configuration;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -64,11 +62,11 @@ public sealed class MongoFixture : IDisposable
         // create in-memory stream
         using MemoryStream memoryStream = new(Encoding.UTF8.GetBytes(csvContent));
         using StreamReader reader = new(memoryStream);
-        using CsvReader csv = new(reader,
-            new CsvConfiguration(CultureInfo.InvariantCulture)
+        using CsvReader csv = CsvReader.Create(reader,
+            new CsvReaderOptions
             {
-                HasHeaderRecord = true,
-                PrepareHeaderForMatch = args => args.Header.ToLower()
+                HasHeader = true,
+                NormalizeHeaderName = name => name.ToLower()
             });
 
         // read records with typed model

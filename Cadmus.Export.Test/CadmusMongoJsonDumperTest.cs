@@ -7,10 +7,6 @@ using Xunit;
 
 namespace Cadmus.Export.Test;
 
-// https://github.com/xunit/xunit/issues/1999
-
-[CollectionDefinition(nameof(NonParallelResourceCollection),
-    DisableParallelization = true)]
 [Collection(nameof(NonParallelResourceCollection))]
 public sealed class CadmusMongoJsonDumperTest :
     IClassFixture<MongoFixture>, IDisposable
@@ -118,8 +114,9 @@ public sealed class CadmusMongoJsonDumperTest :
         CadmusMongoJsonDumper dumper = new(options);
 
         List<ProgressReport> progressReports = [];
-        Progress<ProgressReport> progress =
-            new(progressReports.Add);
+        // Progress<T> would post reports asynchronously, so they might not
+        // have arrived yet when asserting
+        SyncProgress progress = new(progressReports.Add);
 
         CadmusDumpFilter filter = new()
         {
@@ -182,6 +179,8 @@ public sealed class CadmusMongoJsonDumperTest :
     [Fact]
     public void Dump_WithInvalidOutputPath_ThrowsDirectoryNotFoundException()
     {
+        // data are required, as no file is written for no items
+        _fixture.LoadMockData("BasicDataset.csv");
         CadmusJsonDumperOptions options = GetTestOptions();
         options.OutputDirectory = "/invalid/path/that/does/not/exist";
         CadmusMongoJsonDumper dumper = new(options);
@@ -217,5 +216,11 @@ public sealed class CadmusMongoJsonDumperTest :
         Assert.Single(files); // Should create only one file
 
         #endregion
+    }
+
+    private sealed class SyncProgress(Action<ProgressReport> handler)
+        : IProgress<ProgressReport>
+    {
+        public void Report(ProgressReport value) => handler(value);
     }
 }

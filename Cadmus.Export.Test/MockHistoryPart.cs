@@ -1,6 +1,9 @@
-﻿namespace Cadmus.Export.Test;
+﻿using CsvHelper;
 
-internal class MockHistoryPart : MockPart
+namespace Cadmus.Export.Test;
+
+[CsvRecord]
+internal partial class MockHistoryPart : MockPart
 {
     public string ReferenceId { get; set; } = "";
     public int Status { get; set; }

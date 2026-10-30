@@ -1,5 +1,12 @@
 # History
 
+## 16.0.14
+
+- 2026-10-30:
+  - added `IsMergeEnabled` to `MongoEntrySetExporterOptions` for multi-pass imports.
+  - fixes to some test race conditions.
+  - updated packages.
+
 ## 16.0.13
 
 - 2026-10-23: updated packages (authorization revision).

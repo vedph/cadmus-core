@@ -10,7 +10,7 @@ namespace Cadmus.Export.Test;
 [Collection(nameof(NonParallelResourceCollection))]
 public sealed class MongoItemIdCollectorTest
 {
-    private const string DB_NAME = "cadmus-test";
+    private const string DB_NAME = "cadmus-export-test";
     private readonly MongoClient _client;
 
     public MongoItemIdCollectorTest()
