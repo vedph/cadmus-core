@@ -1,5 +1,18 @@
 # History
 
+## 16.0.15
+
+- 2026-11-02: ⚠️ fixed and hardened databases initialization at API startup (`Cadmus.Api.Services`, `Cadmus.Api.Config`, `Cadmus.Api`):
+  - fixed: the graph database was created only while seeding mock items, i.e. only when the data database did not exist and `Seed:ItemCount` was greater than 0. So with `Seed:ItemCount=0` (typical in production), or when the data database already existed, the graph database was never created and every save failed. Now each database (index, graph, data) is ensured independently at each startup, whatever the state of the others: index and graph come first, so they exist before seeded items are written to them.
+  - fixed: if data seeding failed after creating the MongoDB database, retries and later startups found it existing and silently skipped seeding. Now an incomplete data database is dropped so that it gets recreated.
+  - PostgreSQL databases (auth, index, graph) are created via the new `PgSqlDatabaseInitializer`, which holds a server-wide advisory lock during check-and-create (safe for concurrent startups), and drops a partially created database if its schema fails.
+  - new `CadmusDatabaseConfig` is the single source of truth for database names and connection strings, used by both `ServiceConfigurator` and the seeders.
+  - new `SeedRetryPolicy` retries only transient connection errors (PostgreSQL and MongoDB not yet ready) with delays of 10, 30, 60 seconds; other errors fail fast.
+  - all the seed output now goes through `ILogger`, with clear per-database messages for container logs. `HostSeedExtensions` exposes the individual steps (`EnsureIndexDatabaseAsync`, `EnsureGraphDatabaseAsync`, `SeedDataDatabaseAsync`) for other API projects.
+  - fixed: TaxoStore services were registered twice in `Program.cs`, so two hosted initializers raced on the same database (the loser shuts down the API).
+  - CLI `create-db`: no longer fails if the database exists, falls back to `ConnectionStrings:Index` for the graph like the API, and shows the target server.
+  - updated packages: `Fusi.DbManager*` 6.1.0 (database owner and locale no longer hard-coded, partially created databases removed on error, `ClearDatabase` restarts all owned sequences); `TaxoStore.*` 2.0.2, built against CsvHelper 34: this fixes the API shutting down at its first startup, when seeding the TaxoStore database failed with `MissingMethodException` (TaxoStore 2.0.1 was built against CsvHelper 33).
+
 ## 16.0.14
 
 - 2026-10-30:

@@ -1,7 +1,9 @@
 ﻿using Cadmus.Cli.Services;
+using Cadmus.Graph.Ef.PgSql;
 using Cadmus.Index.Ef.PgSql;
 using Fusi.DbManager.PgSql;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System;
@@ -11,52 +13,107 @@ using System.Threading.Tasks;
 
 namespace Cadmus.Cli.Commands;
 
+/// <summary>
+/// Create an index or graph PostgreSQL database with its schema, unless
+/// it already exists. The connection string template (with placeholder
+/// <c>{0}</c> for the database name) is <c>ConnectionStrings:Index</c> for
+/// the index, and <c>ConnectionStrings:Graph</c> (falling back to
+/// <c>ConnectionStrings:Index</c>, like the API) for the graph. Both can be
+/// overridden via environment variables (e.g. <c>ConnectionStrings__Graph</c>).
+/// </summary>
 internal sealed class CreateDatabaseCommand :
     AsyncCommand<CreateDatabaseCommandSettings>
 {
-    public static void CreateIndexDatabase(string dbName)
+    private static string GetTemplate(string name, string? fallbackName = null)
     {
-        string cst = CliAppContext.Configuration.GetConnectionString("Index")!;
+        string? cst = CliAppContext.Configuration.GetConnectionString(name);
+        if (string.IsNullOrEmpty(cst) && fallbackName != null)
+            cst = CliAppContext.Configuration.GetConnectionString(fallbackName);
+        if (string.IsNullOrEmpty(cst))
+        {
+            throw new InvalidOperationException(
+                $"Missing connection string ConnectionStrings:{name}");
+        }
+        return cst;
+    }
 
-        PgSqlDbManager mgr = new(cst);
-        mgr.CreateDatabase(dbName, EfPgSqlItemIndexWriter.GetPgSqlSchema(), null);
+    private static string GetServerInfo(string template)
+    {
+        // never display the password
+        NpgsqlConnectionStringBuilder builder = new(
+            PgSqlDbManager.GetConnectionString(template, null));
+        return $"{builder.Host}:{builder.Port} (user {builder.Username})";
+    }
+
+    /// <summary>
+    /// Creates the specified database with its schema, unless it exists.
+    /// If its schema fails, the database is removed by the manager, so that
+    /// it does not get left without its schema.
+    /// </summary>
+    /// <param name="template">The connection string template.</param>
+    /// <param name="name">The database name.</param>
+    /// <param name="schema">The schema SQL code.</param>
+    /// <returns>True if created, false if already existing.</returns>
+    private static bool CreateDatabase(string template, string name,
+        string schema)
+    {
+        PgSqlDbManager manager = new(template);
+        if (manager.Exists(name)) return false;
+
+        manager.CreateDatabase(name, schema, null);
+        return true;
     }
 
     public override Task<int> ExecuteAsync(CommandContext context,
        CreateDatabaseCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]CREATE DATABASE[/]");
-        AnsiConsole.MarkupLine($"Database role: [cyan]{settings.DatabaseRole}[/]");
-        AnsiConsole.MarkupLine($"Database name: [cyan]{settings.DatabaseName}[/]");
+        AnsiConsole.MarkupLine("Database role: [cyan]" +
+            $"{Markup.Escape(settings.DatabaseRole)}[/]");
+        AnsiConsole.MarkupLine("Database name: [cyan]" +
+            $"{Markup.Escape(settings.DatabaseName)}[/]");
+
+        if (string.IsNullOrWhiteSpace(settings.DatabaseName))
+        {
+            AnsiConsole.MarkupLine("[red]Database name not specified[/]");
+            return Task.FromResult(1);
+        }
 
         try
         {
-            int result = 0;
-            AnsiConsole.Status().Start("Preparing...", _ =>
+            string template;
+            string schema;
+            switch (settings.DatabaseRole.ToLowerInvariant())
             {
-                switch (settings.DatabaseRole.ToLowerInvariant())
-                {
-                    case "index":
-                        AnsiConsole.MarkupLine(
-                            $"Creating index {settings.DatabaseName}...");
-                        CreateIndexDatabase(settings.DatabaseName);
-                        break;
-                    case "graph":
-                        AnsiConsole.MarkupLine(
-                            $"Creating graph {settings.DatabaseName}...");
-                        GraphHelper.CreateGraphDatabase(settings.DatabaseName);
-                        break;
-                    default:
-                        AnsiConsole.MarkupLine("[red]Invalid database role[/]: " +
-                            settings.DatabaseRole);
-                        result = 1;
-                        break;
-                }
+                case "index":
+                    template = GetTemplate("Index");
+                    schema = EfPgSqlItemIndexWriter.GetPgSqlSchema();
+                    break;
+                case "graph":
+                    template = GetTemplate("Graph", "Index");
+                    schema = EfPgSqlGraphRepository.GetSchema();
+                    break;
+                default:
+                    AnsiConsole.MarkupLine("[red]Invalid database role[/] " +
+                        "(expected index or graph): " +
+                        Markup.Escape(settings.DatabaseRole));
+                    return Task.FromResult(1);
+            }
+
+            AnsiConsole.MarkupLine("Server: [cyan]" +
+                $"{Markup.Escape(GetServerInfo(template))}[/]");
+
+            bool created = false;
+            AnsiConsole.Status().Start("Creating database...", _ =>
+            {
+                created = CreateDatabase(template, settings.DatabaseName,
+                    schema);
             });
 
-            if (result == 0) AnsiConsole.MarkupLine("[green]Completed.[/]");
-
-            return Task.FromResult(result);
+            AnsiConsole.MarkupLine(created
+                ? "[green]Database created.[/]"
+                : "[yellow]Database already exists: nothing done.[/]");
+            return Task.FromResult(0);
         }
         catch (Exception ex)
         {
@@ -73,7 +130,8 @@ public class CreateDatabaseCommandSettings: CommandSettings
     public string DatabaseRole { get; set; }
 
     [CommandArgument(1, "<DatabaseName>")]
-    [Description("The database name")]
+    [Description("The database name (for the API's graph, this is " +
+        "DatabaseNames:Data plus -graph, e.g. cadmus-graph)")]
     public string DatabaseName { get; set; }
 
     public CreateDatabaseCommandSettings()

@@ -2,8 +2,10 @@
 using Cadmus.Core.Config;
 using Cadmus.Core.Storage;
 using Cadmus.Graph;
+using Cadmus.Graph.Ef.PgSql;
 using Cadmus.Index;
 using Cadmus.Index.Config;
+using Cadmus.Index.Ef.PgSql;
 using Cadmus.Mongo;
 using Cadmus.Seed;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,141 +13,174 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Polly;
 using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.IO;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Cadmus.Api.Services.Seeding;
 
 /// <summary>
-/// Database initializer extension to <see cref="IHost"/>.
-/// See https://stackoverflow.com/questions/45148389/how-to-seed-in-entity-framework-core-2.
+/// Cadmus databases initializer extension to <see cref="IHost"/>.
+/// This ensures that all the databases required by the configuration exist,
+/// creating them when missing:
+/// <list type="bullet">
+/// <item><description>the item index database (PostgreSQL), when
+/// <c>Indexing:IsEnabled</c> is true;</description></item>
+/// <item><description>the graph database (PostgreSQL), when
+/// <c>Indexing:IsGraphEnabled</c> is true;</description></item>
+/// <item><description>the main data database (MongoDB), which is also seeded
+/// from the profile at <c>Seed:ProfileSource</c> with its settings, mock
+/// items (<c>Seed:ItemCount</c>) and imports.</description></item>
+/// </list>
+/// Each step is independent and idempotent, so that a database is created
+/// whenever it is missing, whatever the state of the other ones. The
+/// authentication database is initialized separately (see
+/// <see cref="AuthDatabaseInitializer"/>).
 /// </summary>
 public static class HostSeedExtensions
 {
-    private static void WaitForDelay(IConfiguration config)
-    {
-        // delay if requested, to allow DB start
-        int delay = config.GetValue<int>("Seed:IndexDelay");
-        if (delay > 0)
-        {
-            Console.WriteLine($"Waiting for {delay} seconds...");
-            Thread.Sleep(delay * 1000);
-            Console.WriteLine($"Waited for {delay} seconds: resuming...");
-        }
-        else
-        {
-            Console.WriteLine("No delay to wait.");
-        }
-    }
-
-    private static async Task SeedItemsAsync(
-        IServiceProvider serviceProvider, IConfiguration config,
-        PartSeederFactory factory, ICadmusRepository repository,
-        int count, string? graphSql)
-    {
-        ILogger? logger = serviceProvider
-            .GetService<ILoggerFactory>()!
+    private static ILogger GetLogger(IServiceProvider serviceProvider) =>
+        serviceProvider.GetRequiredService<ILoggerFactory>()
             .CreateLogger(typeof(HostSeedExtensions));
 
-        // determine if graph is enabled, and eventually get the graph repository
-        bool isGraphEnabled = config.GetValue<bool>("Indexing:IsGraphEnabled");
+    #region Index and graph
+    /// <summary>
+    /// Ensures that the item index database exists when indexing is enabled
+    /// (<c>Indexing:IsEnabled</c>), retrying on transient connection errors.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <exception cref="ArgumentNullException">serviceProvider</exception>
+    public static Task EnsureIndexDatabaseAsync(
+        IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
 
-        // get graph service if required
-        bool waited = false;
-        GraphUpdater? graphUpdater = null;
-        if (isGraphEnabled)
+        IConfiguration config =
+            serviceProvider.GetRequiredService<IConfiguration>();
+        ILogger logger = GetLogger(serviceProvider);
+
+        if (!config.GetValue<bool>("Indexing:IsEnabled"))
         {
-            IGraphRepository? graphRepository =
-                serviceProvider.GetService<IGraphRepository>();
-            if (graphRepository == null)
-            {
-                Console.WriteLine("Error: cannot get IGraphRepository service!");
-                logger?.LogError("Unable to get IGraphRepository service");
-            }
-            else
-            {
-                graphRepository.Cache = serviceProvider.GetService<IMemoryCache>();
-                graphUpdater = serviceProvider.GetService<GraphUpdater>()
-                    ?? new GraphUpdater(graphRepository);
-
-                WaitForDelay(config);
-
-                // create graph if required
-                Console.WriteLine("Creating graph store...");
-                bool created = graphRepository.CreateStore(graphSql);
-                Console.WriteLine(created
-                    ? "Graph store created." : "Graph store already exists.");
-
-                waited = true;
-            }
+            logger.LogInformation("Indexing disabled: index database skipped");
+            return Task.CompletedTask;
         }
 
-        // index
-        IItemIndexWriter? indexWriter = null;
-        bool isIndexEnabled = config.GetValue<bool>("Indexing:IsEnabled");
+        DatabaseTarget target = CadmusDatabaseConfig.GetIndexDatabase(config);
+        logger.LogInformation("Ensuring index database {Database}...", target);
 
-        // get index service if required
-        if (isIndexEnabled)
+        return SeedRetryPolicy.Create(logger, "Index database").ExecuteAsync(
+            () =>
+            {
+                PgSqlDatabaseInitializer.EnsureDatabase(target,
+                    EfPgSqlItemIndexWriter.GetPgSqlSchema(), null, logger);
+                return Task.CompletedTask;
+            });
+    }
+
+    /// <summary>
+    /// Ensures that the graph database exists when the graph is enabled
+    /// (<c>Indexing:IsGraphEnabled</c>), retrying on transient connection
+    /// errors.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <param name="graphSql">The optional SQL code to seed the graph
+    /// database with preset data when it gets created. This is usually
+    /// provided by project-specific implementations.</param>
+    /// <exception cref="ArgumentNullException">serviceProvider</exception>
+    public static Task EnsureGraphDatabaseAsync(
+        IServiceProvider serviceProvider, string? graphSql = null)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        IConfiguration config =
+            serviceProvider.GetRequiredService<IConfiguration>();
+        ILogger logger = GetLogger(serviceProvider);
+
+        if (!config.GetValue<bool>("Indexing:IsGraphEnabled"))
         {
-            Console.WriteLine("Getting index writer...");
+            logger.LogInformation("Graph disabled: graph database skipped");
+            return Task.CompletedTask;
+        }
+
+        DatabaseTarget target = CadmusDatabaseConfig.GetGraphDatabase(config);
+        logger.LogInformation("Ensuring graph database {Database}...", target);
+
+        return SeedRetryPolicy.Create(logger, "Graph database").ExecuteAsync(
+            () =>
+            {
+                PgSqlDatabaseInitializer.EnsureDatabase(target,
+                    EfPgSqlGraphRepository.GetSchema(), graphSql, logger);
+                return Task.CompletedTask;
+            });
+    }
+    #endregion
+
+    #region Data
+    private static async Task SeedItemsAsync(IServiceProvider serviceProvider,
+        IConfiguration config, PartSeederFactory factory,
+        ICadmusRepository repository, int count, ILogger logger)
+    {
+        // index writer if indexing is enabled
+        IItemIndexWriter? indexWriter = null;
+        if (config.GetValue<bool>("Indexing:IsEnabled"))
+        {
             ItemIndexFactory? indexFactory = await ItemIndexHelper
                 .GetIndexFactoryAsync(config, serviceProvider);
             indexWriter = indexFactory?.GetItemIndexWriter();
+            if (indexWriter == null)
+            {
+                logger.LogWarning("No index writer in profile: " +
+                    "seeded items will not be indexed");
+            }
         }
 
-        // wait before indexing if requested
-        if (isIndexEnabled && !waited) WaitForDelay(config);
+        // graph updater if graph is enabled
+        GraphUpdater? graphUpdater = null;
+        if (config.GetValue<bool>("Indexing:IsGraphEnabled"))
+        {
+            IGraphRepository graphRepository =
+                serviceProvider.GetRequiredService<IGraphRepository>();
+            graphRepository.Cache = serviceProvider.GetService<IMemoryCache>();
+            graphUpdater = serviceProvider.GetService<GraphUpdater>()
+                ?? new GraphUpdater(graphRepository);
+        }
 
-        // seed items with their parts
-        Console.WriteLine($"Seeding {count} items...");
+        logger.LogInformation("Seeding {Count} mock items...", count);
         CadmusSeeder seeder = new(factory);
 
         int n = 0;
-        foreach (IItem item in seeder.GetItems(count))
+        try
         {
-            Console.WriteLine($"[{++n:000}/{count:000}] {item}: " +
-                $"{item.Parts.Count} parts");
-            repository.AddItem(item, true);
-            foreach (IPart part in item.Parts) repository.AddPart(part, true);
-
-            // update the index if enabled
-            if (indexWriter != null)
+            foreach (IItem item in seeder.GetItems(count))
             {
-                Console.WriteLine($"  - adding to index {item.Id}");
-                await indexWriter.WriteItem(item);
-            }
+                n++;
+                logger.LogDebug("Seeding item {N}/{Count}: {Item} " +
+                    "({PartCount} parts)", n, count, item, item.Parts.Count);
 
-            // update the graph if enabled
-            if (graphUpdater != null)
-            {
-                Console.WriteLine($"  - adding to graph {item.Id}");
-                graphUpdater.Update(item);
+                repository.AddItem(item, true);
+                foreach (IPart part in item.Parts)
+                    repository.AddPart(part, true);
+
+                if (indexWriter != null) await indexWriter.WriteItem(item);
+                graphUpdater?.Update(item);
+
+                if (n % 10 == 0 || n == count)
+                    logger.LogInformation("Seeded {N}/{Count} items", n, count);
             }
         }
-        indexWriter?.Close();
-        Console.WriteLine("Seeding completed.");
+        finally
+        {
+            indexWriter?.Close();
+        }
     }
 
     private static void SeedSettings(ICadmusRepository repository,
-        string profileContent)
+        string profileContent, ILogger logger)
     {
-        Console.WriteLine("Seeding settings...");
-        JsonDocument doc = JsonDocument.Parse(profileContent);
-
-        // check if the settings key exists
-        if (!doc.RootElement.TryGetProperty("settings",
-            out JsonElement settingsElem))
-        {
-            Console.WriteLine("No settings found in the profile.");
-            return;
-        }
+        using JsonDocument doc = JsonDocument.Parse(profileContent);
 
         // settings are in the root/settings property, which is a single object
         // where each property is an object setting: the property name is the
@@ -155,218 +190,236 @@ public static class HostSeedExtensions
         // underscore. For instance, categories editor's settings are under
         // it.vedph.categories, and the role-specific settings are under
         // it.vedph.categories_role.
+        if (!doc.RootElement.TryGetProperty("settings",
+            out JsonElement settingsElem))
+        {
+            logger.LogInformation("No settings in profile");
+            return;
+        }
+
         int count = 0;
         foreach (JsonProperty settingProp in settingsElem.EnumerateObject())
         {
-            Console.WriteLine($"- setting {settingProp.Name}...");
-            string? json = settingProp.Value.GetRawText();
+            string json = settingProp.Value.GetRawText();
             if (!string.IsNullOrEmpty(json))
             {
+                logger.LogDebug("Seeding setting {Setting}", settingProp.Name);
                 repository.AddSetting(settingProp.Name, json);
                 count++;
             }
         }
-
-        Console.WriteLine($"Settings seeded: {count}");
+        logger.LogInformation("Seeded {Count} settings", count);
     }
 
-    private static async Task SeedCadmusDatabaseAsync(
-        IServiceProvider serviceProvider,
-        IConfiguration config,
-        string? graphSql,
-        ILogger? logger)
+    private static async Task<string?> LoadProfileAsync(
+        ResourceLoaderService loaderService, string profileSource,
+        ILogger logger)
     {
-        // build connection string
-        string connString = config.GetConnectionString("Default")!;
-        string databaseName = config["DatabaseNames:Data"]!;
-        if (string.IsNullOrEmpty(databaseName))
-        {
-            Console.WriteLine("No database name in config DatabaseNames:Data");
-            return;
-        }
-        connString = string.Format(connString, databaseName);
-        Console.WriteLine($"Database: {databaseName}");
+        logger.LogInformation("Loading seed profile from {Source} ({Resolved})",
+            profileSource, loaderService.ResolveSource(profileSource));
 
-        // nope if database exists
-        MongoDatabaseManager manager = new();
-        if (manager.DatabaseExists(connString))
-        {
-            Console.WriteLine($"Database {databaseName} already exists");
-            return;
-        }
+        await using Stream? stream = await loaderService.LoadAsync(profileSource);
+        if (stream == null) return null;
 
-        // load seed profile (nope if no profile)
-        string profileSource = config["Seed:ProfileSource"]!;
-        if (string.IsNullOrEmpty(profileSource))
-        {
-            Console.WriteLine("No profile source in config Seed:ProfileSource");
-            return;
-        }
+        using StreamReader reader = new(stream, Encoding.UTF8);
+        return await reader.ReadToEndAsync();
+    }
 
-        Console.WriteLine($"Loading seed profile from {profileSource}...");
-        logger?.LogInformation("Loading seed profile from {ProfileSource}...",
-            profileSource);
-
-        ResourceLoaderService loaderService = new(serviceProvider);
-        Console.WriteLine($"Source: {loaderService.ResolveSource(profileSource)}");
-
-        Stream? stream = await loaderService.LoadAsync(profileSource);
-        if (stream == null)
-        {
-            Console.WriteLine("Error: seed profile could not be loaded");
-            return;
-        }
-
-        // deserialize the profile
-        Console.WriteLine("Loading profile...");
-        string profileContent;
-        using (StreamReader reader = new(stream, Encoding.UTF8))
-        {
-            profileContent = await reader.ReadToEndAsync();
-        }
-
-        JsonDataProfileSerializer serializer = new();
-        DataProfile profile = serializer.Read(profileContent);
-
-        // issue warning on invalid profile
-        Console.WriteLine("Validating profile...");
-        string? error = profile.Validate();
-        if (error != null)
-            logger?.LogWarning("Error validating profile: {Error}", error);
-
-        // create database
-        Console.WriteLine("Creating database...");
-        logger?.LogInformation("Creating database {ConnString}...", connString);
-
-        manager.CreateDatabase(connString, profile);
-
-        Console.WriteLine("Database created.");
-        logger?.LogInformation("Database created.");
-
-        // get the required services
-        Console.WriteLine("Creating seeders factory...");
-        Serilog.Log.Information("Creating seeders factory...");
+    private static async Task FillDataDatabaseAsync(
+        IServiceProvider serviceProvider, IConfiguration config,
+        ResourceLoaderService loaderService, string profileContent,
+        ILogger logger)
+    {
         IPartSeederFactoryProvider factoryProvider =
-            serviceProvider.GetService<IPartSeederFactoryProvider>()!;
-        PartSeederFactory factory;
-        using (StreamReader reader = new(
-            (await loaderService.LoadAsync(profileSource))!,
-            Encoding.UTF8))
-        {
-            factory = factoryProvider.GetFactory(await reader.ReadToEndAsync());
-        }
+            serviceProvider.GetRequiredService<IPartSeederFactoryProvider>();
+        PartSeederFactory factory = factoryProvider.GetFactory(profileContent);
 
-        Console.WriteLine("Creating repository...");
-        Serilog.Log.Information("Creating repository...");
-        IRepositoryProvider repositoryProvider =
-            serviceProvider.GetService<IRepositoryProvider>()!;
-        ICadmusRepository repository = repositoryProvider.CreateRepository();
+        ICadmusRepository repository = serviceProvider
+            .GetRequiredService<IRepositoryProvider>().CreateRepository();
 
-        // seed settings if any
-        SeedSettings(repository, profileContent);
+        // settings
+        SeedSettings(repository, profileContent, logger);
 
-        // get seed count
-        int count = 0;
-        string? configCount = config["Seed:ItemCount"];
-        if (configCount != null && int.TryParse(configCount, out int n))
-            count = n;
-
-        // if required, seed data
+        // mock items
+        int count = config.GetValue<int>("Seed:ItemCount");
         if (count > 0)
         {
-            await SeedItemsAsync(serviceProvider, config, factory,
-                repository, count, graphSql);
+            await SeedItemsAsync(serviceProvider, config, factory, repository,
+                count, logger);
+        }
+        else
+        {
+            logger.LogInformation("Seed:ItemCount is 0: no mock items seeded");
         }
 
-        // import data if required
+        // imports
         IList<string>? sources = factory.GetImports();
         if (sources?.Count > 0)
         {
             PartImporter importer = new(repository);
-
             foreach (string source in sources)
             {
                 foreach (string resolved in SourceRangeResolver.Resolve(source))
                 {
-                    Console.WriteLine($"Importing from {resolved}...");
+                    logger.LogInformation("Importing from {Source}...",
+                        resolved);
                     await using Stream jsonStream =
-                        (await loaderService.LoadAsync(resolved))!;
+                        await loaderService.LoadAsync(resolved)
+                        ?? throw new InvalidOperationException(
+                            $"Import source not found: {resolved}");
                     importer.Import(jsonStream);
                 }
             }
         }
     }
 
-    private static Task SeedCadmusAsync(IServiceProvider serviceProvider,
-        string? graphSql)
+    private static async Task SeedDataDatabaseCoreAsync(
+        IServiceProvider serviceProvider, IConfiguration config,
+        DatabaseTarget target, ILogger logger)
     {
-        // the policy must be async to retry failures in async code
-        return Policy.Handle<DbException>()
-            .WaitAndRetryAsync(
-            [
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(30),
-                TimeSpan.FromSeconds(60)
-            ], (exception, timeSpan, _) =>
+        string connString = target.ConnectionString;
+
+        MongoDatabaseManager manager = new();
+        if (manager.DatabaseExists(connString))
+        {
+            logger.LogInformation("Data database {Database} already exists",
+                target);
+            return;
+        }
+
+        // the database is created and seeded from the profile
+        string? profileSource = config["Seed:ProfileSource"];
+        if (string.IsNullOrEmpty(profileSource))
+        {
+            logger.LogWarning("Data database {Database} does not exist, " +
+                "but no Seed:ProfileSource is configured to create it", target);
+            return;
+        }
+
+        ResourceLoaderService loaderService = new(serviceProvider);
+        string profileContent = await LoadProfileAsync(loaderService,
+            profileSource, logger)
+            ?? throw new InvalidOperationException(
+                $"Seed profile not found at {profileSource}");
+
+        DataProfile profile = new JsonDataProfileSerializer()
+            .Read(profileContent);
+        string? error = profile.Validate();
+        if (error != null)
+            logger.LogWarning("Seed profile validation error: {Error}", error);
+
+        logger.LogInformation("Creating data database {Database}...", target);
+        manager.CreateDatabase(connString, profile);
+
+        // fill the database we just created: on failure drop it, so that
+        // a retry or the next startup starts from scratch rather than
+        // finding an existing but incomplete database and skipping it
+        try
+        {
+            await FillDataDatabaseAsync(serviceProvider, config, loaderService,
+                profileContent, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error seeding data database {Database}: " +
+                "removing it", target);
+            try
             {
-                ILogger? logger = serviceProvider
-                    .GetService<ILoggerFactory>()!
-                    .CreateLogger(typeof(HostSeedExtensions));
-
-                string message = "Unable to connect to Cadmus DB" +
-                    $" (sleep {timeSpan}): {exception.Message}";
-                Console.WriteLine(message);
-                logger?.LogError(exception, "Error seeding Cadmus data: {Error}",
-                    message);
-            }).ExecuteAsync(async () =>
+                manager.DeleteDatabase(connString);
+            }
+            catch (Exception dropEx)
             {
-                IConfiguration config =
-                    serviceProvider.GetService<IConfiguration>()!;
+                logger.LogCritical(dropEx,
+                    "Unable to remove incomplete data database {Database}: " +
+                    "drop it manually before restarting", target);
+            }
+            throw;
+        }
 
-                ILogger? logger = serviceProvider
-                    .GetService<ILoggerFactory>()!
-                    .CreateLogger(typeof(HostSeedExtensions));
-
-                Console.WriteLine("Seeding Cadmus data...");
-                await SeedCadmusDatabaseAsync(
-                    serviceProvider,
-                    config,
-                    graphSql,
-                    logger);
-                Console.WriteLine("Seeding Cadmus data completed");
-            });
+        logger.LogInformation("Data database {Database} created and seeded",
+            target);
     }
 
     /// <summary>
-    /// Seeds the database.
+    /// Ensures that the main data (MongoDB) database exists, creating and
+    /// seeding it from the profile at <c>Seed:ProfileSource</c> if it does
+    /// not, retrying on transient connection errors. As mock items are
+    /// added to the index and graph when enabled, call this after
+    /// <see cref="EnsureIndexDatabaseAsync"/> and
+    /// <see cref="EnsureGraphDatabaseAsync"/>.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <exception cref="ArgumentNullException">serviceProvider</exception>
+    public static Task SeedDataDatabaseAsync(IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        IConfiguration config =
+            serviceProvider.GetRequiredService<IConfiguration>();
+        ILogger logger = GetLogger(serviceProvider);
+
+        DatabaseTarget target = CadmusDatabaseConfig.GetDataDatabase(config);
+        logger.LogInformation("Ensuring data database {Database}...", target);
+
+        return SeedRetryPolicy.Create(logger, "Data database").ExecuteAsync(
+            () => SeedDataDatabaseCoreAsync(serviceProvider, config, target,
+                logger));
+    }
+    #endregion
+
+    /// <summary>
+    /// Ensures that all the Cadmus databases required by the configuration
+    /// exist, creating (and when required seeding) the missing ones: the
+    /// item index database, the graph database, and the main data database.
+    /// Call this before running the host, so that no request reaches a
+    /// missing database. Any error is logged and rethrown, as the API cannot
+    /// work without its databases.
     /// </summary>
     /// <param name="host">The host.</param>
-    /// <param name="graphSql">The optional SQL code to seed the index
-    /// for using it with the graph. This is usually provided by
-    /// project-specific implementations.</param>
+    /// <param name="graphSql">The optional SQL code to seed the graph
+    /// database with preset data when it gets created. This is usually
+    /// provided by project-specific implementations.</param>
     /// <returns>The received host, to allow concatenation.</returns>
-    /// <exception cref="ArgumentNullException">serviceProvider</exception>
+    /// <exception cref="ArgumentNullException">host</exception>
     public static async Task<IHost> SeedAsync(this IHost host,
         string? graphSql = null)
     {
-        using (var scope = host.Services.CreateScope())
-        {
-            IServiceProvider serviceProvider = scope.ServiceProvider;
-            ILogger? logger = serviceProvider
-                .GetService<ILoggerFactory>()!
-                .CreateLogger(typeof(HostSeedExtensions));
+        ArgumentNullException.ThrowIfNull(host);
 
-            try
+        using IServiceScope scope = host.Services.CreateScope();
+        IServiceProvider serviceProvider = scope.ServiceProvider;
+        IConfiguration config =
+            serviceProvider.GetRequiredService<IConfiguration>();
+        ILogger logger = GetLogger(serviceProvider);
+
+        try
+        {
+            logger.LogInformation("Initializing Cadmus databases " +
+                "(indexing: {IsIndexEnabled}, graph: {IsGraphEnabled})...",
+                config.GetValue<bool>("Indexing:IsEnabled"),
+                config.GetValue<bool>("Indexing:IsGraphEnabled"));
+
+            // legacy optional delay, to allow DB services to start
+            // (transient connection errors are retried anyway)
+            int delay = config.GetValue<int>("Seed:IndexDelay");
+            if (delay > 0)
             {
-                await SeedCadmusAsync(serviceProvider, graphSql);
+                logger.LogInformation("Waiting {Delay} seconds " +
+                    "(Seed:IndexDelay)...", delay);
+                await Task.Delay(TimeSpan.FromSeconds(delay));
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-                logger.LogError(ex, "Error seeding Cadmus data: {Error}",
-                    ex.Message);
-                throw;
-            }
+
+            await EnsureIndexDatabaseAsync(serviceProvider);
+            await EnsureGraphDatabaseAsync(serviceProvider, graphSql);
+            await SeedDataDatabaseAsync(serviceProvider);
+
+            logger.LogInformation("Cadmus databases initialized");
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "Error initializing Cadmus databases: {Error}",
+                ex.Message);
+            throw;
         }
         return host;
     }

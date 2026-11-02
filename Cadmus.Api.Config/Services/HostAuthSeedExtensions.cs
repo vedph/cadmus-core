@@ -3,9 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Polly;
 using System;
-using System.Data.Common;
 using System.Threading.Tasks;
 
 namespace Cadmus.Api.Config.Services;
@@ -16,28 +14,14 @@ namespace Cadmus.Api.Config.Services;
 /// </summary>
 public static class HostAuthSeedExtensions
 {
-    private static Task SeedAsync(IServiceProvider serviceProvider)
+    private static Task SeedAsync(IServiceProvider serviceProvider,
+        ILogger logger)
     {
         AuthDatabaseInitializer initializer = new(serviceProvider);
 
-        // the policy must be async to retry failures in async code
-        return Policy.Handle<DbException>()
-            .WaitAndRetryAsync(
-            [
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(30),
-                TimeSpan.FromSeconds(60)
-            ], (exception, timeSpan, _) =>
-            {
-                ILogger logger = serviceProvider
-                    .GetRequiredService<ILoggerFactory>()
-                    .CreateLogger(typeof(HostAuthSeedExtensions));
-
-                string message = "Unable to connect to DB" +
-                    $" (sleep {timeSpan}): {exception.Message}";
-                Console.WriteLine(message);
-                logger.LogError(exception, message);
-            }).ExecuteAsync(initializer.SeedAsync);
+        // retry on transient connection errors (e.g. DB not yet started)
+        return SeedRetryPolicy.Create(logger, "Auth database")
+            .ExecuteAsync(initializer.SeedAsync);
     }
 
     /// <summary>
@@ -70,12 +54,14 @@ public static class HostAuthSeedExtensions
                 logger.LogInformation("No seed delay set.");
             }
 
-            await SeedAsync(serviceProvider);
+            await SeedAsync(serviceProvider, logger);
+            logger.LogInformation("Auth database initialized");
             return host;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error seeding auth database: {Error}", ex.Message);
+            logger.LogCritical(ex, "Error seeding auth database: {Error}",
+                ex.Message);
             throw;
         }
     }

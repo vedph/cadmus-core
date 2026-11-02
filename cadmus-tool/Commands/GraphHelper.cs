@@ -3,7 +3,6 @@ using Cadmus.Export.Mapping;
 using Cadmus.Graph;
 using Cadmus.Graph.Ef;
 using Cadmus.Graph.Ef.PgSql;
-using Fusi.DbManager.PgSql;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -44,15 +43,6 @@ internal static class GraphHelper
     public static IList<GraphNodeMapping> LoadMappings(string path)
     {
         return ParseMappings(LoadText(path));
-    }
-
-    public static void CreateGraphDatabase(string dbName)
-    {
-        ArgumentNullException.ThrowIfNull(dbName);
-
-        string cst = CliAppContext.Configuration.GetConnectionString("Graph")!;
-        PgSqlDbManager mgr = new(cst);
-        mgr.CreateDatabase(dbName, EfPgSqlGraphRepository.GetSchema(), null);
     }
 
     public static IGraphRepository GetGraphRepository(string dbName)

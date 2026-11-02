@@ -87,14 +87,14 @@ namespace Cadmus.Api
             // taxostore
             ConfigureTaxoStoreServices(services, config);
 
+            // previewer
+            services.AddSingleton(p => ServiceConfigurator.GetPreviewer(p, config));
+
             // walker demo graph repository, only for demo in this app
             services.AddSingleton((_) =>
             {
                 return new WalkerDemoGraphRepository(config);
             });
-
-            // previewer
-            services.AddSingleton(p => ServiceConfigurator.GetPreviewer(p, config));
         }
 
         /// <summary>
@@ -129,23 +129,6 @@ namespace Cadmus.Api
                 ConfigureAppServices(builder.Services, config);
 
                 builder.Services.AddOpenApi();
-
-                // taxonomies
-                builder.Services.AddTaxoStoreServices(options =>
-                {
-                    string? connectionString = config.GetConnectionString("TaxoStore");
-                    if (string.IsNullOrEmpty(connectionString))
-                    {
-                        throw new InvalidOperationException(
-                            "Connection string 'TaxoStore' not found.");
-                    }
-
-                    options.ConnectionString = connectionString;
-                    options.EnableAutoInitialization =
-                        config.GetValue("TaxoStore:EnableAutoInitialization", true);
-                    options.InitializationDelaySeconds =
-                        config.GetValue("TaxoStore:InitializationDelaySeconds", 0);
-                });
 
                 // controllers from Cadmus.Api.Controllers
                 builder.Services.AddControllers()
@@ -234,10 +217,11 @@ namespace Cadmus.Api
                 // proxy
                 app.UseResponseCaching();
 
-                // seed auth database (via Services/HostAuthSeedExtensions)
+                // create/seed the databases before serving any request:
+                // auth (via HostAuthSeedExtensions), then index, graph and
+                // data (via HostSeedExtensions). TaxoStore is initialized
+                // by its own hosted service when the host starts.
                 await app.SeedAuthAsync();
-
-                // seed Cadmus database (via Services/HostSeedExtension)
                 await app.SeedAsync();
 
                 // map controllers and Scalar API

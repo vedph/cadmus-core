@@ -3,7 +3,7 @@ using System;
 using Microsoft.AspNetCore.Identity;
 using Fusi.Api.Auth.Models;
 using Fusi.Api.Auth.Services;
-using Fusi.DbManager.PgSql;
+using Microsoft.Extensions.Logging;
 using System.IO;
 using System.Reflection;
 
@@ -44,25 +44,18 @@ public sealed class AuthDatabaseInitializer :
     /// </summary>
     protected override void InitDatabase()
     {
-        string name = Configuration.GetValue<string>("DatabaseNames:Auth")!;
-        Serilog.Log.Information("Checking for auth database {Name}...", name);
+        DatabaseTarget target = CadmusDatabaseConfig.GetAuthDatabase(
+            Configuration);
+        Logger.LogInformation("Ensuring auth database {Database}...", target);
 
-        string csTemplate = Configuration.GetConnectionString("Auth")!;
-        PgSqlDbManager manager = new(csTemplate);
-
-        if (!manager.Exists(name))
+        string schema;
+        using (StreamReader reader = new(
+            Assembly.GetExecutingAssembly().GetManifestResourceStream(
+                "Cadmus.Api.Services.Assets.Auth.pgsql")!))
         {
-            Serilog.Log.Information("Creating auth database {Name}...", name);
-
-            using (StreamReader reader = new(
-                Assembly.GetExecutingAssembly().GetManifestResourceStream(
-                    "Cadmus.Api.Services.Assets.Auth.pgsql")!))
-            {
-                string sql = reader.ReadToEnd();
-                manager.CreateDatabase(name, sql, null);
-            }
-
-            Serilog.Log.Information("Auth database created.");
+            schema = reader.ReadToEnd();
         }
+
+        PgSqlDatabaseInitializer.EnsureDatabase(target, schema, null, Logger);
     }
 }

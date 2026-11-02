@@ -1,5 +1,6 @@
 ﻿using Cadmus.Api.Services;
 using Cadmus.Api.Services.Messaging;
+using Cadmus.Api.Services.Seeding;
 using Cadmus.Core.Storage;
 using Cadmus.Core;
 using Cadmus.Graph.Ef.PgSql;
@@ -534,8 +535,8 @@ public static class ServiceConfigurator
         IConfiguration config)
     {
         // item index factory provider (from ConnectionStrings/Index)
-        string cs = string.Format(config.GetConnectionString("Index")!,
-            config.GetValue<string>("DatabaseNames:Data"));
+        string cs = CadmusDatabaseConfig.GetIndexDatabase(config)
+            .ConnectionString;
 
         services.AddSingleton<IItemIndexFactoryProvider>(_ =>
             new StandardItemIndexFactoryProvider(cs));
@@ -551,9 +552,8 @@ public static class ServiceConfigurator
     public static void ConfigureGraphServices(IServiceCollection services,
         IConfiguration config)
     {
-        string cs = string.Format(config.GetConnectionString("Graph")
-            ?? config.GetConnectionString("Index")!,
-            config.GetValue<string>("DatabaseNames:Data") + "-graph");
+        string cs = CadmusDatabaseConfig.GetGraphDatabase(config)
+            .ConnectionString;
 
         services.AddSingleton<IItemGraphFactoryProvider>(_ =>
             new StandardItemGraphFactoryProvider(cs));
