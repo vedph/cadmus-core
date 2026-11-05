@@ -458,10 +458,10 @@
   ],
   "index": {
     "writer": {
-      "id": "item-index-writer.ef-pg"
+      "id": "item-index-writer.pgsql"
     },
     "reader": {
-      "id": "item-index-reader.ef-pg"
+      "id": "item-index-reader.pgsql"
     }
   },
   "graph": {

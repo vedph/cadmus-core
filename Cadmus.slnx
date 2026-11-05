@@ -53,10 +53,9 @@
   <Project Path="Cadmus.Import/Cadmus.Import.csproj" />
   <Project Path="Cadmus.Index.Ef.PgSql.Test/Cadmus.Index.Ef.PgSql.Test.csproj" />
   <Project Path="Cadmus.Index.Ef.PgSql/Cadmus.Index.Ef.PgSql.csproj" />
-  <Project Path="Cadmus.Index.Ef/Cadmus.Index.Ef.csproj" />
+  <Project Path="Cadmus.Index.PgSql.Test/Cadmus.Index.PgSql.Test.csproj" />
   <Project Path="Cadmus.Index.PgSql/Cadmus.Index.PgSql.csproj" />
-  <Project Path="Cadmus.Index.Sql.Test/Cadmus.Index.Sql.Test.csproj" />
-  <Project Path="Cadmus.Index.Sql/Cadmus.Index.Sql.csproj" />
+  <Project Path="Cadmus.Index.Test/Cadmus.Index.Test.csproj" />
   <Project Path="Cadmus.Index/Cadmus.Index.csproj" />
   <Project Path="Cadmus.Mat.Bricks/Cadmus.Mat.Bricks.csproj" />
   <Project Path="Cadmus.Mongo.Test/Cadmus.Mongo.Test.csproj" />

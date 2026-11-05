@@ -1,20 +1,27 @@
-﻿using Cadmus.Graph.Ef.PgSql;
-using Cadmus.Index.Config;
-using Cadmus.Index.Ef.PgSql;
+﻿using Cadmus.Index.Config;
+using Cadmus.Index.PgSql;
 using Fusi.Microsoft.Extensions.Configuration.InMemoryJson;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Collections.Concurrent;
 
 namespace Cadmus.Api.Services;
 
 /// <summary>
-/// Standard item index writer factory provider.
+/// Standard item index factory provider. This provides factories for the
+/// PostgreSQL index, whose components are tagged
+/// <c>item-index-writer.pgsql</c> and <c>item-index-reader.pgsql</c>;
+/// the legacy tags <c>item-index-writer.ef-pg</c> and
+/// <c>item-index-reader.ef-pg</c> are still supported.
+/// Factories are cached by profile, as building them is expensive.
 /// </summary>
 /// <seealso cref="IItemIndexFactoryProvider" />
 public sealed class StandardItemIndexFactoryProvider :
     IItemIndexFactoryProvider
 {
     private readonly string _connectionString;
+    private readonly ConcurrentDictionary<string, Lazy<ItemIndexFactory>>
+        _factories = new();
 
     /// <summary>
     /// Initializes a new instance of the
@@ -34,8 +41,12 @@ public sealed class StandardItemIndexFactoryProvider :
             .ConfigureServices((hostContext, services) =>
             {
                 ItemIndexFactory.ConfigureServices(services,
-                    // Cadmus.Index.Ef.PgSql
-                    typeof(EfPgSqlItemIndexWriter).Assembly);
+                    // Cadmus.Index.PgSql
+                    typeof(PgSqlItemIndexWriter).Assembly,
+                    // Cadmus.Index.Ef.PgSql (legacy tags)
+#pragma warning disable CS0618 // Type or member is obsolete
+                    typeof(Index.Ef.PgSql.EfPgSqlItemIndexWriter).Assembly);
+#pragma warning restore CS0618 // Type or member is obsolete
             })
             // extension method from Fusi library
             .AddInMemoryJson(config)
@@ -43,7 +54,7 @@ public sealed class StandardItemIndexFactoryProvider :
     }
 
     /// <summary>
-    /// Gets the part/fragment seeders factory.
+    /// Gets the index factory for the specified profile.
     /// </summary>
     /// <param name="profile">The profile.</param>
     /// <returns>Factory.</returns>
@@ -52,6 +63,7 @@ public sealed class StandardItemIndexFactoryProvider :
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        return new ItemIndexFactory(GetHost(profile), _connectionString);
+        return _factories.GetOrAdd(profile, p => new Lazy<ItemIndexFactory>(
+            () => new ItemIndexFactory(GetHost(p), _connectionString))).Value;
     }
 }

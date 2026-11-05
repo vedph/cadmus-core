@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -7,6 +7,7 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 		<OutputType>Exe</OutputType>
+		<NoWarn>$(NoWarn);xUnit1051;CS0618</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -18,6 +19,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" />
 		<PackageReference Include="xunit.v3" />
 		<PackageReference Include="coverlet.collector">
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -27,7 +29,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Cadmus.Index.Ef.PgSql\Cadmus.Index.Ef.PgSql.csproj" />
-		<ProjectReference Include="..\Cadmus.Index.Sql.Test\Cadmus.Index.Sql.Test.csproj" />
 	</ItemGroup>
 
 </Project>

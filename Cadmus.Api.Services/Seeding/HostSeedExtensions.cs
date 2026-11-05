@@ -5,7 +5,7 @@ using Cadmus.Graph;
 using Cadmus.Graph.Ef.PgSql;
 using Cadmus.Index;
 using Cadmus.Index.Config;
-using Cadmus.Index.Ef.PgSql;
+using Cadmus.Index.PgSql;
 using Cadmus.Mongo;
 using Cadmus.Seed;
 using Microsoft.Extensions.Caching.Memory;
@@ -50,6 +50,8 @@ public static class HostSeedExtensions
     /// <summary>
     /// Ensures that the item index database exists when indexing is enabled
     /// (<c>Indexing:IsEnabled</c>), retrying on transient connection errors.
+    /// If the database already exists, its schema is brought up to date
+    /// (this upgrades in place databases created by older versions).
     /// </summary>
     /// <param name="serviceProvider">The service provider.</param>
     /// <exception cref="ArgumentNullException">serviceProvider</exception>
@@ -72,11 +74,17 @@ public static class HostSeedExtensions
         logger.LogInformation("Ensuring index database {Database}...", target);
 
         return SeedRetryPolicy.Create(logger, "Index database").ExecuteAsync(
-            () =>
+            async () =>
             {
-                PgSqlDatabaseInitializer.EnsureDatabase(target,
-                    EfPgSqlItemIndexWriter.GetPgSqlSchema(), null, logger);
-                return Task.CompletedTask;
+                if (!PgSqlDatabaseInitializer.EnsureDatabase(target,
+                    PgSqlIndexSchema.GetSql(), null, logger))
+                {
+                    // the schema script is idempotent: on an up-to-date
+                    // database this changes nothing
+                    logger.LogInformation(
+                        "Updating index database {Database} schema...", target);
+                    await PgSqlIndexSchema.ApplyAsync(target.ConnectionString);
+                }
             });
     }
 
@@ -152,28 +160,21 @@ public static class HostSeedExtensions
         CadmusSeeder seeder = new(factory);
 
         int n = 0;
-        try
+        foreach (IItem item in seeder.GetItems(count))
         {
-            foreach (IItem item in seeder.GetItems(count))
-            {
-                n++;
-                logger.LogDebug("Seeding item {N}/{Count}: {Item} " +
-                    "({PartCount} parts)", n, count, item, item.Parts.Count);
+            n++;
+            logger.LogDebug("Seeding item {N}/{Count}: {Item} " +
+                "({PartCount} parts)", n, count, item, item.Parts.Count);
 
-                repository.AddItem(item, true);
-                foreach (IPart part in item.Parts)
-                    repository.AddPart(part, true);
+            repository.AddItem(item, true);
+            foreach (IPart part in item.Parts)
+                repository.AddPart(part, true);
 
-                if (indexWriter != null) await indexWriter.WriteItem(item);
-                graphUpdater?.Update(item);
+            if (indexWriter != null) await indexWriter.WriteItemAsync(item);
+            graphUpdater?.Update(item);
 
-                if (n % 10 == 0 || n == count)
-                    logger.LogInformation("Seeded {N}/{Count} items", n, count);
-            }
-        }
-        finally
-        {
-            indexWriter?.Close();
+            if (n % 10 == 0 || n == count)
+                logger.LogInformation("Seeded {N}/{Count} items", n, count);
         }
     }
 

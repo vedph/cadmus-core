@@ -30,10 +30,8 @@ The projects were just copied into this solution from the above repositories, an
   - `Cadmus.Mongo`: MongoDB implementation of data repository
 - **index**:
   - `Cadmus.Index`: core models and logic for data index
-  - `Cadmus.Index.Ef`: EntityFramework base implementation for data index (currently used for data storage)
-  - `Cadmus.Index.Ef.PgSql`: PostgreSQL implementation of `Cadmus.Index.Ef`
-  - `Cadmus.Index.Sql`: SQL base index implementation (currently used for query)
-  - `Cadmus.Index.PgSql`: PostgreSQL implementation of `Cadmus.Index.Sql`
+  - `Cadmus.Index.PgSql`: PostgreSQL implementation of the data index (plain SQL via Npgsql), for both writing and searching. See [the index documentation](docs/index.md) for its query syntax and schema.
+  - `Cadmus.Index.Ef.PgSql`: ⚠️ deprecated compatibility shim for the legacy `*.ef-pg` profile tags; it just aliases `Cadmus.Index.PgSql` and will be removed in the next major version.
 - **graph**:
   - `Cadmus.Graph`: core models and logic for semantic data graph
   - `Cadmus.Graph.Api`: API for semantic data graph demo

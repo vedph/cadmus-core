@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -13,7 +13,7 @@
 		<Copyright>by Daniele Fusi 2023</Copyright>
 		<Description>PostgreSQL implementation of Cadmus index.</Description>
 		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-		<PackageTags>Cadmus;SQL index</PackageTags>
+		<PackageTags>Cadmus;SQL index;PostgreSQL</PackageTags>
 		<DebugType>portable</DebugType>
 		<DebugSymbols>true</DebugSymbols>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -31,16 +31,18 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Fusi.DbManager.PgSql" />
+		<InternalsVisibleTo Include="Cadmus.Index.PgSql.Test" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Npgsql" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">
-		<ProjectReference Include="..\Cadmus.Index.Sql\Cadmus.Index.Sql.csproj" />
 		<ProjectReference Include="..\Cadmus.Index\Cadmus.Index.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
-		<PackageReference Include="Cadmus.Index.Sql" />
 		<PackageReference Include="Cadmus.Index" />
 	</ItemGroup>
 

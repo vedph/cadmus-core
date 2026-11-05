@@ -617,8 +617,7 @@ public sealed class ItemController : ControllerBase
             ItemIndexFactory factory = (await ItemIndexHelper
                 .GetIndexFactoryAsync(_configuration, _serviceProvider))!;
             IItemIndexWriter writer = factory.GetItemIndexWriter()!;
-            await writer.DeleteItem(id);
-            writer.Close();
+            await writer.DeleteItemAsync(id);
 
             if (isGraphEnabled)
             {
@@ -675,8 +674,7 @@ public sealed class ItemController : ControllerBase
             ItemIndexFactory factory = (await ItemIndexHelper
                 .GetIndexFactoryAsync(_configuration, _serviceProvider))!;
             IItemIndexWriter writer = factory.GetItemIndexWriter()!;
-            await writer.DeletePart(id);
-            writer.Close();
+            await writer.DeletePartAsync(id);
 
             if (isGraphEnabled) UpdateGraphForDeletion(id);
         }
@@ -777,8 +775,7 @@ public sealed class ItemController : ControllerBase
             ItemIndexFactory factory = (await ItemIndexHelper
                 .GetIndexFactoryAsync(_configuration, _serviceProvider))!;
             IItemIndexWriter writer = factory.GetItemIndexWriter()!;
-            await writer.WriteItem(item);
-            writer.Close();
+            await writer.WriteItemAsync(item);
 
             // graph
             if (isGraphEnabled) UpdateGraph(item);
@@ -986,9 +983,8 @@ public sealed class ItemController : ControllerBase
                 IItem? item = repository.GetItem(idAndJson.Item1);
                 if (item != null)
                 {
-                    await writer.WritePart(item, part);
+                    await writer.WritePartAsync(item, part);
                 }
-                writer.Close();
 
                 // graph
                 if (isGraphEnabled)
@@ -1097,8 +1093,7 @@ public sealed class ItemController : ControllerBase
             ItemIndexFactory factory = (await ItemIndexHelper
                 .GetIndexFactoryAsync(_configuration, _serviceProvider))!;
             IItemIndexWriter writer = factory.GetItemIndexWriter()!;
-            await writer.WriteItem(item);
-            writer.Close();
+            await writer.WriteItemAsync(item);
 
             // graph
             if (IsGraphEnabled())

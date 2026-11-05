@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,9 +14,15 @@ namespace Cadmus.Api.Services.Seeding;
 /// </summary>
 public static class ItemIndexHelper
 {
+    // profiles do not change while the API is running, and are loaded at
+    // each index or graph operation: so they are cached by source
+    private static readonly ConcurrentDictionary<string, string> _profiles
+        = new();
+
     /// <summary>
     /// Loads the Cadmus profile from the source specified in Seed:ProfileSource,
-    /// or from the default location if this is not set.
+    /// or from the default location if this is not set. Once loaded, the
+    /// profile is cached for the lifetime of the process.
     /// </summary>
     /// <param name="configuration">The configuration.</param>
     /// <param name="serviceProvider">The service provider.</param>
@@ -25,8 +32,10 @@ public static class ItemIndexHelper
     private async static Task<string?> LoadProfileAsync(
         IConfiguration configuration, IServiceProvider serviceProvider)
     {
-        string? profileSource = configuration["Seed:ProfileSource"]
+        string profileSource = configuration["Seed:ProfileSource"]
             ?? "%wwwroot%/seed-profile.json";
+        if (_profiles.TryGetValue(profileSource, out string? cached))
+            return cached;
 
         ResourceLoaderService loaderService = new(serviceProvider);
 
@@ -36,8 +45,9 @@ public static class ItemIndexHelper
                 $"Profile file expected at {profileSource} not found");
         using (StreamReader reader = new(stream, Encoding.UTF8))
         {
-            profile = reader.ReadToEnd();
+            profile = await reader.ReadToEndAsync();
         }
+        _profiles[profileSource] = profile;
         return profile;
     }
 

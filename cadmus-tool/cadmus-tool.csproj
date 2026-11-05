@@ -72,7 +72,6 @@
 		<ProjectReference Include="..\Cadmus.Index\Cadmus.Index.csproj" />
 		<ProjectReference Include="..\Cadmus.Index.Ef.PgSql\Cadmus.Index.Ef.PgSql.csproj" />
 		<ProjectReference Include="..\Cadmus.Index.PgSql\Cadmus.Index.PgSql.csproj" />
-		<ProjectReference Include="..\Cadmus.Index.Sql\Cadmus.Index.Sql.csproj" />
 		<ProjectReference Include="..\Cadmus.Mongo\Cadmus.Mongo.csproj" />
 		<ProjectReference Include="..\Cadmus.Philology.Parts\Cadmus.Philology.Parts.csproj" />
 		<ProjectReference Include="..\Cadmus.Seed\Cadmus.Seed.csproj" />
@@ -94,7 +93,6 @@
 		<PackageReference Include="Cadmus.Index" />
 		<PackageReference Include="Cadmus.Index.Ef.PgSql" />
 		<PackageReference Include="Cadmus.Index.PgSql" />
-		<PackageReference Include="Cadmus.Index.Sql" />
 		<PackageReference Include="Cadmus.Mongo" />
 		<PackageReference Include="Cadmus.Philology.Parts" />
 		<PackageReference Include="Cadmus.Seed" />

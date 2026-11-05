@@ -188,8 +188,13 @@
       "id": "it.vedph.item-browser.mongo.hierarchy"
     }
   ],
-  "indexer": {
-    "id": "item-index-writer.pgsql"
+  "index": {
+    "writer": {
+      "id": "item-index-writer.pgsql"
+    },
+    "reader": {
+      "id": "item-index-reader.pgsql"
+    }
   },
   "thesauri": [
     {

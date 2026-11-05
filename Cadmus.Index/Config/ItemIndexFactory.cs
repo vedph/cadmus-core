@@ -1,9 +1,12 @@
-﻿using Cadmus.Graph;
+﻿using Cadmus.Core.Config;
+using Cadmus.Graph;
 using Fusi.Tools.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 
 namespace Cadmus.Index.Config;
@@ -41,7 +44,44 @@ public sealed class ItemIndexFactory : ComponentFactory
     }
 
     /// <summary>
-    /// Overrides the options.
+    /// The name of the flag definitions property to be supplied in POCO
+    /// option objects (<c>FlagDefinitions</c>). Its type must be assignable
+    /// from <see cref="List{FlagDefinition}"/>.
+    /// </summary>
+    public const string FLAG_DEFINITIONS_NAME = "FlagDefinitions";
+
+    /// <summary>
+    /// Gets the flag definitions from the <c>flags</c> section of the
+    /// configuration (the Cadmus profile), if any.
+    /// </summary>
+    /// <returns>Definitions.</returns>
+    public IList<FlagDefinition> GetFlagDefinitions()
+    {
+        List<FlagDefinition> flags = [];
+        foreach (IConfigurationSection child in
+            Configuration.GetSection("flags").GetChildren())
+        {
+            if (!int.TryParse(child["id"], NumberStyles.Integer,
+                CultureInfo.InvariantCulture, out int id))
+            {
+                continue;
+            }
+            flags.Add(new FlagDefinition
+            {
+                Id = id,
+                Label = child["label"] ?? "",
+                Description = child["description"],
+                ColorKey = child["colorKey"],
+            });
+        }
+        return flags;
+    }
+
+    /// <summary>
+    /// Overrides the options. This supplies the connection string to
+    /// options having a <c>ConnectionString</c> property, and the profile
+    /// flag definitions to options having a <c>FlagDefinitions</c>
+    /// property, when not specified.
     /// </summary>
     /// <param name="options">The options.</param>
     /// <param name="section">The section.</param>
@@ -60,6 +100,15 @@ public sealed class ItemIndexFactory : ComponentFactory
             // here we can safely discard the returned object as it will
             // be equal to the input options, which is not null
             SupplyProperty(optionType, property, options, _connectionString);
+        }
+
+        // supply flag definitions if required and not specified
+        property = optionType.GetProperty(FLAG_DEFINITIONS_NAME);
+        if (property?.CanWrite == true &&
+            property.PropertyType.IsAssignableFrom(typeof(List<FlagDefinition>))
+            && property.GetValue(options) == null)
+        {
+            property.SetValue(options, GetFlagDefinitions());
         }
     }
 

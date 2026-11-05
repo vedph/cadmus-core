@@ -1,5 +1,5 @@
 ﻿using Cadmus.Index.Config;
-using Cadmus.Index.Ef.PgSql;
+using Cadmus.Index.PgSql;
 using Fusi.Microsoft.Extensions.Configuration.InMemoryJson;
 using Microsoft.Extensions.Hosting;
 using System;
@@ -33,8 +33,12 @@ public sealed class StandardItemIndexFactoryProvider :
             .ConfigureServices((hostContext, services) =>
             {
                 ItemIndexFactory.ConfigureServices(services,
-                    // Cadmus.Index.Ef.PgSql
-                    typeof(EfPgSqlItemIndexWriter).Assembly);
+                    // Cadmus.Index.PgSql
+                    typeof(PgSqlItemIndexWriter).Assembly,
+                    // Cadmus.Index.Ef.PgSql (legacy tags)
+#pragma warning disable CS0618 // Type or member is obsolete
+                    typeof(Index.Ef.PgSql.EfPgSqlItemIndexWriter).Assembly);
+#pragma warning restore CS0618 // Type or member is obsolete
             })
             // extension method from Fusi library
             .AddInMemoryJson(config)

@@ -1,15 +1,13 @@
 {
+  "flags": [
+    { "id": 1, "label": "to revise" }
+  ],
   "index": {
     "writer": {
       "id": "item-index-writer.ef-pg"
     },
     "reader": {
       "id": "item-index-reader.ef-pg"
-    }
-  },
-  "graph": {
-    "repository": {
-      "id": "graph-repository.ef-pg"
     }
   }
 }

@@ -1,34 +1,36 @@
-﻿using Cadmus.Index.Config;
+﻿using Cadmus.Core;
+using Cadmus.Index.Config;
+using Cadmus.Index.PgSql;
 using Fusi.Microsoft.Extensions.Configuration.InMemoryJson;
+using Fusi.Tools.Data;
 using Microsoft.Extensions.Hosting;
+using Npgsql;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Cadmus.Index.Ef.PgSql.Test;
 
+/// <summary>
+/// Tests for the deprecated compatibility shim: legacy profiles and code
+/// must keep working.
+/// </summary>
 public sealed class ItemIndexFactoryTest
 {
-    private static IHost GetHost(string config)
-    {
-        // build the container for seeders
-        Assembly[] indexAssemblies = new[]
-        {
-            // Cadmus.Index.Ef.PgSql
-            typeof(EfPgSqlItemIndexWriter).Assembly,
-        };
+    private const string DB = "cadmus-index-efpg-test";
+    private static readonly string CS = "Server=localhost;Database=" + DB +
+        ";User Id=postgres;Password=postgres;Include Error Detail=True";
 
-        return new HostBuilder()
-            .ConfigureServices((hostContext, services) =>
-            {
-                ItemIndexFactory.ConfigureServices(
-                    services,
-                    indexAssemblies);
-            })
-            .AddInMemoryJson(config)
-            .Build();
-    }
+    // like the factory providers of legacy API and CLI projects
+    private static ItemIndexFactory GetFactory() => new(
+        new HostBuilder()
+            .ConfigureServices((_, services) =>
+                ItemIndexFactory.ConfigureServices(services,
+                    typeof(EfPgSqlItemIndexWriter).Assembly))
+            .AddInMemoryJson(LoadResourceText("Config.json"))
+            .Build(), CS);
 
     private static string LoadResourceText(string name)
     {
@@ -40,23 +42,67 @@ public sealed class ItemIndexFactoryTest
     }
 
     [Fact]
-    public void GetIndex_Ok()
+    public void LegacyTags_Resolved()
     {
-        const string CS = "Server=localhost;Database=x;" +
-            "User Id=postgres;Password=postgres;";
-        ItemIndexFactory factory = new(
-            GetHost(LoadResourceText("Config.json")), CS);
+        ItemIndexFactory factory = GetFactory();
 
-        IItemIndexWriter? writer = factory.GetItemIndexWriter();
-        Assert.NotNull(writer);
-        EfItemIndexWriter? efw = writer as EfItemIndexWriter;
-        Assert.NotNull(efw);
-        Assert.Equal(CS, efw.ConnectionString);
+        EfPgSqlItemIndexWriter writer = Assert.IsType<EfPgSqlItemIndexWriter>(
+            factory.GetItemIndexWriter());
+        Assert.Equal(CS, writer.ConnectionString);
 
-        IItemIndexReader? reader = factory.GetItemIndexReader();
-        Assert.NotNull(reader);
-        EfItemIndexReader? efr = reader as EfItemIndexReader;
-        Assert.NotNull(efr);
-        Assert.Equal(CS, efr.ConnectionString);
+        EfPgSqlItemIndexReader reader = Assert.IsType<EfPgSqlItemIndexReader>(
+            factory.GetItemIndexReader());
+        Assert.Equal(CS, reader.ConnectionString);
+    }
+
+    [Fact]
+    public void GetPgSqlSchema_Ok()
+    {
+        Assert.Equal(PgSqlIndexSchema.GetSql(),
+            EfPgSqlItemIndexWriter.GetPgSqlSchema());
+    }
+
+    [Fact]
+    public void LegacyOptions_Ok()
+    {
+        EfPgSqlItemIndexWriter writer = new();
+        writer.Configure(new EfIndexRepositoryOptions { ConnectionString = CS });
+        Assert.Equal(CS, writer.ConnectionString);
+    }
+
+    [Fact]
+    public async Task LegacyProfile_WritesAndSearches()
+    {
+        ItemIndexFactory factory = GetFactory();
+        IItemIndexWriter writer = factory.GetItemIndexWriter()!;
+        await writer.CreateIndexAsync();
+        await writer.ClearAsync();
+
+        Item item = new()
+        {
+            Id = "00000000-0000-0000-0000-000000000001",
+            Title = "Alpha",
+            Description = "A",
+            FacetId = "default",
+            SortKey = "a",
+            Flags = 1,
+            CreatorId = "zeus",
+            UserId = "zeus"
+        };
+        // legacy synchronous-style call, as in legacy code
+        await writer.WriteItem(item);
+
+        // flags labels come from the profile
+        DataPage<ItemInfo> page = await factory.GetItemIndexReader()!
+            .SearchItemsAsync("[flags:to revise]", new PagingOptions());
+        Assert.Equal(item.Id, Assert.Single(page.Items).Id);
+
+        await using NpgsqlConnection connection = new(
+            CS.Replace(DB, "postgres"));
+        await connection.OpenAsync();
+        await using NpgsqlCommand cmd = new(
+            $"DROP DATABASE IF EXISTS \"{DB}\" WITH (FORCE)", connection);
+        await cmd.ExecuteNonQueryAsync();
+        PgSqlItemIndexWriter.ResetEnsuredDatabases();
     }
 }

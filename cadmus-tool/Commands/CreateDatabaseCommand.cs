@@ -1,6 +1,7 @@
 ﻿using Cadmus.Cli.Services;
 using Cadmus.Graph.Ef.PgSql;
-using Cadmus.Index.Ef.PgSql;
+using Cadmus.Index.PgSql;
+using System.Globalization;
 using Fusi.DbManager.PgSql;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
@@ -64,7 +65,30 @@ internal sealed class CreateDatabaseCommand :
         return true;
     }
 
-    public override Task<int> ExecuteAsync(CommandContext context,
+    private static async Task<int> CreateIndexDatabaseAsync(string name,
+        CancellationToken cancel)
+    {
+        string template = GetTemplate("Index");
+        AnsiConsole.MarkupLine("Server: [cyan]" +
+            $"{Markup.Escape(GetServerInfo(template))}[/]");
+
+        bool created = false;
+        await AnsiConsole.Status().StartAsync("Creating database...",
+            async _ =>
+            {
+                // this also updates the schema of an existing database
+                created = await PgSqlIndexSchema.EnsureDatabaseAsync(
+                    string.Format(CultureInfo.InvariantCulture, template, name),
+                    null, cancel);
+            });
+
+        AnsiConsole.MarkupLine(created
+            ? "[green]Database created.[/]"
+            : "[yellow]Database already exists: schema updated.[/]");
+        return 0;
+    }
+
+    public override async Task<int> ExecuteAsync(CommandContext context,
        CreateDatabaseCommandSettings settings, CancellationToken cancel)
     {
         AnsiConsole.MarkupLine("[red underline]CREATE DATABASE[/]");
@@ -76,7 +100,7 @@ internal sealed class CreateDatabaseCommand :
         if (string.IsNullOrWhiteSpace(settings.DatabaseName))
         {
             AnsiConsole.MarkupLine("[red]Database name not specified[/]");
-            return Task.FromResult(1);
+            return 1;
         }
 
         try
@@ -86,9 +110,8 @@ internal sealed class CreateDatabaseCommand :
             switch (settings.DatabaseRole.ToLowerInvariant())
             {
                 case "index":
-                    template = GetTemplate("Index");
-                    schema = EfPgSqlItemIndexWriter.GetPgSqlSchema();
-                    break;
+                    return await CreateIndexDatabaseAsync(
+                        settings.DatabaseName, cancel);
                 case "graph":
                     template = GetTemplate("Graph", "Index");
                     schema = EfPgSqlGraphRepository.GetSchema();
@@ -97,7 +120,7 @@ internal sealed class CreateDatabaseCommand :
                     AnsiConsole.MarkupLine("[red]Invalid database role[/] " +
                         "(expected index or graph): " +
                         Markup.Escape(settings.DatabaseRole));
-                    return Task.FromResult(1);
+                    return 1;
             }
 
             AnsiConsole.MarkupLine("Server: [cyan]" +
@@ -113,12 +136,12 @@ internal sealed class CreateDatabaseCommand :
             AnsiConsole.MarkupLine(created
                 ? "[green]Database created.[/]"
                 : "[yellow]Database already exists: nothing done.[/]");
-            return Task.FromResult(0);
+            return 0;
         }
         catch (Exception ex)
         {
             CliHelper.DisplayException(ex);
-            return Task.FromResult(2);
+            return 2;
         }
     }
 }

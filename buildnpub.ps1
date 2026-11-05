@@ -43,8 +43,6 @@ $projectOrder = @(
     "Cadmus.Import\Cadmus.Import.csproj",
     "Cadmus.Import.Excel\Cadmus.Import.Excel.csproj",
     "Cadmus.Index\Cadmus.Index.csproj",
-    "Cadmus.Index.Sql\Cadmus.Index.Sql.csproj",
-    "Cadmus.Index.Ef\Cadmus.Index.Ef.csproj",
     "Cadmus.Index.PgSql\Cadmus.Index.PgSql.csproj",
     "Cadmus.Index.Ef.PgSql\Cadmus.Index.Ef.PgSql.csproj",
     "Cadmus.Seed.General.Parts\Cadmus.Seed.General.Parts.csproj",

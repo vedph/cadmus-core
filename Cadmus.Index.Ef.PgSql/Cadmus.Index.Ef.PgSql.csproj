@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -10,9 +10,9 @@
 		<Company>Fusi</Company>
 		<Product>Cadmus</Product>
 		<Copyright>by Daniele Fusi 2023</Copyright>
-		<Description>Entity Framework Core implementation of Cadmus index for PostgreSQl.</Description>
+		<Description>DEPRECATED: compatibility shim for Cadmus index for PostgreSQL. Use Cadmus.Index.PgSql instead. This package no longer depends on Entity Framework.</Description>
 		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-		<PackageTags>Cadmus;SQL index</PackageTags>
+		<PackageTags>Cadmus;SQL index;deprecated</PackageTags>
 		<DebugType>portable</DebugType>
 		<DebugSymbols>true</DebugSymbols>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -22,28 +22,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Fusi.DbManager.PgSql" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
 		<PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">
-		<ProjectReference Include="..\Cadmus.Index.Ef\Cadmus.Index.Ef.csproj" />
 		<ProjectReference Include="..\Cadmus.Index.PgSql\Cadmus.Index.PgSql.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
-		<PackageReference Include="Cadmus.Index.Ef" />
 		<PackageReference Include="Cadmus.Index.PgSql" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="Assets\" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<EmbeddedResource Include="..\Cadmus.Index.PgSql\Assets\Schema.pgsql" Link="Assets\Schema.pgsql" />
 	</ItemGroup>
 
 </Project>

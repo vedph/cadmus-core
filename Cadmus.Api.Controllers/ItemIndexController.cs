@@ -73,19 +73,17 @@ public sealed class ItemIndexController : ControllerBase
         DataPage<ItemInfo> page;
         try
         {
-            page = reader.SearchItems(model.Query,
+            page = await reader.SearchItemsAsync(model.Query,
                 new PagingOptions
                 {
                     PageNumber = model.PageNumber,
                     PageSize = model.PageSize
-                });
+                }, HttpContext.RequestAborted);
         }
         catch (CadmusQueryException exception)
         {
             return Ok(new { error = exception.Message });
         }
-
-        reader.Close();
 
         return Ok(new
         {
@@ -125,19 +123,17 @@ public sealed class ItemIndexController : ControllerBase
         DataPage<DataPinInfo> page;
         try
         {
-            page = reader.SearchPins(model.Query,
+            page = await reader.SearchPinsAsync(model.Query,
                 new PagingOptions
                 {
                     PageNumber = model.PageNumber,
                     PageSize = model.PageSize
-                });
+                }, HttpContext.RequestAborted);
         }
         catch (CadmusQueryException exception)
         {
             return Ok(new { error = exception.Message });
         }
-
-        reader.Close();
 
         return Ok(new
         {

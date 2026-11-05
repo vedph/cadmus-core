@@ -1,5 +1,64 @@
 # History
 
+## 17.0.0
+
+- 2026-11-05: ⚠️ **breaking**: the items index (`Cadmus.Index*`) was rewritten in plain SQL for PostgreSQL, dropping Entity Framework and the unused SqlKata dependency, fixing several bugs, and optimizing its schema. See [the index documentation](docs/index.md) for the query syntax and the schema.
+  - packages:
+    - `Cadmus.Index.PgSql` is now the single implementation for both writing and searching (Npgsql only). Its components are tagged `item-index-writer.pgsql` and `item-index-reader.pgsql`.
+    - removed `Cadmus.Index.Ef` and `Cadmus.Index.Sql`.
+    - `Cadmus.Index.Ef.PgSql` is now a **deprecated** shim without EF, aliasing `Cadmus.Index.PgSql` under the legacy tags `item-index-writer.ef-pg` and `item-index-reader.ef-pg`, so that existing profiles keep working. It will be removed in the next major version.
+    - the query parser (`IndexQueryParser`, producing a syntax tree in `Cadmus.Index.Search`) is now in `Cadmus.Index`, independent from any storage; `PgSqlQueryBuilder` turns it into parameterized SQL.
+    - removed dead code: the MySQL-era SQL writer/reader base classes, `PgSqlHelper`, `DbDataReaderExtensions`, `IndexItem`, `IndexPin`.
+  - interfaces (`Cadmus.Index`):
+    - `IItemIndexWriter` and `IItemIndexReader` methods are now asynchronous with cancellation (`WriteItemAsync`, `WritePartAsync`, `DeleteItemAsync`, `DeletePartAsync`, `WriteItemsAsync`, `CreateIndexAsync`, `ClearAsync`, `SearchItemsAsync`, `SearchPinsAsync`). The old members are kept as obsolete default interface members, which wait for completion like before; `Close` is obsolete and does nothing, as connections are pooled and released after each operation.
+    - `ItemIndexer`: `BuildAsync`, `AddItemAsync`, `ClearAsync` (old members obsolete). Each page of 100 items is written in a single batch; if it fails, its items are written one by one, logging and skipping the faulty ones. Fixed: `AddItem` and `Build` did not await the writer.
+    - `ItemIndexFactory` supplies the profile flag definitions (`flags`) to component options having a `FlagDefinitions` property, so that flag labels can be used in queries (previously flag labels always resolved to 0).
+    - `CadmusQueryException` has a `Position` property.
+  - fixed query bugs:
+    - 🔒 **SQL injection**: any text outside clauses was copied into the SQL code (e.g. `[title=x] OR (subquery)` allowed reading any data to authenticated users). Now the query is parsed, and all the values are SQL parameters.
+    - in items search, two clauses on different pins combined with `AND` (e.g. `[tag=odd] AND [year==1200]`) never matched: now each pin clause can be satisfied by any pin of the item.
+    - items without pins (e.g. without parts) were never found, even by title or flags.
+    - values with `_` or `%` never matched with `=`, `<>`, regular expressions and similarity; backslashes were doubled, so that regular expressions like `\d` never matched.
+    - numeric operators (`==`, `<`, etc.) failed with a PostgreSQL error (they used MySQL syntax).
+    - syntax errors and invalid regular expressions now produce an `error` message in the API response, instead of HTTP 500.
+  - query language additions: `NOT`; implicit `AND` between consecutive operands; `@name` to target pins whose name is equal to a field alias (e.g. `[@title=x]`: parts emitting pins named `title`, `type` or `name` could not be searched by them); fields `creatorId`, `userId`, `timeCreated`, `timeModified`; date comparisons for time fields (`[timeModified>=2024-05-01]`). A query without `[` now means "title contains" rather than "title equals".
+  - writer:
+    - each save is a single round trip, executed atomically; writes to the same item are serialized, so that concurrent saves of the same part can no longer duplicate pins.
+    - values longer than their columns are truncated (previously, a pin name longer than 100 characters made the whole write fail, leaving the index out of sync with the data); NUL characters are removed; pins always get the ID of the item and part being written.
+    - the database is ensured (created or upgraded) once per process, rather than checked at each write.
+  - schema: idempotent script, applied at each API startup (`HostSeedExtensions.EnsureIndexDatabaseAsync`) and by the writer, which **upgrades legacy databases in place**:
+    - IDs are `varchar(36)` rather than `bpchar(36)` (comparisons with text parameters prevented the use of their indexes), pin IDs are `int8` (pins are reinserted at each save, so their IDs grow continuously), the sort key is not nullable.
+    - new indexes for the actual queries: `pin(item_id)`, `pin(part_id)` (previously missing: every save and every pin join scanned the whole table), `pin(name, value)`, trigram indexes on pin values, item titles and descriptions, `item(sort_key, id)` for sorted paging. Removed indexes useless to the queries (e.g. on flags).
+  - API (`Cadmus.Api.*`): the index factory is cached per profile, and the profile is loaded once per process, rather than building a new host and reading the profile at each index operation; searches are cancelled when the request is aborted; `EnableSensitiveDataLogging` is no longer used.
+  - CLI: `create-db index` also upgrades an existing index database; `build-index-sql` shows the parameterized SQL for items or pins (`-p`).
+
+### Migrating to 17.0.0
+
+Solutions depending on these packages (API and CLI projects) should:
+
+1. **update all the Cadmus packages** to 17.0.0, and remove any reference to `Cadmus.Index.Ef` or `Cadmus.Index.Sql`, which no longer exist. Replace `Cadmus.Index.Ef.PgSql` with `Cadmus.Index.PgSql` where possible; keeping it still works, as a deprecated shim.
+2. **index factory providers**: projects with their own provider (e.g. `StandardItemIndexFactoryProvider` in CLI tools) should register both assemblies, so that both the new and the legacy tags are resolved:
+
+   ```cs
+   ItemIndexFactory.ConfigureServices(services,
+       // Cadmus.Index.PgSql
+       typeof(PgSqlItemIndexWriter).Assembly,
+       // Cadmus.Index.Ef.PgSql (legacy tags)
+   #pragma warning disable CS0618
+       typeof(Cadmus.Index.Ef.PgSql.EfPgSqlItemIndexWriter).Assembly);
+   #pragma warning restore CS0618
+   ```
+
+   Providers registering only the legacy assembly keep working with profiles using the legacy tags. API projects using `Cadmus.Api.Services` need no change.
+3. **profiles** (optional, recommended): replace `item-index-writer.ef-pg` with `item-index-writer.pgsql`, and `item-index-reader.ef-pg` with `item-index-reader.pgsql`. This requires a provider registering `Cadmus.Index.PgSql` (see above).
+4. **code** using the index directly (obsolete members produce warnings, but keep working as before):
+   - `await writer.WriteItemAsync(item)` instead of `writer.WriteItem(item)`, and so on for the other members; remove `Close()` calls. Note that calls to the obsolete members are now blocking until completion, so that non-awaited calls (e.g. `_indexWriter.WriteItem(item);` in importers) still work.
+   - `await indexer.BuildAsync(repository, filter, progress, cancel)` instead of `indexer.Build(repository, filter, cancel, progress)` (mind the parameters order); `ClearAsync` instead of `Clear`.
+   - `PgSqlIndexSchema.GetSql()` instead of `EfPgSqlItemIndexWriter.GetPgSqlSchema()`.
+   - `PgSqlQueryBuilder.BuildItemQuery`/`BuildPinQuery` instead of `BuildForItem`/`BuildForPin`.
+5. **databases**: no action required. Existing index databases are upgraded in place at the first API startup: for big indexes this rewrites the `item` and `pin` tables once, which may take some time (the startup waits for it). Alternatively, run `cadmus-tool create-db index <name>` before deploying, or drop the index database and rebuild it with `cadmus-tool index`.
+6. **frontend**: no change required. Queries using plain text now search titles containing it rather than equal to it.
+
 ## 16.0.15
 
 - 2026-11-02: ⚠️ fixed and hardened databases initialization at API startup (`Cadmus.Api.Services`, `Cadmus.Api.Config`, `Cadmus.Api`):
