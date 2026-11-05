@@ -74,7 +74,7 @@
     <PackageVersion Include="CsvHelper" Version="34.0.0" />
     <PackageVersion Include="DiffMatchPatch" Version="5.0.0" />
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
-    <PackageVersion Include="Fluid.Core" Version="2.40.0" />
+    <PackageVersion Include="Fluid.Core" Version="2.41.1" />
     <PackageVersion Include="Fusi.Antiquity" Version="6.0.1" />
     <PackageVersion Include="Fusi.Api.Auth.Controllers" Version="7.1.0" />
     <PackageVersion Include="Fusi.Api.Auth.Models" Version="7.1.0" />
@@ -88,7 +88,7 @@
     <PackageVersion Include="Fusi.Xml" Version="7.0.3" />
     <PackageVersion Include="Fusi.Xml.Extras" Version="7.0.3" />
     <PackageVersion Include="JmesPath.Net" Version="1.1.0" />
-    <PackageVersion Include="Markdig" Version="1.5.1" />
+    <PackageVersion Include="Markdig" Version="1.6.0" />
     <PackageVersion Include="McMaster.NETCore.Plugins" Version="2.0.0" />
     <PackageVersion Include="MessagingApi" Version="6.0.0" />
     <PackageVersion Include="MessagingApi.SendGrid" Version="6.0.0" />
@@ -128,7 +128,7 @@
     <PackageVersion Include="Proteus.Core" Version="14.0.4" />
     <PackageVersion Include="Proteus.Entries" Version="14.0.4" />
     <PackageVersion Include="Proteus.Text.Xml" Version="14.0.4" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.7" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.19.0" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Exceptions" Version="8.4.0" />
