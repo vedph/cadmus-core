@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Cadmus.GraphStudio.Api.Models;
 
@@ -24,5 +25,11 @@ public sealed class RunMappingBindingModel
     public string? ItemEid { get; set; }
     public string? MetadataPid { get; set; }
     public string? GroupId { get; set; }
-    public string? Flags { get; set; }
+
+    /// <summary>
+    /// The item's flags. The frontend sends a number; a numeric string
+    /// is also accepted for backwards compatibility.
+    /// </summary>
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public int? Flags { get; set; }
 }

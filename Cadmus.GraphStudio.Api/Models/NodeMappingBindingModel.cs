@@ -124,8 +124,14 @@ public sealed class NodeMappingBindingModel
             Sid = Sid,
             ScalarPattern = ScalarPattern,
             Output = Output?.ToNodeMappingOutput(),
-            Children = Children?.Select(m => m.ToNodeMapping())?.ToArray()
-                ?? Array.Empty<GraphNodeMapping>()
+            // children are applied in the order of their ordinal, and then
+            // of their definition (as in the Cadmus graph database)
+            Children = Children?
+                .Select((m, i) => (m, i))
+                .OrderBy(t => t.m.Ordinal)
+                .ThenBy(t => t.i)
+                .Select(t => t.m.ToNodeMapping())
+                .ToArray() ?? Array.Empty<GraphNodeMapping>()
         };
     }
 }
