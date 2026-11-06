@@ -120,7 +120,7 @@ namespace Cadmus.Api.Controllers
                 Uri = model.Uri
             };
             _repository.AddNode(node);
-            return CreatedAtRoute("GetNode", new { node.Id }, node);
+            return CreatedAtRoute("GetDemoNode", new { node.Id }, node);
         }
 
         /// <summary>
@@ -190,7 +190,7 @@ namespace Cadmus.Api.Controllers
             TripleObjectSupplier.Supply(triple, model.DefaultLanguage);
 
             _repository.AddTriple(triple);
-            return CreatedAtRoute("GetTriple", new { triple.Id }, triple);
+            return CreatedAtRoute("GetDemoTriple", new { triple.Id }, triple);
         }
 
         /// <summary>

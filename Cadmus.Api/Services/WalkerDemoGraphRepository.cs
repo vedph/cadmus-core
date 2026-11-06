@@ -1,4 +1,4 @@
-using Cadmus.Api.Controllers;
+﻿using Cadmus.Api.Controllers;
 using Cadmus.Core.Config;
 using Cadmus.Export.Mapping;
 using Cadmus.Graph;
@@ -29,7 +29,8 @@ namespace Cadmus.Api.Services
 
         private readonly EfPgSqlGraphRepository _inner = new();
         private readonly IConfiguration _config;
-        private bool _seeded = false;
+        private readonly object _seedLock = new();
+        private volatile bool _seeded;
 
         public WalkerDemoGraphRepository(IConfiguration config)
         {
@@ -72,7 +73,14 @@ namespace Cadmus.Api.Services
             string cst = config.GetConnectionString("Index")!;
 
             PgSqlDbManager dbManager = new(cst);
-            if (dbManager.Exists(DB_NAME)) return;
+            if (dbManager.Exists(DB_NAME))
+            {
+                // upgrade a database created by a previous version
+                // (changes nothing when it is up to date)
+                PgSqlGraphSchema.ApplyAsync(string.Format(cst, DB_NAME))
+                    .GetAwaiter().GetResult();
+                return;
+            }
 
             // else create and seed it
             dbManager.CreateDatabase(DB_NAME, EfPgSqlGraphRepository.GetSchema(), null);
@@ -90,8 +98,11 @@ namespace Cadmus.Api.Services
 
         private void EnsureSeeded()
         {
-            if (!_seeded)
+            if (_seeded) return;
+            // this is a singleton, and the walker sends concurrent requests
+            lock (_seedLock)
             {
+                if (_seeded) return;
                 // nope if database exists
                 string cs = string.Format(_config.GetConnectionString("Index")!,
                     DB_NAME);
