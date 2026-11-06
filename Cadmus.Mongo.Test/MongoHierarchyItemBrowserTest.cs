@@ -7,6 +7,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
@@ -230,5 +231,119 @@ public sealed class MongoHierarchyItemBrowserTest : MongoConsumerBase
         Assert.Equal(2, payload.Y);
         Assert.Equal(2, payload.X);
         Assert.Equal(1, payload.ChildCount);
+    }
+
+    private void AddChild(string parentId, string id, int x, string sortKey,
+        bool addItem = true)
+    {
+        EnsureClientCreated(CONNECTION);
+        IMongoDatabase db = Client!.GetDatabase(DB_NAME);
+        if (addItem)
+        {
+            db.GetCollection<MongoItem>(MongoItem.COLLECTION).InsertOne(
+                new MongoItem
+                {
+                    Id = id,
+                    Title = id,
+                    FacetId = "default",
+                    SortKey = sortKey
+                });
+        }
+        HierarchyPart part = new()
+        {
+            ItemId = id,
+            ParentId = parentId,
+            Y = 2,
+            X = x
+        };
+        db.GetCollection<MongoPart>(MongoPart.COLLECTION).InsertOne(
+            new MongoPart(part)
+            {
+                Content = BsonDocument.Parse(JsonSerializer.Serialize(part,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    }))
+            });
+    }
+
+    [Fact]
+    public async Task Browse_SameX_SortedBySortKeyAndPaged()
+    {
+        PrepareDatabase();
+        MongoItem[] items = SeedItems();
+        // children of B, all with the same X, inserted in reverse order
+        AddChild(items[1].Id, "c", 1, "c");
+        AddChild(items[1].Id, "b", 1, "b");
+        AddChild(items[1].Id, "a", 1, "a");
+        MongoHierarchyItemBrowser browser = new();
+        browser.Configure(new ItemBrowserOptions
+        {
+            ConnectionString = CONNECTION_TEMPLATE,
+        });
+
+        DataPage<ItemInfo> page1 = await browser.BrowseAsync(DB_NAME,
+            new PagingOptions { PageNumber = 1, PageSize = 2 },
+            new Dictionary<string, string?> { ["parentId"] = items[1].Id });
+        DataPage<ItemInfo> page2 = await browser.BrowseAsync(DB_NAME,
+            new PagingOptions { PageNumber = 2, PageSize = 2 },
+            new Dictionary<string, string?> { ["parentId"] = items[1].Id });
+
+        Assert.Equal(3, page1.Total);
+        Assert.Equal(["a", "b"], page1.Items.Select(i => i.Id));
+        Assert.Equal(["c"], page2.Items.Select(i => i.Id));
+    }
+
+    [Fact]
+    public async Task Browse_OrphanPart_Skipped()
+    {
+        PrepareDatabase();
+        MongoItem[] items = SeedItems();
+        AddChild(items[1].Id, "orphan", 1, "orphan", addItem: false);
+        AddChild(items[1].Id, "a", 2, "a");
+        MongoHierarchyItemBrowser browser = new();
+        browser.Configure(new ItemBrowserOptions
+        {
+            ConnectionString = CONNECTION_TEMPLATE,
+        });
+
+        DataPage<ItemInfo> page = await browser.BrowseAsync(DB_NAME,
+            new PagingOptions { PageNumber = 1, PageSize = 0 },
+            new Dictionary<string, string?> { ["parentId"] = items[1].Id });
+
+        Assert.Equal("a", Assert.Single(page.Items).Id);
+    }
+
+    [Fact]
+    public async Task Browse_NoChildren_Empty()
+    {
+        PrepareDatabase();
+        MongoItem[] items = SeedItems();
+        MongoHierarchyItemBrowser browser = new();
+        browser.Configure(new ItemBrowserOptions
+        {
+            ConnectionString = CONNECTION_TEMPLATE,
+        });
+
+        DataPage<ItemInfo> page = await browser.BrowseAsync(DB_NAME,
+            new PagingOptions { PageNumber = 1, PageSize = 20 },
+            new Dictionary<string, string?>
+            {
+                ["parentId"] = items[3].Id,
+                ["tag"] = "x"
+            });
+
+        Assert.Equal(0, page.Total);
+        Assert.Empty(page.Items);
+    }
+
+    [Fact]
+    public async Task Browse_NotConfigured_Throws()
+    {
+        MongoHierarchyItemBrowser browser = new();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => browser.BrowseAsync(DB_NAME, new PagingOptions(),
+                new Dictionary<string, string?>()));
     }
 }

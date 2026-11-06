@@ -30,6 +30,11 @@ public sealed class MongoHierarchyItemBrowser : MongoConsumerBase,
     IItemBrowser,
     IConfigurable<ItemBrowserOptions>
 {
+    /// <summary>
+    /// The type ID of the hierarchy part.
+    /// </summary>
+    public const string HIERARCHY_PART_TYPE_ID = "it.vedph.hierarchy";
+
     private string? _connection;
     private readonly string _partTypeId;
 
@@ -40,7 +45,7 @@ public sealed class MongoHierarchyItemBrowser : MongoConsumerBase,
     public MongoHierarchyItemBrowser()
     {
         // the part ID of HierarchyPart
-        _partTypeId = "it.vedph.hierarchy";
+        _partTypeId = HIERARCHY_PART_TYPE_ID;
     }
 
     /// <summary>
@@ -119,43 +124,56 @@ public sealed class MongoHierarchyItemBrowser : MongoConsumerBase,
             new BsonDocument("$count", "count")
         };
 
-        using var cursor = await parts.AggregateAsync(pipeline, aggOptions);
-        await cursor.MoveNextAsync();
+        using var cursor = await parts.AggregateAsync(pipeline, aggOptions)
+            .ConfigureAwait(false);
+        await cursor.MoveNextAsync().ConfigureAwait(false);
         BsonDocument? first = cursor.Current.FirstOrDefault();
         return first?["count"].AsInt32 ?? 0;
     }
 
-    private static string? GetBsonString(BsonValue value) =>
-        value.BsonType != BsonType.Null ? value.AsString : null;
+    private static string? GetBsonString(BsonDocument doc, string name) =>
+        doc.TryGetValue(name, out BsonValue value) && value.IsString
+            ? value.AsString : null;
+
+    private static int GetBsonInt(BsonDocument doc, string name) =>
+        doc.TryGetValue(name, out BsonValue value) && value.IsNumeric
+            ? value.ToInt32() : 0;
+
+    private static DateTime GetBsonDateTime(BsonDocument doc, string name) =>
+        doc.TryGetValue(name, out BsonValue value) && value.IsValidDateTime
+            ? value.ToUniversalTime() : DateTime.MinValue;
 
     private static ItemInfo BsonDocumentToItemInfo(BsonDocument doc)
     {
         return new ItemInfo
         {
             Id = doc["_id"].AsString,
-            Title = GetBsonString(doc["title"])!,
-            Description = GetBsonString(doc["description"])!,
-            FacetId = GetBsonString(doc["facetId"])!,
-            GroupId = GetBsonString(doc["groupId"])!,
-            SortKey = GetBsonString(doc["sortKey"])!,
-            Flags = doc["flags"].AsInt32,
-            TimeCreated = doc["timeCreated"].ToUniversalTime(),
-            CreatorId = GetBsonString(doc["creatorId"]) ?? "",
-            TimeModified = doc["timeModified"].ToUniversalTime(),
-            UserId = GetBsonString(doc["userId"]) ?? ""
+            Title = GetBsonString(doc, "title") ?? "",
+            Description = GetBsonString(doc, "description") ?? "",
+            FacetId = GetBsonString(doc, "facetId") ?? "",
+            GroupId = GetBsonString(doc, "groupId"),
+            SortKey = GetBsonString(doc, "sortKey") ?? "",
+            Flags = GetBsonInt(doc, "flags"),
+            TimeCreated = GetBsonDateTime(doc, "timeCreated"),
+            CreatorId = GetBsonString(doc, "creatorId") ?? "",
+            TimeModified = GetBsonDateTime(doc, "timeModified"),
+            UserId = GetBsonString(doc, "userId") ?? ""
         };
     }
 
     /// <summary>
-    /// Browses the items using the specified options.
+    /// Browses the items using the specified options. Items are sorted by
+    /// the X value of their hierarchy part, then by their sort key and ID.
+    /// Hierarchy parts whose item is not found are skipped.
     /// </summary>
     /// <param name="database">The database name.</param>
     /// <param name="options">The paging and filtering options.
     /// You can set the page size to 0 when you want to retrieve all
     /// the items at the specified level.</param>
-    /// <param name="filters">The filters dictionary: it should include
-    /// <c>y</c>=requested Y level and optionally <c>tag</c>=requested
-    /// tag (defaults to null).</param>
+    /// <param name="filters">The filters dictionary: it can include
+    /// <c>parentId</c>=the ID of the parent item (null or missing for
+    /// root items), and <c>tag</c>=requested tag (null or missing for
+    /// no tag).</param>
     /// <returns>
     /// Page of items.
     /// </returns>
@@ -236,7 +254,8 @@ public sealed class MongoHierarchyItemBrowser : MongoConsumerBase,
             db.GetCollection<BsonDocument>(MongoPart.COLLECTION);
 
         // the parts count is equal to the items count
-        int total = await GetTotalAsync(parts, parentId, tag);
+        int total = await GetTotalAsync(parts, parentId, tag)
+            .ConfigureAwait(false);
         if (total == 0)
         {
             return new DataPage<ItemInfo>(
@@ -256,14 +275,18 @@ public sealed class MongoHierarchyItemBrowser : MongoConsumerBase,
         [
             BuildMatchStage(parentId, tag),
             new BsonDocument("$lookup", new BsonDocument()
-                    .Add("from", "items")
+                    .Add("from", MongoItem.COLLECTION)
                     .Add("localField", "itemId")
                     .Add("foreignField", "_id")
                     .Add("as", "items")),
+            // each part has a single item (orphan parts are dropped)
+            new BsonDocument("$unwind", "$items"),
             new BsonDocument("$sort", new BsonDocument()
                     .Add("content.x", 1)
-                    .Add("items[0].sortKey", 1)),
-            new BsonDocument("$skip", (options.PageNumber - 1) * options.PageSize)
+                    .Add("items.sortKey", 1)
+                    .Add("items._id", 1)),
+            new BsonDocument("$skip",
+                Math.Max(0, (options.PageNumber - 1) * options.PageSize))
         ]);
 
         if (options.PageSize > 0)
@@ -273,23 +296,25 @@ public sealed class MongoHierarchyItemBrowser : MongoConsumerBase,
 
         // collect all their items, in the paging range
         List<ItemInfo> items = new();
-        using (var cursor = await parts.AggregateAsync(pipeline, aggOptions))
+        using (var cursor = await parts.AggregateAsync(pipeline, aggOptions)
+            .ConfigureAwait(false))
         {
-            while (await cursor.MoveNextAsync())
+            while (await cursor.MoveNextAsync().ConfigureAwait(false))
             {
                 foreach (BsonDocument document in cursor.Current)
                 {
-                    ItemInfo info = BsonDocumentToItemInfo(document["items"]
-                        .AsBsonArray[0]
-                        .AsBsonDocument);
+                    ItemInfo info = BsonDocumentToItemInfo(
+                        document["items"].AsBsonDocument);
 
                     // add payload
                     BsonDocument content = document["content"].AsBsonDocument;
                     info.Payload = new MongoHierarchyItemBrowserPayload
                     {
-                        Y = content["y"].AsInt32,
-                        X = content["x"].AsInt32,
-                        ChildCount = content["childrenIds"].AsBsonArray.Count
+                        Y = GetBsonInt(content, "y"),
+                        X = GetBsonInt(content, "x"),
+                        ChildCount = content.TryGetValue("childrenIds",
+                            out BsonValue children) && children.IsBsonArray
+                            ? children.AsBsonArray.Count : 0
                     };
 
                     items.Add(info);

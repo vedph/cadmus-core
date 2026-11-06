@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -43,7 +44,7 @@ public sealed class SettingsImportController : ControllerBase
     /// <returns>Result.</returns>
     [Authorize(Roles = "admin")]
     [HttpPost("api/settings/import")]
-    public ImportResult UploadSettings(
+    public async Task<ImportResult> UploadSettings(
         // https://github.com/domaindrivendev/Swashbuckle.AspNetCore#handle-forms-and-file-uploads
         IFormFile file,
         [FromQuery] bool dryRun)
@@ -91,7 +92,7 @@ public sealed class SettingsImportController : ControllerBase
                     // to the repository
                     ids.Add(id);
                     JsonElement setting = prop.Value;
-                    if (!dryRun) repository.AddSetting(id, setting.GetRawText());
+                    if (!dryRun) await repository.AddSettingAsync(id, setting.GetRawText());
                 }
             }
 

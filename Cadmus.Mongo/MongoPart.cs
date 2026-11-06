@@ -146,8 +146,11 @@ public class MongoPart : IHasVersion
     /// </returns>
     public LayerPartInfo ToLayerPartInfo()
     {
-        // we assume that the layer part has a "fragments" property
-        int n = Content!["fragments"].AsBsonArray.Count;
+        // a layer part should have a "fragments" array property
+        int n = Content != null
+            && Content.TryGetValue("fragments", out BsonValue fragments)
+            && fragments.IsBsonArray
+            ? fragments.AsBsonArray.Count : 0;
 
         return new LayerPartInfo
         {

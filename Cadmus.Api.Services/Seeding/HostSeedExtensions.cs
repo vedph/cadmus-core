@@ -7,6 +7,7 @@ using Cadmus.Index;
 using Cadmus.Index.Config;
 using Cadmus.Index.PgSql;
 using Cadmus.Mongo;
+using MongoDB.Driver;
 using Cadmus.Seed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -174,9 +175,9 @@ public static class HostSeedExtensions
             logger.LogDebug("Seeding item {N}/{Count}: {Item} " +
                 "({PartCount} parts)", n, count, item, item.Parts.Count);
 
-            repository.AddItem(item, true);
+            await repository.AddItemAsync(item, true);
             foreach (IPart part in item.Parts)
-                repository.AddPart(part, true);
+                await repository.AddPartAsync(part, true);
 
             if (indexWriter != null) await indexWriter.WriteItemAsync(item);
             if (graphUpdater != null)
@@ -298,6 +299,17 @@ public static class HostSeedExtensions
         {
             logger.LogInformation("Data database {Database} already exists",
                 target);
+
+            // upgrade it with the indexes added by later versions
+            try
+            {
+                manager.EnsureIndexes(connString);
+            }
+            catch (MongoException ex)
+            {
+                logger.LogWarning(ex, "Unable to update the indexes of " +
+                    "data database {Database}: {Error}", target, ex.Message);
+            }
             return;
         }
 

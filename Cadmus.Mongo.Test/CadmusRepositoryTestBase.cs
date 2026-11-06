@@ -1636,14 +1636,14 @@ public abstract class CadmusRepositoryTestBase
         ICadmusRepository repository = GetRepository();
         SeedHierarchyParts(repository);
 
-        // act
+        // act: sort by Y and X, i.e. content properties
         var page = repository.GetParts(new PartFilter
         {
             TypeId = "it.vedph.hierarchy",
             SortExpressions = new[]
             {
-                Tuple.Create("RoleId", true),
-                Tuple.Create("TypeId", false)
+                Tuple.Create("Content.y", true),
+                Tuple.Create("Content.x", true)
             }
         });
 
@@ -2266,7 +2266,9 @@ public abstract class CadmusRepositoryTestBase
 
         int n = repository.GetLayerPartBreakChance(layerPart.Id, 0);
 
-        Assert.Equal(1, n);
+        // with history we know that the text did not change; without
+        // history we cannot know it, so the layer is potentially broken
+        Assert.Equal(history ? 0 : 1, n);
     }
 
     protected void DoGetLayerPartBreakChance_TextSavedBeforeLayerNoTolerance_0(

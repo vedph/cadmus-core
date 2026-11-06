@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Linq;
 using Cadmus.Core.Config;
 using Cadmus.Core.Storage;
@@ -36,10 +37,10 @@ public sealed class FlagController : ControllerBase
     [HttpGet("api/flags")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public ActionResult<FlagDefinition[]> Get()
+    public async Task<ActionResult<FlagDefinition[]>> Get()
     {
         ICadmusRepository repository = _repositoryProvider.CreateRepository();
-        return Ok(repository.GetFlagDefinitions().ToArray());
+        return Ok((await repository.GetFlagDefinitionsAsync()).ToArray());
     }
 
     /// <summary>
@@ -49,11 +50,11 @@ public sealed class FlagController : ControllerBase
     [HttpPost("api/flags")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public void AddFlags([FromBody] FlagDefinitionBindingModel[] flags)
+    public async Task AddFlags([FromBody] FlagDefinitionBindingModel[] flags)
     {
         ICadmusRepository repository = _repositoryProvider.CreateRepository();
 
         foreach (FlagDefinitionBindingModel flag in flags)
-            repository.AddFlagDefinition(flag.ToFlagDefinition());
+            await repository.AddFlagDefinitionAsync(flag.ToFlagDefinition());
     }
 }

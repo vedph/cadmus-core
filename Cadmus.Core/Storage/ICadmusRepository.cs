@@ -10,7 +10,7 @@ namespace Cadmus.Core.Storage;
 /// <summary>
 /// Cadmus repository.
 /// </summary>
-public interface ICadmusRepository
+public partial interface ICadmusRepository
 {
     #region Flags
     /// <summary>

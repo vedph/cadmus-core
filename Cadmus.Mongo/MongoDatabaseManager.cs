@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cadmus.Core.Storage;
 using Cadmus.Core.Config;
-using MongoDB.Bson;
 using MongoDB.Driver;
-using System.Threading;
 
 namespace Cadmus.Mongo;
 
@@ -14,75 +12,106 @@ namespace Cadmus.Mongo;
 /// </summary>
 public sealed class MongoDatabaseManager : MongoConsumerBase, IDatabaseManager
 {
+    private static CreateIndexModel<T> Index<T>(IndexKeysDefinition<T> keys,
+        CreateIndexOptions<T>? options = null) => new(keys, options);
+
     private static void CreateIndexes(IMongoDatabase database)
     {
         ArgumentNullException.ThrowIfNull(database);
 
+        // creating an index which already exists with the same keys and
+        // options does nothing, so this can be run on existing databases
+
         // items
-        var itemCollection = database.GetCollection<MongoItem>
-            (MongoItem.COLLECTION);
-        itemCollection.Indexes.CreateOne(new CreateIndexModel<MongoItem>(
-            Builders<MongoItem>.IndexKeys.Ascending(i => i.Title)));
-        itemCollection.Indexes.CreateOne(new CreateIndexModel<MongoItem>(
-            Builders<MongoItem>.IndexKeys.Ascending(i => i.Description)));
-        itemCollection.Indexes.CreateOne(new CreateIndexModel<MongoItem>(
-            Builders<MongoItem>.IndexKeys.Ascending(i => i.FacetId)));
-        itemCollection.Indexes.CreateOne(new CreateIndexModel<MongoItem>(
-            Builders<MongoItem>.IndexKeys.Ascending(i => i.SortKey)));
-        itemCollection.Indexes.CreateOne(new CreateIndexModel<MongoItem>(
-            Builders<MongoItem>.IndexKeys.Ascending(i => i.Flags)));
+        IndexKeysDefinitionBuilder<MongoItem> itemKeys =
+            Builders<MongoItem>.IndexKeys;
+        database.GetCollection<MongoItem>(MongoItem.COLLECTION)
+            .Indexes.CreateMany(
+            [
+                Index(itemKeys.Ascending(i => i.Title)),
+                Index(itemKeys.Ascending(i => i.Description)),
+                Index(itemKeys.Ascending(i => i.FacetId)),
+                Index(itemKeys.Ascending(i => i.SortKey)),
+                Index(itemKeys.Ascending(i => i.Flags)),
+                // items are paged by sort key and ID
+                Index(itemKeys.Ascending(i => i.SortKey)
+                    .Ascending(i => i.Id)),
+                // group IDs and group layers
+                Index(itemKeys.Ascending(i => i.GroupId)),
+            ]);
 
         // parts
-        var partCollection = database.GetCollection<MongoPart>
-            (MongoPart.COLLECTION);
-        partCollection.Indexes.CreateOne(new CreateIndexModel<MongoPart>(
-            Builders<MongoPart>.IndexKeys.Ascending(p => p.ItemId)));
-        partCollection.Indexes.CreateOne(new CreateIndexModel<MongoPart>(
-            Builders<MongoPart>.IndexKeys.Ascending(p => p.TypeId)));
-        partCollection.Indexes.CreateOne(new CreateIndexModel<MongoPart>(
-            Builders<MongoPart>.IndexKeys.Ascending(p => p.RoleId)));
+        IndexKeysDefinitionBuilder<MongoPart> partKeys =
+            Builders<MongoPart>.IndexKeys;
+        database.GetCollection<MongoPart>(MongoPart.COLLECTION)
+            .Indexes.CreateMany(
+            [
+                Index(partKeys.Ascending(p => p.ItemId)),
+                Index(partKeys.Ascending(p => p.TypeId)),
+                Index(partKeys.Ascending(p => p.RoleId)),
+                // hierarchy items browser: children of a parent
+                Index(Builders<MongoPart>.IndexKeys
+                    .Ascending("content.parentId")
+                    .Ascending("content.tag"),
+                    new CreateIndexOptions<MongoPart>
+                    {
+                        Name = "hierarchy_parent_tag",
+                        PartialFilterExpression = Builders<MongoPart>.Filter
+                            .Eq(p => p.TypeId,
+                                MongoHierarchyItemBrowser.HIERARCHY_PART_TYPE_ID)
+                    }),
+            ]);
 
         // history-items
-        var historyItemCollection = database.GetCollection<MongoHistoryItem>
-            (MongoHistoryItem.COLLECTION);
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.Title)));
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.Description)));
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.FacetId)));
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.SortKey)));
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.Flags)));
-
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.TimeModified)));
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.UserId)));
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.ReferenceId)));
-        historyItemCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryItem>(
-            Builders<MongoHistoryItem>.IndexKeys.Ascending(i => i.Status)));
+        IndexKeysDefinitionBuilder<MongoHistoryItem> historyItemKeys =
+            Builders<MongoHistoryItem>.IndexKeys;
+        database.GetCollection<MongoHistoryItem>(MongoHistoryItem.COLLECTION)
+            .Indexes.CreateMany(
+            [
+                Index(historyItemKeys.Ascending(i => i.Title)),
+                Index(historyItemKeys.Ascending(i => i.Description)),
+                Index(historyItemKeys.Ascending(i => i.FacetId)),
+                Index(historyItemKeys.Ascending(i => i.SortKey)),
+                Index(historyItemKeys.Ascending(i => i.Flags)),
+                Index(historyItemKeys.Ascending(i => i.TimeModified)),
+                Index(historyItemKeys.Ascending(i => i.UserId)),
+                Index(historyItemKeys.Ascending(i => i.ReferenceId)),
+                Index(historyItemKeys.Ascending(i => i.Status)),
+            ]);
 
         // history-parts
-        var historyPartCollection = database.GetCollection<MongoHistoryPart>
-            (MongoHistoryPart.COLLECTION);
-        historyPartCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryPart>(
-            Builders<MongoHistoryPart>.IndexKeys.Ascending(p => p.ItemId)));
-        historyPartCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryPart>(
-            Builders<MongoHistoryPart>.IndexKeys.Ascending(p => p.TypeId)));
-        historyPartCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryPart>(
-            Builders<MongoHistoryPart>.IndexKeys.Ascending(p => p.RoleId)));
+        IndexKeysDefinitionBuilder<MongoHistoryPart> historyPartKeys =
+            Builders<MongoHistoryPart>.IndexKeys;
+        database.GetCollection<MongoHistoryPart>(MongoHistoryPart.COLLECTION)
+            .Indexes.CreateMany(
+            [
+                Index(historyPartKeys.Ascending(p => p.ItemId)),
+                Index(historyPartKeys.Ascending(p => p.TypeId)),
+                Index(historyPartKeys.Ascending(p => p.RoleId)),
+                Index(historyPartKeys.Ascending(p => p.TimeModified)),
+                Index(historyPartKeys.Ascending(p => p.UserId)),
+                Index(historyPartKeys.Ascending(p => p.ReferenceId)),
+                Index(historyPartKeys.Ascending(p => p.Status)),
+                // versions of a part from the newest (layer part checks)
+                Index(historyPartKeys.Ascending(p => p.ReferenceId)
+                    .Descending(p => p.TimeModified)),
+            ]);
+    }
 
-        historyPartCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryPart>(
-            Builders<MongoHistoryPart>.IndexKeys.Ascending(i => i.TimeModified)));
-        historyPartCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryPart>(
-            Builders<MongoHistoryPart>.IndexKeys.Ascending(i => i.UserId)));
-        historyPartCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryPart>(
-            Builders<MongoHistoryPart>.IndexKeys.Ascending(i => i.ReferenceId)));
-        historyPartCollection.Indexes.CreateOne(new CreateIndexModel<MongoHistoryPart>(
-            Builders<MongoHistoryPart>.IndexKeys.Ascending(i => i.Status)));
+    /// <summary>
+    /// Ensures that the database with the specified source has all the
+    /// indexes used by Cadmus, creating those which are missing. Use this
+    /// to upgrade a database created by a previous version. Note that on
+    /// big collections creating an index may take some time.
+    /// </summary>
+    /// <param name="source">The database source.</param>
+    /// <exception cref="ArgumentNullException">null source</exception>
+    public void EnsureIndexes(string source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        EnsureClientCreated(source);
+        CreateIndexes(Client!.GetDatabase(GetDatabaseName(source)));
     }
 
     /// <summary>
@@ -179,21 +208,12 @@ public sealed class MongoDatabaseManager : MongoConsumerBase, IDatabaseManager
             .DeleteMany(_ => true);
     }
 
-    private static IEnumerable<BsonDocument> Enumerate(
-        IAsyncCursor<BsonDocument> docs)
-    {
-        while (docs.MoveNext())
-        {
-            foreach (BsonDocument item in docs.Current)
-                yield return item;
-        }
-    }
-
     /// <summary>
-    /// Databases the exists.
+    /// Checks whether the database exists.
     /// </summary>
     /// <param name="source">The database source.</param>
     /// <returns>true if the database exists</returns>
+    /// <exception cref="ArgumentNullException">null source</exception>
     public bool DatabaseExists(string source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -201,9 +221,6 @@ public sealed class MongoDatabaseManager : MongoConsumerBase, IDatabaseManager
         EnsureClientCreated(source);
         string databaseName = GetDatabaseName(source);
 
-        // http://stackoverflow.com/questions/7049722/check-if-mongodb-database-exists
-        var dbList = Enumerate(Client!.ListDatabases(CancellationToken.None))
-            .Select(db => db.GetValue("name").AsString);
-        return dbList.Contains(databaseName);
+        return Client!.ListDatabaseNames().ToList().Contains(databaseName);
     }
 }

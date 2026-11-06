@@ -3,6 +3,7 @@ using Cadmus.Core.Storage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Threading.Tasks;
 using System.Text.Json;
 
 namespace Cadmus.Api.Controllers;
@@ -25,11 +26,11 @@ public sealed class SettingsController(IRepositoryProvider repositoryProvider)
     [Produces("application/json")]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
-    public IActionResult Get(string id)
+    public async Task<IActionResult> Get(string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        string? json = repository.GetSetting(id);
+        string? json = await repository.GetSettingAsync(id);
         if (json == null) return Ok(JsonDocument.Parse("{}"));
 
         try
@@ -51,12 +52,12 @@ public sealed class SettingsController(IRepositoryProvider repositoryProvider)
     /// <param name="value">The JSON code representing the setting.</param>
     [HttpPost("{id:regex(^(?!import$).+$)}")]
     [ProducesResponseType(200)]
-    public ActionResult Add(string id, [FromBody] string value)
+    public async Task<ActionResult> Add(string id, [FromBody] string value)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        repository.AddSetting(id, value);
+        await repository.AddSettingAsync(id, value);
 
         return Ok();
     }
@@ -66,10 +67,10 @@ public sealed class SettingsController(IRepositoryProvider repositoryProvider)
     /// </summary>
     /// <param name="id">The setting's identifier.</param>
     [HttpDelete("{id:regex(^(?!import$).+$)}")]
-    public void Delete(string id)
+    public async Task Delete(string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        repository.DeleteSetting(id);
+        await repository.DeleteSettingAsync(id);
     }
 }

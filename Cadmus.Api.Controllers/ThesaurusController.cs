@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using Cadmus.Core;
@@ -41,14 +42,14 @@ public sealed class ThesaurusController : ControllerBase
     /// </summary>
     /// <returns>list of tag sets IDs</returns>
     [HttpGet("api/thesauri-ids")]
-    public IActionResult GetSetIds([FromQuery] ThesaurusLookupBindingModel filter)
+    public async Task<IActionResult> GetSetIds([FromQuery] ThesaurusLookupBindingModel filter)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
         return Ok(filter.IsEmpty()
-            ? repository.GetThesaurusIds()
-            : repository.GetThesaurusIds(new ThesaurusFilter
+            ? await repository.GetThesaurusIdsAsync()
+            : await repository.GetThesaurusIdsAsync(new ThesaurusFilter
             {
                 PageNumber = 1,
                 PageSize = filter.Limit,
@@ -71,13 +72,13 @@ public sealed class ThesaurusController : ControllerBase
     [HttpGet("api/thesauri/{id}", Name = "GetThesaurus")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public IActionResult GetThesaurus(
+    public async Task<IActionResult> GetThesaurus(
         [FromRoute] string id,
         [FromQuery] bool emptyIfNotFound)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        Thesaurus? thesaurus = repository.GetThesaurus(id);
+        Thesaurus? thesaurus = await repository.GetThesaurusAsync(id);
         if (thesaurus == null)
         {
             return emptyIfNotFound
@@ -102,14 +103,14 @@ public sealed class ThesaurusController : ControllerBase
     /// <returns>Page.</returns>
     [HttpGet("api/thesauri")]
     [ProducesResponseType(200)]
-    public IActionResult GetThesauri([FromQuery] ThesaurusFilterBindingModel model)
+    public async Task<IActionResult> GetThesauri([FromQuery] ThesaurusFilterBindingModel model)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        DataPage<Thesaurus> page = repository.GetThesauri(new ThesaurusFilter
+        DataPage<Thesaurus> page = await repository.GetThesauriAsync(new ThesaurusFilter
         {
             PageNumber = model.PageNumber,
             PageSize = model.PageSize,
@@ -154,7 +155,7 @@ public sealed class ThesaurusController : ControllerBase
     /// equal to the thesaurus model.</returns>
     [HttpGet("api/thesauri-set")]
     [ProducesResponseType(200)]
-    public ActionResult<Dictionary<string,ThesaurusModel>> GetThesauriSet(
+    public async Task<ActionResult<Dictionary<string,ThesaurusModel>>> GetThesauriSet(
         [FromQuery] string ids,
         [FromQuery] bool purgeIds)
     {
@@ -166,7 +167,7 @@ public sealed class ThesaurusController : ControllerBase
             .Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Distinct())
         {
-            Thesaurus? thesaurus = repository.GetThesaurus(id);
+            Thesaurus? thesaurus = await repository.GetThesaurusAsync(id);
             if (thesaurus == null) continue;
             dct[purgeIds ? PurgeThesaurusId(id) : id] = new ThesaurusModel
             {
@@ -186,7 +187,7 @@ public sealed class ThesaurusController : ControllerBase
     [HttpPost("api/thesauri")]
     [ProducesResponseType(201)]
     [ProducesResponseType(400)]
-    public IActionResult AddThesaurus([FromBody] ThesaurusBindingModel model)
+    public async Task<IActionResult> AddThesaurus([FromBody] ThesaurusBindingModel model)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -198,7 +199,7 @@ public sealed class ThesaurusController : ControllerBase
         Thesaurus thesaurus = new(model.Id!);
         foreach (ThesaurusEntryBindingModel entry in model.Entries!)
             thesaurus.AddEntry(new ThesaurusEntry(entry.Id!, entry.Value!));
-        repository.AddThesaurus(thesaurus);
+        await repository.AddThesaurusAsync(thesaurus);
 
         _logger.LogInformation(
             "User {UserName} successfully added thesaurus {ThesaurusId}",
@@ -219,11 +220,11 @@ public sealed class ThesaurusController : ControllerBase
     /// <returns>List of alias thesaurus IDs in alphabetical order.</returns>
     [HttpGet("api/thesauri/{id}/aliases")]
     [ProducesResponseType(200)]
-    public ActionResult<IList<string>> GetThesaurusAliases([FromRoute] string id)
+    public async Task<ActionResult<IList<string>>> GetThesaurusAliases([FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        return Ok(repository.GetThesaurusAliases(id));
+        return Ok(await repository.GetThesaurusAliasesAsync(id));
     }
 
     /// <summary>
@@ -232,7 +233,7 @@ public sealed class ThesaurusController : ControllerBase
     /// <param name="id">The thesaurus ID.</param>
     [Authorize(Roles = "admin,editor")]
     [HttpDelete("api/thesauri/{id}")]
-    public void DeleteThesaurus([FromRoute] string id)
+    public async Task DeleteThesaurus([FromRoute] string id)
     {
         _logger.LogInformation("User {UserName} deleting thesaurus {ThesaurusId}",
             User.Identity!.Name,
@@ -240,7 +241,7 @@ public sealed class ThesaurusController : ControllerBase
 
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        repository.DeleteThesaurus(id);
+        await repository.DeleteThesaurusAsync(id);
 
         _logger.LogInformation(
             "User {UserName} successfully deleted thesaurus {ThesaurusId}",

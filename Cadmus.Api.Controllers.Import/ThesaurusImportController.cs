@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Cadmus.Core;
 
@@ -52,7 +53,7 @@ public sealed class ThesaurusImportController : ControllerBase
     /// <exception cref="InvalidOperationException">No ID for thesaurus</exception>
     [Authorize(Roles = "admin")]
     [HttpPost("api/thesauri/import")]
-    public ImportResult UploadThesauri(
+    public async Task<ImportResult> UploadThesauri(
         // https://github.com/domaindrivendev/Swashbuckle.AspNetCore#handle-forms-and-file-uploads
         IFormFile file,
         [FromQuery] ImportThesauriBindingModel model)
@@ -98,14 +99,14 @@ public sealed class ThesaurusImportController : ControllerBase
                 ids.Add(source.Id);
 
                 // fetch from repository
-                Thesaurus? target = repository.GetThesaurus(source.Id);
+                Thesaurus? target = await repository.GetThesaurusAsync(source.Id);
 
                 // import
                 Thesaurus result = ThesaurusHelper.CopyThesaurus(
                     source, target, mode);
 
                 // save
-                if (model.DryRun != true) repository.AddThesaurus(result);
+                if (model.DryRun != true) await repository.AddThesaurusAsync(result);
             }
 
             _logger?.LogInformation(

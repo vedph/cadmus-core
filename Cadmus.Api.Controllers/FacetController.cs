@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using Cadmus.Api.Models;
@@ -37,11 +38,11 @@ public sealed class FacetController : ControllerBase
     [HttpGet("api/facets")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public ActionResult<FacetDefinition[]> GetFacets()
+    public async Task<ActionResult<FacetDefinition[]>> GetFacets()
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        return Ok(repository.GetFacetDefinitions().ToArray());
+        return Ok((await repository.GetFacetDefinitionsAsync()).ToArray());
     }
 
     private static PartDefinition[] CollectFacetParts(
@@ -73,12 +74,12 @@ public sealed class FacetController : ControllerBase
     [Produces("application/json")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public ActionResult<PartDefinition> GetFacet([FromRoute] string id)
+    public async Task<ActionResult<PartDefinition>> GetFacet([FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        FacetDefinition? facet = repository.GetFacetDefinition(id);
+        FacetDefinition? facet = await repository.GetFacetDefinitionAsync(id);
         if (facet == null) return NotFound();
         return Ok(facet);
     }
@@ -91,16 +92,16 @@ public sealed class FacetController : ControllerBase
     [Produces("application/json")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public ActionResult<PartDefinition> GetFacetFromItemId(
+    public async Task<ActionResult<PartDefinition>> GetFacetFromItemId(
         [FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        IItem? item = repository.GetItem(id, false);
+        IItem? item = await repository.GetItemAsync(id, false);
         if (item?.FacetId == null) return NotFound();
 
-        FacetDefinition? facet = repository.GetFacetDefinition(item.FacetId);
+        FacetDefinition? facet = await repository.GetFacetDefinitionAsync(item.FacetId);
         if (facet == null) return NotFound();
         return Ok(facet);
     }
@@ -118,14 +119,14 @@ public sealed class FacetController : ControllerBase
     [HttpGet("api/facets/{id}/parts")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public ActionResult<PartDefinition[]> GetFacetParts(
+    public async Task<ActionResult<PartDefinition[]>> GetFacetParts(
         [FromRoute] string id,
         [FromQuery] bool noRoles = false)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        FacetDefinition? facet = repository.GetFacetDefinition(id);
+        FacetDefinition? facet = await repository.GetFacetDefinitionAsync(id);
         if (facet == null)
             return Ok(Array.Empty<PartDefinition>());
 
@@ -148,18 +149,18 @@ public sealed class FacetController : ControllerBase
     [HttpGet("api/item-facets/{id}/parts")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public ActionResult<PartDefinition[]> GetFacetPartsFromItem(
+    public async Task<ActionResult<PartDefinition[]>> GetFacetPartsFromItem(
         [FromRoute] string id,
         [FromQuery] bool noRoles = false)
     {
         ICadmusRepository repository = _repositoryProvider.CreateRepository();
 
-        IItem? item = repository.GetItem(id, false);
+        IItem? item = await repository.GetItemAsync(id, false);
         PartDefinition[] result;
 
         if (item?.FacetId != null)
         {
-            FacetDefinition? facet = repository.GetFacetDefinition(item.FacetId);
+            FacetDefinition? facet = await repository.GetFacetDefinitionAsync(item.FacetId);
             if (facet == null) return Ok(Array.Empty<PartDefinition>());
             result = CollectFacetParts(facet, noRoles);
         }
@@ -181,12 +182,12 @@ public sealed class FacetController : ControllerBase
     [HttpGet("api/facets/layer-type-id")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public IActionResult GetTextLayerPartTypeId()
+    public async Task<IActionResult> GetTextLayerPartTypeId()
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        foreach (FacetDefinition facet in repository.GetFacetDefinitions())
+        foreach (FacetDefinition facet in await repository.GetFacetDefinitionsAsync())
         {
             PartDefinition? partDef = facet.PartDefinitions
                 .Find(d => d.RoleId?.StartsWith(
@@ -205,11 +206,11 @@ public sealed class FacetController : ControllerBase
     [HttpPost("api/facets")]
     [ProducesResponseType(201)]
     [ProducesResponseType(400)]
-    public IActionResult AddFacet([FromBody] FacetDefinitionBindingModel facet)
+    public async Task<IActionResult> AddFacet([FromBody] FacetDefinitionBindingModel facet)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        repository.AddFacetDefinition(facet.ToFacetDefinition());
+        await repository.AddFacetDefinitionAsync(facet.ToFacetDefinition());
         return CreatedAtRoute("GetFacet", new { id = facet.Id }, null);
     }
 
@@ -219,11 +220,11 @@ public sealed class FacetController : ControllerBase
     /// <param name="id">The facet ID.</param>
     [Authorize(Roles="admin")]
     [HttpDelete("api/facets/{id}")]
-    public IActionResult DeleteFacet([FromRoute] string id)
+    public async Task<IActionResult> DeleteFacet([FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        repository.DeleteFacetDefinition(id);
+        await repository.DeleteFacetDefinitionAsync(id);
         return NoContent();
     }
 }

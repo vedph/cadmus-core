@@ -106,14 +106,14 @@ public sealed class ItemController : ControllerBase
     /// <returns>page</returns>
     [HttpGet("api/items")]
     [ProducesResponseType(200)]
-    public ActionResult<DataPage<ItemInfo>> GetItems(
+    public async Task<ActionResult<DataPage<ItemInfo>>> GetItems(
         [FromQuery] ItemFilterModel filter)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        DataPage<ItemInfo> page = repository.GetItems(new ItemFilter
+        DataPage<ItemInfo> page = await repository.GetItemsAsync(new ItemFilter
         {
             PageNumber = filter.PageNumber,
             PageSize = filter.PageSize,
@@ -140,13 +140,13 @@ public sealed class ItemController : ControllerBase
     [HttpGet("api/items/{id}", Name = "GetItem")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public ActionResult<IItem> GetItem(
+    public async Task<ActionResult<IItem>> GetItem(
         [FromRoute] string id,
         [FromQuery] bool parts)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        IItem? item = repository.GetItem(id, parts);
+        IItem? item = await repository.GetItemAsync(id, parts);
         if (item == null) return new NotFoundResult();
         return Ok(item);
     }
@@ -197,11 +197,11 @@ public sealed class ItemController : ControllerBase
     [Produces("application/json")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public IActionResult GetPart([FromRoute] string id)
+    public async Task<IActionResult> GetPart([FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        string? json = repository.GetPartContent(id);
+        string? json = await repository.GetPartContentAsync(id);
 
         if (json == null) return new NotFoundResult();
         json = AdjustPartJson(json);
@@ -236,7 +236,7 @@ public sealed class ItemController : ControllerBase
     [Produces("application/json")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public IActionResult GetPartFromTypeAndRole(
+    public async Task<IActionResult> GetPartFromTypeAndRole(
         [FromRoute] string id,
         [FromRoute] string type,
         [FromRoute] string role)
@@ -244,13 +244,13 @@ public sealed class ItemController : ControllerBase
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        IPart? part = repository.GetItemParts([id],
+        IPart? part = (await repository.GetItemPartsAsync([id],
             type == "any" ? null : type,
-            role == "default" ? null : role)
+            role == "default" ? null : role))
             .FirstOrDefault();
         if (part == null) return NotFound();
 
-        string? json = repository.GetPartContent(part.Id);
+        string? json = await repository.GetPartContentAsync(part.Id);
         if (json == null) return new NotFoundResult();
         json = AdjustPartJson(json);
 
@@ -279,7 +279,7 @@ public sealed class ItemController : ControllerBase
     [HttpGet("api/items/{id}/parts/{type}/{role}/exists")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public IActionResult PartExists(
+    public async Task<IActionResult> PartExists(
         [FromRoute] string id,
         [FromRoute] string type,
         [FromRoute] string role)
@@ -287,9 +287,9 @@ public sealed class ItemController : ControllerBase
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        IPart? part = repository.GetItemParts([id],
+        IPart? part = (await repository.GetItemPartsAsync([id],
             type == "any" ? null : type,
-            role == "default" ? null : role)
+            role == "default" ? null : role))
             .FirstOrDefault();
 
         return Ok(new
@@ -336,13 +336,13 @@ public sealed class ItemController : ControllerBase
     [HttpGet("api/items/{id}/base-text")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public IActionResult GetBaseText([FromRoute] string id)
+    public async Task<IActionResult> GetBaseText([FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        IPart? partWithText = repository.GetItemParts(
-            [id], null, PartBase.BASE_TEXT_ROLE_ID).FirstOrDefault();
+        IPart? partWithText = (await repository.GetItemPartsAsync(
+            [id], null, PartBase.BASE_TEXT_ROLE_ID)).FirstOrDefault();
         return Ok(new
         {
             Part = partWithText,
@@ -363,14 +363,14 @@ public sealed class ItemController : ControllerBase
     [HttpGet("api/items/{id}/layers")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public IActionResult GetItemLayerInfo(
+    public async Task<IActionResult> GetItemLayerInfo(
         [FromRoute] string id,
         [FromQuery] bool absent)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        IList<LayerPartInfo> parts = repository.GetItemLayerInfo(id, absent);
+        IList<LayerPartInfo> parts = await repository.GetItemLayerInfoAsync(id, absent);
         return Ok(parts);
     }
 
@@ -384,11 +384,11 @@ public sealed class ItemController : ControllerBase
     [Produces("application/json")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public IActionResult GetPartPins([FromRoute] string id)
+    public async Task<IActionResult> GetPartPins([FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
-        string? json = repository.GetPartContent(id);
+        string? json = await repository.GetPartContentAsync(id);
 
         if (json == null) return new NotFoundResult();
         // remove ISODate(...) function (this seems to be a Mongo artifact)
@@ -453,7 +453,7 @@ public sealed class ItemController : ControllerBase
         ICadmusRepository repository = _repositoryProvider.CreateRepository();
     
         // get the source item (must be present)
-        IItem? item = repository.GetItem(id, false);
+        IItem? item = await repository.GetItemAsync(id, false);
         if (item == null) return NotFound();
 
         // get the builder for the item's facet
@@ -478,7 +478,7 @@ public sealed class ItemController : ControllerBase
     [HttpGet("api/parts/{id}/break-chance")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public IActionResult GetLayerPartBreakChance(
+    public async Task<IActionResult> GetLayerPartBreakChance(
         [FromRoute] string id)
     {
         ICadmusRepository repository =
@@ -490,7 +490,7 @@ public sealed class ItemController : ControllerBase
             && int.TryParse(intervalOption, out int n)
             ? n
             : 60;
-        int chance = repository.GetLayerPartBreakChance(id, interval);
+        int chance = await repository.GetLayerPartBreakChanceAsync(id, interval);
         return Ok(new
         {
             Chance = chance
@@ -506,13 +506,13 @@ public sealed class ItemController : ControllerBase
     [HttpGet("api/parts/{id}/layer-hints")]
     [Produces("application/json")]
     [ProducesResponseType(200)]
-    public ActionResult<LayerHint> GetLayerPartHints(
+    public async Task<ActionResult<LayerHint>> GetLayerPartHints(
         [FromRoute] string id)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        return Ok(repository.GetLayerPartHints(id));
+        return Ok(await repository.GetLayerPartHintsAsync(id));
     }
 
     /// <summary>
@@ -525,15 +525,17 @@ public sealed class ItemController : ControllerBase
     [HttpPost("api/parts/{id}/layer-patches")]
     [Produces("application/json")]
     [ProducesResponseType(201)]
-    public IActionResult ApplyLayerPartPatches(
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> ApplyLayerPartPatches(
         [FromRoute] string id,
         [FromBody] string[] patches)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        string json = repository.ApplyLayerPartPatches(
-            id, User.Identity!.Name!, patches)!;
+        string? json = await repository.ApplyLayerPartPatchesAsync(
+            id, User.Identity!.Name!, patches);
+        if (json == null) return NotFound();
 
         return CreatedAtRoute("GetPart", new
         {
@@ -560,7 +562,7 @@ public sealed class ItemController : ControllerBase
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK,
         "application/json")]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult DownloadItem([FromRoute] string id,
+    public async Task<IActionResult> DownloadItem([FromRoute] string id,
         [FromQuery] bool parts = true)
     {
         ICadmusRepository repository = _repositoryProvider.CreateRepository();
@@ -569,7 +571,7 @@ public sealed class ItemController : ControllerBase
         using (StreamWriter writer = new(stream, new UTF8Encoding(false),
             leaveOpen: true))
         {
-            if (!repository.ExportItem(id, writer, parts)) return NotFound();
+            if (!await repository.ExportItemAsync(id, writer, parts)) return NotFound();
         }
 
         _logger.LogInformation("User {UserName} downloading item {ItemId} " +
@@ -604,12 +606,12 @@ public sealed class ItemController : ControllerBase
         List<string> partIds = [];
         if (isGraphEnabled)
         {
-            foreach (IPart part in repository.GetItemParts([id]))
+            foreach (IPart part in await repository.GetItemPartsAsync([id]))
                 partIds.Add(part.Id);
         }
 
         // delete item and parts
-        repository.DeleteItem(id, User.Identity!.Name!);
+        await repository.DeleteItemAsync(id, User.Identity!.Name!);
 
         // update index if required
         if (IsIndexingEnabled())
@@ -660,12 +662,12 @@ public sealed class ItemController : ControllerBase
             User.Identity!.Name!))!;
         if (await IsUserInRole(user, "operator",
                 new HashSet<string>(["admin", "editor"]))
-            && repository.GetPartCreatorId(id) != user.UserName)
+            && await repository.GetPartCreatorIdAsync(id) != user.UserName)
         {
             return Unauthorized();
         }
 
-        repository.DeletePart(id, User.Identity!.Name!);
+        await repository.DeletePartAsync(id, User.Identity!.Name!);
 
         // update index if required
         if (IsIndexingEnabled())
@@ -769,7 +771,7 @@ public sealed class ItemController : ControllerBase
             HttpContext.Connection.RemoteIpAddress);
 
         ICadmusRepository repository = _repositoryProvider.CreateRepository();
-        repository.AddItem(item);
+        await repository.AddItemAsync(item);
 
         // update index
         if (IsIndexingEnabled())
@@ -800,7 +802,7 @@ public sealed class ItemController : ControllerBase
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
-    public IActionResult GenerateItems([FromBody] GenerateItemsBindingModel model)
+    public async Task<IActionResult> GenerateItems([FromBody] GenerateItemsBindingModel model)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -808,7 +810,7 @@ public sealed class ItemController : ControllerBase
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        IItem? item = repository.GetItem(model.ItemId!, true);
+        IItem? item = await repository.GetItemAsync(model.ItemId!, true);
         if (item == null) return NotFound();
 
         // add count items
@@ -825,12 +827,12 @@ public sealed class ItemController : ControllerBase
                 UserId = User.Identity!.Name!,
                 CreatorId = User.Identity!.Name!
             };
-            repository.AddItem(newItem);
+            await repository.AddItemAsync(newItem);
             foreach (IPart part in item.Parts)
             {
                 part.Id = Guid.NewGuid().ToString();
                 part.ItemId = newItem.Id;
-                repository.AddPart(part);
+                await repository.AddPartAsync(part);
             }
         }
 
@@ -845,7 +847,7 @@ public sealed class ItemController : ControllerBase
     [HttpPost("api/items/flags")]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
-    public IActionResult SetItemFlags(
+    public async Task<IActionResult> SetItemFlags(
         [FromBody] ItemFlagsBindingModel model)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -854,7 +856,7 @@ public sealed class ItemController : ControllerBase
             _repositoryProvider.CreateRepository();
 
         if (model.Ids != null)
-            repository.SetItemFlags(model.Ids, model.Flags);
+            await repository.SetItemFlagsAsync(model.Ids, model.Flags);
         return Ok();
     }
 
@@ -866,7 +868,7 @@ public sealed class ItemController : ControllerBase
     [HttpPost("api/items/group-id")]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
-    public IActionResult SetItemGroupId(
+    public async Task<IActionResult> SetItemGroupId(
         [FromBody] ItemGroupIdBindingModel model)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -875,7 +877,7 @@ public sealed class ItemController : ControllerBase
             _repositoryProvider.CreateRepository();
 
         if (model.Ids != null)
-            repository.SetItemGroupId(model.Ids, model.GroupId);
+            await repository.SetItemGroupIdAsync(model.Ids, model.GroupId);
         return Ok();
     }
 
@@ -889,7 +891,7 @@ public sealed class ItemController : ControllerBase
             || !_guidRegex.IsMatch(id.Value<string>()!);
     }
 
-    private Tuple<string, string, string> AddRawPart(string raw)
+    private async Task<Tuple<string, string, string>> AddRawPart(string raw)
     {
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
@@ -944,7 +946,7 @@ public sealed class ItemController : ControllerBase
             HttpContext.Connection.RemoteIpAddress);
 
         string json = doc.ToString(Formatting.None);
-        repository.AddPartFromContent(json);
+        await repository.AddPartFromContentAsync(json);
         return Tuple.Create(itemId.Value<string>()!, partId, json);
     }
 
@@ -967,7 +969,7 @@ public sealed class ItemController : ControllerBase
     public async Task<IActionResult> AddPart(
         [FromBody] RawJsonBindingModel model)
     {
-        var idAndJson = AddRawPart(model.Raw!);
+        var idAndJson = await AddRawPart(model.Raw!);
 
         // update index if required
         if (IsIndexingEnabled())
@@ -980,20 +982,17 @@ public sealed class ItemController : ControllerBase
                 .GetIndexFactoryAsync(_configuration, _serviceProvider))!;
             IItemIndexWriter writer = factory.GetItemIndexWriter()!;
 
-            IPart? part = repository.GetPart<IPart>(idAndJson.Item2);
+            IPart? part = await repository.GetPartAsync<IPart>(idAndJson.Item2);
             if (part != null)
             {
-                IItem? item = repository.GetItem(idAndJson.Item1);
+                // the part's item ID is the one in its JSON code
+                IItem? item = await repository.GetItemAsync(part.ItemId);
                 if (item != null)
                 {
                     await writer.WritePartAsync(item, part);
-                }
 
-                // graph
-                if (isGraphEnabled)
-                {
-                    item = repository.GetItem(part.ItemId);
-                    if (item != null) await UpdateGraphAsync(item, part);
+                    // graph
+                    if (isGraphEnabled) await UpdateGraphAsync(item, part);
                 }
             }
         }
@@ -1012,7 +1011,7 @@ public sealed class ItemController : ControllerBase
     [HttpPost("api/parts/thes-scope")]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
-    public IActionResult SetPartThesaurusScope(
+    public async Task<IActionResult> SetPartThesaurusScope(
         [FromBody] PartThesaurusScopeBindingModel model)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -1020,7 +1019,7 @@ public sealed class ItemController : ControllerBase
         ICadmusRepository repository =
             _repositoryProvider.CreateRepository();
 
-        repository.SetPartThesaurusScope(model.Ids!, model.Scope ?? "");
+        await repository.SetPartThesaurusScopeAsync(model.Ids!, model.Scope ?? "");
         return Ok();
     }
 
@@ -1066,7 +1065,7 @@ public sealed class ItemController : ControllerBase
         IItem item;
         try
         {
-            item = repository.ImportItem(new StringReader(json),
+            item = await repository.ImportItemAsync(new StringReader(json),
                 User.Identity!.Name!);
         }
         catch (Exception ex) when (ex is System.Text.Json.JsonException

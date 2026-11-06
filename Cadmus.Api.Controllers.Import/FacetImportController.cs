@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
 
@@ -52,7 +53,7 @@ public sealed class FacetImportController : ControllerBase
     /// <exception cref="InvalidOperationException">No ID for facet</exception>
     [Authorize(Roles = "admin")]
     [HttpPost("api/facets/import")]
-    public ImportResult UploadFacets(
+    public async Task<ImportResult> UploadFacets(
         // https://github.com/domaindrivendev/Swashbuckle.AspNetCore#handle-forms-and-file-uploads
         IFormFile file,
         [FromQuery] ImportBindingModel model)
@@ -103,12 +104,12 @@ public sealed class FacetImportController : ControllerBase
             {
                 _logger?.LogInformation("Deleting old facets...");
                 IList<FacetDefinition> oldFacets =
-                    repository.GetFacetDefinitions();
+                    await repository.GetFacetDefinitionsAsync();
                 foreach (FacetDefinition facet in oldFacets)
                 {
                     _logger?.LogInformation("  - deleting facet ID: {Id}",
                         facet.Id);
-                    repository.DeleteFacetDefinition(facet.Id);
+                    await repository.DeleteFacetDefinitionAsync(facet.Id);
                 }
                 _logger?.LogInformation("Old facets deleted ({Count})",
                     oldFacets.Count);
@@ -118,7 +119,7 @@ public sealed class FacetImportController : ControllerBase
             {
                 _logger?.LogInformation("Importing facet ID: {Id}", facet.Id);
                 ids.Add(facet.Id);
-                if (model.DryRun != true) repository.AddFacetDefinition(facet);
+                if (model.DryRun != true) await repository.AddFacetDefinitionAsync(facet);
             }
 
             _logger?.LogInformation("Import completed: {Count} facet(s)",

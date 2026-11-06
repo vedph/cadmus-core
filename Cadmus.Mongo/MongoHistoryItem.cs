@@ -161,7 +161,7 @@ public sealed class MongoHistoryItem : IHasHistory, IHasFlags
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        Id = Guid.NewGuid().ToString();
+        Id = item.Id;
         Title = item.Title;
         Description = item.Description;
         FacetId = item.FacetId;
@@ -174,7 +174,7 @@ public sealed class MongoHistoryItem : IHasHistory, IHasFlags
         TimeModified = item.TimeModified;
         UserId = item.UserId;
 
-        ReferenceId = item.Id;
+        ReferenceId = item.ReferenceId;
         Status = item.Status;
     }
 
