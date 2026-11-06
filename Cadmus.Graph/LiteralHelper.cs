@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -10,11 +11,48 @@ namespace Cadmus.Graph;
 /// </summary>
 public static partial class LiteralHelper
 {
-    [GeneratedRegex("(?:(?:\\^\\^(?<t>.+))|(?:\\@(?<l>[a-z]+)))?$",
-        RegexOptions.Compiled)]
-    private static partial Regex GetLitRegex();
+    // BCP47 language tag, e.g. en, en-US, zh-Hant-TW
+    [GeneratedRegex("^[a-zA-Z]{1,8}(?:-[a-zA-Z0-9]{1,8})*$")]
+    private static partial Regex GetLangRegex();
 
-    private static readonly Regex _litRegex = GetLitRegex();
+    /// <summary>
+    /// Parses the specified literal in its Turtle-like forms: <c>"value"</c>,
+    /// <c>"value"@lang</c>, <c>"value"^^type</c>. The language or type suffix
+    /// is recognized only when it immediately follows the closing quote, so
+    /// that quotes, <c>@</c> or <c>^^</c> inside the value are preserved.
+    /// A literal not starting with a quote is returned as it is.
+    /// </summary>
+    /// <param name="literal">The literal.</param>
+    /// <returns>Tuple with value, type (or null), and language (or null).
+    /// </returns>
+    /// <exception cref="ArgumentNullException">literal</exception>
+    public static (string Value, string? Type, string? Language) ParseLiteral(
+        string literal)
+    {
+        ArgumentNullException.ThrowIfNull(literal);
+
+        if (literal.Length < 2 || literal[0] != '"') return (literal, null, null);
+
+        // find the closing quote: the last one, unless it is followed by
+        // a valid suffix (which cannot contain quotes)
+        int q = literal.LastIndexOf('"');
+        if (q == 0) return (literal[1..], null, null);
+
+        string value = literal[1..q];
+        string suffix = literal[(q + 1)..];
+        if (suffix.Length == 0) return (value, null, null);
+
+        if (suffix.StartsWith("^^", StringComparison.Ordinal) &&
+            suffix.Length > 2 && !suffix.Any(char.IsWhiteSpace))
+        {
+            return (value, suffix[2..], null);
+        }
+        if (suffix[0] == '@' && GetLangRegex().IsMatch(suffix[1..]))
+            return (value, null, suffix[1..]);
+
+        // unrecognized suffix: keep the whole literal minus its opening quote
+        return (literal[1..], null, null);
+    }
 
     /// <summary>
     /// Converts the specified string value to boolean.
@@ -47,18 +85,14 @@ public static partial class LiteralHelper
         if (triple.ObjectLiteral == null) return;
 
         // parse ^^type or @lang, removing them from the literal itself
-        Match m = _litRegex.Match(triple.ObjectLiteral);
-        if (m.Success)
+        (string value, string? type, string? lang) =
+            ParseLiteral(triple.ObjectLiteral);
+        triple.ObjectLiteral = value;
         {
-            // remove suffix
-            triple.ObjectLiteral = triple.ObjectLiteral[..m.Index];
-            // unwrap from ""
-            triple.ObjectLiteral = triple.ObjectLiteral.Trim('"');
-
             // handle compatible numeric types
-            if (m.Groups["t"].Length > 0)
+            if (type != null)
             {
-                triple.LiteralType = m.Groups["t"].Value;
+                triple.LiteralType = type;
                 // from https://docs.microsoft.com/en-us/dotnet/standard/data/xml/mapping-xml-data-types-to-clr-types
                 switch (triple.LiteralType)
                 {
@@ -100,12 +134,11 @@ public static partial class LiteralHelper
                         break;
                 }
             }
-            else if (m.Groups["l"].Length > 0)
+            else if (lang != null)
             {
-                triple.LiteralLanguage = m.Groups["l"].Value;
+                triple.LiteralLanguage = lang;
             }
         }
-        else triple.ObjectLiteral = triple.ObjectLiteral.Trim('"');
 
         // filter
         StringBuilder sb = new(triple.ObjectLiteral.Length);

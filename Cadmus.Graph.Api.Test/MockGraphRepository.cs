@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cadmus.Core.Config;
+using Cadmus.Export.Mapping;
 using Fusi.Tools;
 using Fusi.Tools.Data;
 using Microsoft.Extensions.Caching.Memory;

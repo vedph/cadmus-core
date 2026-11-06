@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
@@ -64,9 +64,9 @@ public sealed class ItemFlusher<T> : IDisposable
         {
             if (disposing)
             {
-                T[] items = new T[_queue.Count];
-                _queue.CopyTo(items, 0);
-                _flush(items);
+                List<T> items = [];
+                while (_queue.TryDequeue(out T? item)) items.Add(item);
+                if (items.Count > 0) _flush(items);
             }
 
             _disposed = true;

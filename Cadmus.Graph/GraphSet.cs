@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -21,12 +21,26 @@ public class GraphSet
     public IList<UriTriple> Triples { get; }
 
     /// <summary>
+    /// Gets the IDs (GUIDs) of the sources (items or parts) whose whole graph
+    /// is represented by this set. When updating the graph, any node or
+    /// triple previously generated from any of these sources (i.e. having
+    /// a SID starting with its ID) and not found in this set is removed,
+    /// even when this set contains no node or triple at all for it (e.g.
+    /// when the user removed from a part all the entries which were mapped).
+    /// Sources not listed here are updated only when the set contains
+    /// any node or triple from them. <see cref="GraphUpdater"/> always
+    /// adds the ID of the item or part being mapped.
+    /// </summary>
+    public ISet<string> SourceIds { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="GraphSet"/> class.
     /// </summary>
     public GraphSet()
     {
         Nodes = [];
         Triples = [];
+        SourceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -39,6 +53,21 @@ public class GraphSet
     {
         Nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
         Triples = triples ?? throw new ArgumentNullException(nameof(triples));
+        SourceIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Gets the source GUID from the specified SID. By convention, SIDs
+    /// start with the GUID of the item or part they were generated from
+    /// (36 characters), optionally followed by other components.
+    /// </summary>
+    /// <param name="sid">The SID.</param>
+    /// <returns>The GUID (or the whole SID when shorter than a GUID), or
+    /// an empty string for a null SID.</returns>
+    public static string GetSourceGuid(string? sid)
+    {
+        if (string.IsNullOrEmpty(sid)) return "";
+        return sid.Length > 36 ? sid[..36] : sid;
     }
 
     /// <summary>
@@ -86,14 +115,16 @@ public class GraphSet
     /// <returns>Dictionary.</returns>
     public IDictionary<string, IList<UriNode>> GetNodesByGuid()
     {
-        Dictionary<string, IList<UriNode>> dct = [];
+        Dictionary<string, IList<UriNode>> dct =
+            new(StringComparer.OrdinalIgnoreCase);
 
         foreach (UriNode node in Nodes)
         {
-            string key = node.Sid != null? node.Sid[..36] : "";
+            string key = GetSourceGuid(node.Sid);
 
-            if (!dct.ContainsKey(key)) dct[key] = [];
-            dct[key].Add(node);
+            if (!dct.TryGetValue(key, out IList<UriNode>? list))
+                dct[key] = list = [];
+            list.Add(node);
         }
         return dct;
     }
@@ -106,14 +137,16 @@ public class GraphSet
     /// <returns>Dictionary.</returns>
     public IDictionary<string, IList<UriTriple>> GetTriplesByGuid()
     {
-        Dictionary<string, IList<UriTriple>> dct = [];
+        Dictionary<string, IList<UriTriple>> dct =
+            new(StringComparer.OrdinalIgnoreCase);
 
         foreach (UriTriple triple in Triples)
         {
-            string key = triple.Sid != null? triple.Sid[..36] : "";
+            string key = GetSourceGuid(triple.Sid);
 
-            if (!dct.ContainsKey(key)) dct[key] = [];
-            dct[key].Add(triple);
+            if (!dct.TryGetValue(key, out IList<UriTriple>? list))
+                dct[key] = list = [];
+            list.Add(triple);
         }
         return dct;
     }

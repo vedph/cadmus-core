@@ -3,17 +3,20 @@ using Cadmus.Export.Mapping;
 using Cadmus.Graph.Adapters;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Cadmus.Graph;
 
 /// <summary>
 /// Graph updater. This is a top level helper class, used to update the
-/// graph whenever an item or part gets saved.
+/// graph whenever an item or part gets saved. An updater instance is not
+/// thread-safe: use a different instance for each concurrent update.
 /// </summary>
 public class GraphUpdater
 {
     private readonly IGraphRepository _repository;
-    private readonly IGraphNodeMapper _mapper;
+    private readonly JsonGraphNodeMapper _mapper;
     private readonly ItemGraphSourceAdapter _itemAdapter;
     private readonly PartGraphSourceAdapter _partAdapter;
 
@@ -41,7 +44,6 @@ public class GraphUpdater
             ?? throw new ArgumentNullException(nameof(repository));
         _mapper = new JsonGraphNodeMapper
         {
-            IsMappingTracingEnabled = true,
             UidBuilder = repository
         };
         _itemAdapter = new ItemGraphSourceAdapter();
@@ -82,22 +84,44 @@ public class GraphUpdater
             _mapper.Data.Add(p.Key, p.Value);
     }
 
-    private void Update(object data, RunNodeMappingFilter filter)
+    private GraphSet Map(object data, IList<GraphNodeMapping> mappings,
+        string sourceId)
     {
-        SetMapperMetadata();
         GraphSet set = new();
+        // the set represents the whole graph generated from this source,
+        // so that anything no longer generated gets removed even if
+        // nothing at all is generated now
+        set.SourceIds.Add(sourceId);
 
-        foreach (GraphNodeMapping mapping in _repository.FindMappings(filter))
+        foreach (GraphNodeMapping mapping in mappings)
             _mapper.Map(data, mapping, set);
 
-        _repository.UpdateGraph(set);
-        Metadata.Clear();
+        return set;
+    }
+
+    private async Task UpdateAsync(object data, RunNodeMappingFilter filter,
+        string sourceId, CancellationToken cancel)
+    {
+        try
+        {
+            SetMapperMetadata();
+            _mapper.IsMappingTracingEnabled = false;
+            IList<GraphNodeMapping> mappings =
+                await _repository.FindMappingsAsync(filter, cancel);
+            GraphSet set = Map(data, mappings, sourceId);
+            await _repository.UpdateGraphAsync(set, cancel);
+        }
+        finally
+        {
+            Metadata.Clear();
+        }
     }
 
     private GraphUpdaterExplanation Explain(object data,
         RunNodeMappingFilter filter)
     {
         SetMapperMetadata();
+        _mapper.IsMappingTracingEnabled = true;
         GraphUpdaterExplanation explanation = new()
         {
             Filter = filter
@@ -125,35 +149,16 @@ public class GraphUpdater
         return explanation;
     }
 
-    /// <summary>
-    /// Updates the graph from the specified item.
-    /// </summary>
-    /// <param name="item">The item.</param>
-    /// <exception cref="ArgumentNullException">item</exception>
-    public void Update(IItem item)
+    private (object? Data, RunNodeMappingFilter Filter) AdaptItem(IItem item)
     {
-        ArgumentNullException.ThrowIfNull(item);
-
         _mapper.Context = new MapperSource(item);
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
-
-        (object? result, RunNodeMappingFilter filter) =
-            _itemAdapter.Adapt(_mapper.Context, Metadata);
-        
-        if (result != null) Update(result, filter);
+        return _itemAdapter.Adapt(_mapper.Context, Metadata);
     }
 
-    /// <summary>
-    /// Updates the graph from the specified item's part.
-    /// </summary>
-    /// <param name="item">The item.</param>
-    /// <param name="part">The part.</param>
-    /// <exception cref="ArgumentNullException">item or part</exception>
-    public void Update(IItem item, IPart part)
+    private (object? Data, RunNodeMappingFilter Filter) AdaptPart(IItem item,
+        IPart part)
     {
-        ArgumentNullException.ThrowIfNull(item);
-        ArgumentNullException.ThrowIfNull(part);
-
         // create the source
         _mapper.Context = new MapperSource(item, part);
 
@@ -161,12 +166,69 @@ public class GraphUpdater
         MetadataSupplier?.Supply(_mapper.Context, Metadata);
 
         // adapt the source to a data object and a filter
-        (object? result, RunNodeMappingFilter filter) =
-            _partAdapter.Adapt(_mapper.Context, Metadata);
-
-        // update the graph if we have a data object
-        if (result != null) Update(result, filter);
+        return _partAdapter.Adapt(_mapper.Context, Metadata);
     }
+
+    /// <summary>
+    /// Updates the graph from the specified item. The graph generated
+    /// from this item replaces the one previously generated from it.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    /// <exception cref="ArgumentNullException">item</exception>
+    public Task UpdateAsync(IItem item, CancellationToken cancel = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+
+        (object? result, RunNodeMappingFilter filter) = AdaptItem(item);
+        if (result == null)
+        {
+            Metadata.Clear();
+            return Task.CompletedTask;
+        }
+        return UpdateAsync(result, filter, item.Id, cancel);
+    }
+
+    /// <summary>
+    /// Updates the graph from the specified item's part. The graph generated
+    /// from this part replaces the one previously generated from it.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <param name="part">The part.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    /// <exception cref="ArgumentNullException">item or part</exception>
+    public Task UpdateAsync(IItem item, IPart part,
+        CancellationToken cancel = default)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(part);
+
+        (object? result, RunNodeMappingFilter filter) = AdaptPart(item, part);
+        if (result == null)
+        {
+            Metadata.Clear();
+            return Task.CompletedTask;
+        }
+        return UpdateAsync(result, filter, part.Id, cancel);
+    }
+
+    /// <summary>
+    /// Updates the graph from the specified item. This blocks until
+    /// <see cref="UpdateAsync(IItem, CancellationToken)"/> completes.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <exception cref="ArgumentNullException">item</exception>
+    public void Update(IItem item) => UpdateAsync(item).GetAwaiter().GetResult();
+
+    /// <summary>
+    /// Updates the graph from the specified item's part. This blocks until
+    /// <see cref="UpdateAsync(IItem, IPart, CancellationToken)"/> completes.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <param name="part">The part.</param>
+    /// <exception cref="ArgumentNullException">item or part</exception>
+    public void Update(IItem item, IPart part) =>
+        UpdateAsync(item, part).GetAwaiter().GetResult();
 
     /// <summary>
     /// Explains the update path for the specified item.
@@ -178,12 +240,12 @@ public class GraphUpdater
     {
         ArgumentNullException.ThrowIfNull(item);
 
-        _mapper.Context = new MapperSource(item);
-        MetadataSupplier?.Supply(_mapper.Context, Metadata);
-
-        (object? result, RunNodeMappingFilter filter) =
-            _itemAdapter.Adapt(_mapper.Context, Metadata);
-        if (result == null) return null;
+        (object? result, RunNodeMappingFilter filter) = AdaptItem(item);
+        if (result == null)
+        {
+            Metadata.Clear();
+            return null;
+        }
         
         return Explain(result, filter);
     }
@@ -200,12 +262,12 @@ public class GraphUpdater
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(part);
 
-        _mapper.Context = new MapperSource(item, part);
-        MetadataSupplier?.Supply(_mapper.Context, Metadata);
-
-        (object? result, RunNodeMappingFilter filter) =
-            _partAdapter.Adapt(_mapper.Context, Metadata);
-        if (result == null) return null;
+        (object? result, RunNodeMappingFilter filter) = AdaptPart(item, part);
+        if (result == null)
+        {
+            Metadata.Clear();
+            return null;
+        }
 
         return Explain(result, filter);
     }

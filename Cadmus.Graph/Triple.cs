@@ -1,4 +1,4 @@
-﻿namespace Cadmus.Graph;
+namespace Cadmus.Graph;
 
 /// <summary>
 /// A triple.
@@ -83,6 +83,6 @@ public class Triple
     public override string ToString()
     {
         return $"#{Id}: #{SubjectId} - #{PredicateId} - " +
-            (ObjectId == 0 ? ObjectLiteral : "#" + ObjectId);
+            (ObjectId is null or 0 ? ObjectLiteral : "#" + ObjectId);
     }
 }

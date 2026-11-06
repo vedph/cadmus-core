@@ -18,7 +18,7 @@ namespace Cadmus.Graph.Ef.Test;
 /// <summary>
 /// Base class for SQL-based graph repositories tests.
 /// </summary>
-public abstract class EfGraphRepositoryTest
+public abstract partial class EfGraphRepositoryTest
 {
     private const string DB_NAME = "cadmus-graph-test";
 
@@ -57,12 +57,21 @@ public abstract class EfGraphRepositoryTest
     {
         if (DbManager.Exists(DB_NAME))
         {
+            OnExistingDatabase();
             DbManager.ClearDatabase(DB_NAME);
         }
         else
         {
             DbManager.CreateDatabase(DB_NAME, GetSchema(), null);
         }
+    }
+
+    /// <summary>
+    /// Called by <see cref="Reset"/> before clearing an existing database,
+    /// which might have been created by an older version.
+    /// </summary>
+    protected virtual void OnExistingDatabase()
+    {
     }
 
     #region Namespace
@@ -1295,7 +1304,13 @@ public abstract class EfGraphRepositoryTest
         {
             IsClass = true
         }).Items;
-        Assert.Equal(8, nodes.Count);
+        // 7 entries (including the root): rdfs:subClassOf is added too,
+        // but as a property rather than a class
+        Assert.Equal(7, nodes.Count);
+        UriNode? subNode = repository.GetNodeByUri("rdfs:subClassOf");
+        Assert.NotNull(subNode);
+        Assert.False(subNode.IsClass);
+        Assert.Equal(Node.TAG_PROPERTY, subNode.Tag);
 
         IList<UriTriple> triples =
             repository.GetTriples(new TripleFilter()).Items;

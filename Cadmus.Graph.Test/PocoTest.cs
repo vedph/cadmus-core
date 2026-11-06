@@ -176,7 +176,7 @@ public sealed class PocoTest
             HasSuffix = true
         };
 
-        Assert.Equal("x:timespans/ts7", entry.ToString());
+        Assert.Equal("x:timespans/ts#7", entry.ToString());
     }
 
     [Fact]

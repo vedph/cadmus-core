@@ -36,11 +36,13 @@
   <Project Path="Cadmus.Export/Cadmus.Export.csproj" />
   <Project Path="Cadmus.General.Parts.Test/Cadmus.General.Parts.Test.csproj" />
   <Project Path="Cadmus.General.Parts/Cadmus.General.Parts.csproj" />
+  <Project Path="Cadmus.Graph.Api.Test/Cadmus.Graph.Api.Test.csproj" />
   <Project Path="Cadmus.Graph.Api/Cadmus.Graph.Api.csproj" />
   <Project Path="Cadmus.Graph.Ef.PgSql.Test/Cadmus.Graph.Ef.PgSql.Test.csproj" />
   <Project Path="Cadmus.Graph.Ef.PgSql/Cadmus.Graph.Ef.PgSql.csproj" />
   <Project Path="Cadmus.Graph.Ef.Test/Cadmus.Graph.Ef.Test.csproj" />
   <Project Path="Cadmus.Graph.Ef/Cadmus.Graph.Ef.csproj" />
+  <Project Path="Cadmus.Graph.Extras.Test/Cadmus.Graph.Extras.Test.csproj" />
   <Project Path="Cadmus.Graph.Extras/Cadmus.Graph.Extras.csproj" />
   <Project Path="Cadmus.Graph.Test/Cadmus.Graph.Test.csproj" />
   <Project Path="Cadmus.Graph/Cadmus.Graph.csproj" />

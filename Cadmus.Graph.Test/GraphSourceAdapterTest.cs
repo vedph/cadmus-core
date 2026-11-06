@@ -159,7 +159,7 @@ public sealed class PartGraphSourceAdapterTest
 
         (object? result, _) = adapter.Adapt(source, metadata);
 
-        Assert.Equal("null", result);
+        Assert.Null(result);
     }
 
     [Fact]

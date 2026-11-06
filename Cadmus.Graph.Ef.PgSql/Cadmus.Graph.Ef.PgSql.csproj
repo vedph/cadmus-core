@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -24,10 +24,12 @@
 
 	<ItemGroup>
 		<None Remove="Assets\Schema.pgsql" />
+		<None Remove="Assets\SchemaUpdate.pgsql" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<EmbeddedResource Include="Assets\Schema.pgsql" />
+		<EmbeddedResource Include="Assets\SchemaUpdate.pgsql" />
 	</ItemGroup>
 
 	<ItemGroup>

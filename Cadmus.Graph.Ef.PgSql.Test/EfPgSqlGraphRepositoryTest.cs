@@ -6,7 +6,7 @@ using Xunit;
 namespace Cadmus.Graph.Ef.PgSql.Test;
 
 [Collection(nameof(NonParallelResourceCollection))]
-public sealed class EfPgSqlGraphRepositoryTest : EfGraphRepositoryTest
+public sealed partial class EfPgSqlGraphRepositoryTest : EfGraphRepositoryTest
 {
     private IDbManager? _manager;
 

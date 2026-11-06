@@ -208,17 +208,21 @@ public class EfMapping
             ScalarPattern = ScalarPattern,
             Output = new NodeMappingOutput
             {
-                Metadata = MetaOutputs?.ToDictionary(m => m.Name, m => m.Value)
+                Metadata = MetaOutputs?.OrderBy(m => m.Ordinal).ThenBy(m => m.Id)
+                    .ToDictionary(m => m.Name, m => m.Value)
                     ?? new Dictionary<string, string>(),
-                Nodes = NodeOutputs?.ToDictionary(n => n.Name, n =>
+                Nodes = NodeOutputs?.OrderBy(n => n.Ordinal).ThenBy(n => n.Id)
+                    .ToDictionary(n => n.Name, n =>
                     new MappedNode
                     {
                         Uid = n.Uid,
-                        Label = n.Label,
-                        Tag = n.Tag
+                        // empty strings are stored for missing values
+                        Label = string.IsNullOrEmpty(n.Label) ? null : n.Label,
+                        Tag = string.IsNullOrEmpty(n.Tag) ? null : n.Tag
                     })
                     ?? new Dictionary<string, MappedNode>(),
-                Triples = TripleOutputs?.Select(
+                Triples = TripleOutputs?.OrderBy(t => t.Ordinal).ThenBy(t => t.Id)
+                    .Select(
                     t => new MappedTriple
                     {
                         S = t.S,

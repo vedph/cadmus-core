@@ -1,4 +1,4 @@
-﻿using Cadmus.Cli.Services;
+using Cadmus.Cli.Services;
 using Cadmus.Graph.Ef.PgSql;
 using Cadmus.Index.PgSql;
 using System.Globalization;
@@ -88,6 +88,34 @@ internal sealed class CreateDatabaseCommand :
         return 0;
     }
 
+    private static async Task<int> CreateGraphDatabaseAsync(string name,
+        CancellationToken cancel)
+    {
+        string template = GetTemplate("Graph", "Index");
+        AnsiConsole.MarkupLine("Server: [cyan]" +
+            $"{Markup.Escape(GetServerInfo(template))}[/]");
+
+        bool created = false;
+        await AnsiConsole.Status().StartAsync("Creating database...",
+            async _ =>
+            {
+                created = CreateDatabase(template, name,
+                    EfPgSqlGraphRepository.GetSchema());
+                // the update script is idempotent, and upgrades databases
+                // created by older versions
+                if (!created)
+                {
+                    await PgSqlGraphSchema.ApplyAsync(string.Format(
+                        CultureInfo.InvariantCulture, template, name), cancel);
+                }
+            });
+
+        AnsiConsole.MarkupLine(created
+            ? "[green]Database created.[/]"
+            : "[yellow]Database already exists: schema updated.[/]");
+        return 0;
+    }
+
     public override async Task<int> ExecuteAsync(CommandContext context,
        CreateDatabaseCommandSettings settings, CancellationToken cancel)
     {
@@ -105,38 +133,20 @@ internal sealed class CreateDatabaseCommand :
 
         try
         {
-            string template;
-            string schema;
             switch (settings.DatabaseRole.ToLowerInvariant())
             {
                 case "index":
                     return await CreateIndexDatabaseAsync(
                         settings.DatabaseName, cancel);
                 case "graph":
-                    template = GetTemplate("Graph", "Index");
-                    schema = EfPgSqlGraphRepository.GetSchema();
-                    break;
+                    return await CreateGraphDatabaseAsync(
+                        settings.DatabaseName, cancel);
                 default:
                     AnsiConsole.MarkupLine("[red]Invalid database role[/] " +
                         "(expected index or graph): " +
                         Markup.Escape(settings.DatabaseRole));
                     return 1;
             }
-
-            AnsiConsole.MarkupLine("Server: [cyan]" +
-                $"{Markup.Escape(GetServerInfo(template))}[/]");
-
-            bool created = false;
-            AnsiConsole.Status().Start("Creating database...", _ =>
-            {
-                created = CreateDatabase(template, settings.DatabaseName,
-                    schema);
-            });
-
-            AnsiConsole.MarkupLine(created
-                ? "[green]Database created.[/]"
-                : "[yellow]Database already exists: nothing done.[/]");
-            return 0;
         }
         catch (Exception ex)
         {

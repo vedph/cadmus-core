@@ -109,19 +109,54 @@ public sealed class JsonGraphNodeMapper : JsonNodeMapper<GraphSet>, IGraphNodeMa
         return filter ? UidFilter.Apply(resolved) : resolved;
     }
 
+    // count of the requests for unique UIDs (ending with ##) with the same
+    // UID and SID, in the mapping session targeting _uidTarget
+    private readonly Dictionary<string, int> _uniqueUidCounts =
+        new(StringComparer.OrdinalIgnoreCase);
+    private GraphSet? _uidTarget;
+
+    /// <summary>
+    /// Gets the SID to pass to the UID builder for the specified UID.
+    /// When the same source requests more than once the same unique UID
+    /// (ending with <c>##</c>) in the same mapping session (e.g. a timespan
+    /// for each of the chronotopes of an event, all sharing the same SID),
+    /// each request must get a different UID, which must be the same
+    /// at each save. So, the N-th request (N greater than 1) uses the SID
+    /// plus <c>#N</c> as its key in the UIDs lookup. A session is the
+    /// mapping of a source into the same target graph set.
+    /// </summary>
+    private string GetUidSid(string uid, string sid, GraphSet target)
+    {
+        if (!uid.EndsWith(UidResolver.UNIQUE_SUFFIX, StringComparison.Ordinal))
+            return sid;
+
+        if (!ReferenceEquals(_uidTarget, target))
+        {
+            _uniqueUidCounts.Clear();
+            _uidTarget = target;
+        }
+
+        string key = uid + "\n" + sid;
+        int n = _uniqueUidCounts.TryGetValue(key, out int count) ? count + 1 : 1;
+        _uniqueUidCounts[key] = n;
+        return n == 1 ? sid : $"{sid}#{n}";
+    }
+
     private void AddNodes(string sid, GraphNodeMapping mapping, GraphSet target)
     {
         foreach (var p in mapping.Output!.Nodes)
         {
-            string uri = UidBuilder.BuildUid(ResolveTemplate(p.Value.Uid!, true),
-                sid);
+            string uid = ResolveTemplate(p.Value.Uid!, true);
+            string uri = UidBuilder.BuildUid(uid, GetUidSid(uid, sid, target));
             UriNode node = new()
             {
                 Uri = uri,
                 SourceType = SourceType,
                 Sid = sid,
                 Label = string.IsNullOrEmpty(p.Value.Label) ?
-                    uri : ResolveTemplate(p.Value.Label, false)
+                    uri : ResolveTemplate(p.Value.Label, false),
+                Tag = string.IsNullOrEmpty(p.Value.Tag)
+                    ? null : ResolveTemplate(p.Value.Tag, false)
             };
             _contextNodes[p.Key] = node;
             target.Nodes.Add(node);

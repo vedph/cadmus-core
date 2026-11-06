@@ -1,4 +1,4 @@
-﻿using Cadmus.Api.Models;
+using Cadmus.Api.Models;
 using Cadmus.Api.Services.Seeding;
 using Cadmus.Core;
 using Cadmus.Core.Config;
@@ -621,8 +621,9 @@ public sealed class ItemController : ControllerBase
 
             if (isGraphEnabled)
             {
-                foreach (string partId in partIds) UpdateGraphForDeletion(partId);
-                UpdateGraphForDeletion(id);
+                foreach (string partId in partIds)
+                    await UpdateGraphForDeletionAsync(partId);
+                await UpdateGraphForDeletionAsync(id);
             }
         }
     }
@@ -676,7 +677,7 @@ public sealed class ItemController : ControllerBase
             IItemIndexWriter writer = factory.GetItemIndexWriter()!;
             await writer.DeletePartAsync(id);
 
-            if (isGraphEnabled) UpdateGraphForDeletion(id);
+            if (isGraphEnabled) await UpdateGraphForDeletionAsync(id);
         }
 
         return Ok();
@@ -697,35 +698,37 @@ public sealed class ItemController : ControllerBase
         return graphRepository;
     }
 
-    private void UpdateGraph(IItem item)
+    // graph updates are not cancelled when the request is aborted, as
+    // data have already been saved, and the graph must reflect them
+    private Task UpdateGraphAsync(IItem item)
     {
         IGraphRepository? graphRepository = GetGraphRepository();
-        if (graphRepository == null) return;
+        if (graphRepository == null) return Task.CompletedTask;
 
         _logger.LogInformation("Updating graph for item {Item}", item);
         GraphUpdater updater = _serviceProvider.GetService<GraphUpdater>()
             ?? new GraphUpdater(graphRepository);
-        updater.Update(item);
+        return updater.UpdateAsync(item);
     }
 
-    private void UpdateGraph(IItem item, IPart part)
+    private Task UpdateGraphAsync(IItem item, IPart part)
     {
         IGraphRepository? graphRepository = GetGraphRepository();
-        if (graphRepository == null) return;
+        if (graphRepository == null) return Task.CompletedTask;
 
         _logger.LogInformation("Updating graph for part {Part}", part);
         GraphUpdater updater = _serviceProvider.GetService<GraphUpdater>()
             ?? new GraphUpdater(graphRepository);
-        updater.Update(item, part);
+        return updater.UpdateAsync(item, part);
     }
 
-    private void UpdateGraphForDeletion(string id)
+    private Task UpdateGraphForDeletionAsync(string id)
     {
         IGraphRepository? graphRepository = GetGraphRepository();
-        if (graphRepository == null) return;
+        if (graphRepository == null) return Task.CompletedTask;
 
         _logger.LogInformation("Updating graph for deleted {Id}", id);
-        graphRepository.DeleteGraphSet(id);
+        return graphRepository.DeleteGraphSetAsync(id);
     }
 
     /// <summary>
@@ -778,7 +781,7 @@ public sealed class ItemController : ControllerBase
             await writer.WriteItemAsync(item);
 
             // graph
-            if (isGraphEnabled) UpdateGraph(item);
+            if (isGraphEnabled) await UpdateGraphAsync(item);
         }
 
         return CreatedAtRoute("GetItem", new
@@ -990,7 +993,7 @@ public sealed class ItemController : ControllerBase
                 if (isGraphEnabled)
                 {
                     item = repository.GetItem(part.ItemId);
-                    if (item != null) UpdateGraph(item, part);
+                    if (item != null) await UpdateGraphAsync(item, part);
                 }
             }
         }
@@ -1098,8 +1101,9 @@ public sealed class ItemController : ControllerBase
             // graph
             if (IsGraphEnabled())
             {
-                UpdateGraph(item);
-                foreach (IPart part in item.Parts) UpdateGraph(item, part);
+                await UpdateGraphAsync(item);
+                foreach (IPart part in item.Parts)
+                    await UpdateGraphAsync(item, part);
             }
         }
 

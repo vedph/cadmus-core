@@ -1,4 +1,4 @@
-﻿using Cadmus.Core;
+using Cadmus.Core;
 using Cadmus.Core.Config;
 using Cadmus.Core.Storage;
 using Cadmus.Graph;
@@ -91,7 +91,9 @@ public static class HostSeedExtensions
     /// <summary>
     /// Ensures that the graph database exists when the graph is enabled
     /// (<c>Indexing:IsGraphEnabled</c>), retrying on transient connection
-    /// errors.
+    /// errors. If the database already exists, its schema is brought up to
+    /// date (this upgrades in place databases created by older versions,
+    /// adding the missing indexes and replacing procedures).
     /// </summary>
     /// <param name="serviceProvider">The service provider.</param>
     /// <param name="graphSql">The optional SQL code to seed the graph
@@ -117,11 +119,17 @@ public static class HostSeedExtensions
         logger.LogInformation("Ensuring graph database {Database}...", target);
 
         return SeedRetryPolicy.Create(logger, "Graph database").ExecuteAsync(
-            () =>
+            async () =>
             {
-                PgSqlDatabaseInitializer.EnsureDatabase(target,
-                    EfPgSqlGraphRepository.GetSchema(), graphSql, logger);
-                return Task.CompletedTask;
+                if (!PgSqlDatabaseInitializer.EnsureDatabase(target,
+                    EfPgSqlGraphRepository.GetSchema(), graphSql, logger))
+                {
+                    // the update script is idempotent: on an up-to-date
+                    // database this changes nothing
+                    logger.LogInformation(
+                        "Updating graph database {Database} schema...", target);
+                    await PgSqlGraphSchema.ApplyAsync(target.ConnectionString);
+                }
             });
     }
     #endregion
@@ -171,7 +179,12 @@ public static class HostSeedExtensions
                 repository.AddPart(part, true);
 
             if (indexWriter != null) await indexWriter.WriteItemAsync(item);
-            graphUpdater?.Update(item);
+            if (graphUpdater != null)
+            {
+                await graphUpdater.UpdateAsync(item);
+                foreach (IPart part in item.Parts)
+                    await graphUpdater.UpdateAsync(item, part);
+            }
 
             if (n % 10 == 0 || n == count)
                 logger.LogInformation("Seeded {N}/{Count} items", n, count);

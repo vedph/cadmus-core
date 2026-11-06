@@ -1,4 +1,4 @@
-﻿using Cadmus.Api.Services;
+using Cadmus.Api.Services;
 using Cadmus.Api.Services.Messaging;
 using Cadmus.Api.Services.Seeding;
 using Cadmus.Core.Storage;
@@ -31,6 +31,7 @@ using Fusi.Api.Auth.Services;
 using System.Text.Json;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using System.Linq;
 using Microsoft.Extensions.Hosting;
@@ -558,9 +559,13 @@ public static class ServiceConfigurator
         services.AddSingleton<IItemGraphFactoryProvider>(_ =>
             new StandardItemGraphFactoryProvider(cs));
 
-        services.AddSingleton<IGraphRepository>(_ =>
+        services.AddSingleton<IGraphRepository>(provider =>
         {
-            EfPgSqlGraphRepository repository = new();
+            EfPgSqlGraphRepository repository = new()
+            {
+                // cache the mappings run at each save
+                Cache = provider.GetService<IMemoryCache>()
+            };
             repository.Configure(new EfGraphRepositoryOptions
             {
                 ConnectionString = cs

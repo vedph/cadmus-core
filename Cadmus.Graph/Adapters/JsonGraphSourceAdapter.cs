@@ -1,4 +1,4 @@
-﻿using Cadmus.Export.Mapping;
+using Cadmus.Export.Mapping;
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -44,7 +44,8 @@ public abstract class JsonGraphSourceAdapter
     /// <param name="metadata">The target dictionary for metadata generated
     /// by the adapter.</param>
     /// <returns>The adaptation result (JSON code serialized from the adapted
-    /// object, plus the filter), or null.</returns>
+    /// object, or null when there is nothing to map, plus the filter).
+    /// </returns>
     /// <exception cref="ArgumentNullException">source or metadata</exception>
     public (object? result, RunNodeMappingFilter filter) Adapt(
         MapperSource source, IDictionary<string, object> metadata)
@@ -55,6 +56,8 @@ public abstract class JsonGraphSourceAdapter
         RunNodeMappingFilter filter = new();
         object? result = Adapt(source, filter, metadata);
 
-        return (JsonSerializer.Serialize(result, _options), filter);
+        return (result == null ? null
+            : JsonSerializer.Serialize(result, result.GetType(), _options),
+            filter);
     }
 }

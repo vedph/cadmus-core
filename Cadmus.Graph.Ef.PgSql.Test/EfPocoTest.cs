@@ -473,4 +473,39 @@ public sealed class EfPocoTest
 
         Assert.Same(mapping, to.Mapping);
     }
+
+    [Fact]
+    public void EfTriple_FromTriple_Copied()
+    {
+        Triple triple = new()
+        {
+            Id = 1,
+            SubjectId = 2,
+            PredicateId = 3,
+            ObjectId = 0,
+            ObjectLiteral = "x",
+            ObjectLiteralIx = "x",
+            LiteralType = "xsd:string",
+            LiteralLanguage = "en",
+            LiteralNumber = 1.5,
+            Sid = "sid",
+            Tag = "tag"
+        };
+
+        EfTriple ef = new(triple);
+
+        Assert.Equal(1, ef.Id);
+        Assert.Equal(2, ef.SubjectId);
+        Assert.Equal(3, ef.PredicateId);
+        // 0 means no object node
+        Assert.Null(ef.ObjectId);
+        Assert.Equal("x", ef.ObjectLiteral);
+        Assert.Equal("x", ef.ObjectLiteralIx);
+        Assert.Equal("xsd:string", ef.LiteralType);
+        Assert.Equal("en", ef.LiteralLanguage);
+        Assert.Equal(1.5, ef.LiteralNumber);
+        Assert.Equal("sid", ef.Sid);
+        Assert.Equal("tag", ef.Tag);
+        Assert.Throws<ArgumentNullException>(() => new EfTriple(null!));
+    }
 }

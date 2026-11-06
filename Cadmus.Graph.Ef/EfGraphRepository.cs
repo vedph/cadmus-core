@@ -3,35 +3,60 @@ using Fusi.Tools;
 using Fusi.Tools.Configuration;
 using Fusi.Tools.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using System.Text;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore.Storage;
-using System.Diagnostics;
-using Cadmus.Export.Mapping;
+using Microsoft.Extensions.Caching.Memory;
+using System.Globalization;
+using System.Text;
 
 namespace Cadmus.Graph.Ef;
 
 /// <summary>
 /// Base class for Entity-Framework-based graph repositories.
+/// <para>Implementations are thread-safe: each operation uses its own
+/// DB context, and the operations changing the graph are executed in
+/// transactions. Concurrency between different processes or threads
+/// (e.g. several users saving at the same time) is handled with the
+/// locks provided by <see cref="LockAsync"/>, which derived classes should
+/// implement with the database engine's locking mechanism.</para>
 /// </summary>
-public abstract class EfGraphRepository : IUidBuilder,
+public abstract partial class EfGraphRepository : IUidBuilder,
     IConfigurable<EfGraphRepositoryOptions>
 {
-    private const string CACHE_KEY_PREFIX = "nm-";
+    /// <summary>
+    /// The lock space for graph sources (items or parts). Updates to the
+    /// graph generated from the same source are serialized.
+    /// </summary>
+    protected const int LOCK_SOURCE = 0x43470001;
+
+    /// <summary>
+    /// The lock space for URIs: insertions of the same URI are serialized.
+    /// </summary>
+    protected const int LOCK_URI = 0x43470002;
+
+    /// <summary>
+    /// The lock space for UIDs: insertions of the same unsuffixed UID are
+    /// serialized.
+    /// </summary>
+    protected const int LOCK_UID = 0x43470003;
+
+    // maximum lengths of the database columns
+    protected const int MAX_URI = 500;
+    protected const int MAX_LABEL = 500;
+    protected const int MAX_SID = 500;
+    protected const int MAX_TAG = 50;
+    protected const int MAX_LIT_TYPE = 100;
+    protected const int MAX_LIT_LANG = 10;
+    protected const int MAX_LIT_IX = 15000;
+
+    private const int CLASS_BATCH_SIZE = 100;
+
+    // IDs of rdf:type and rdfs:subClassOf: these never change in a database
+    private (int A, int Sub)? _aSubIds;
 
     /// <summary>
     /// Gets the connection string.
     /// </summary>
     protected string? ConnectionString { get; set; }
-
-    /// <summary>
-    /// Gets or sets the optional cache to use for mappings. This improves
-    /// performance when fetching mappings from the database. All the
-    /// mappings are stored with key <c>nm-</c> + the mapping's ID.
-    /// Avoid using this if editing mappings.
-    /// </summary>
-    public IMemoryCache? Cache { get; set; }
 
     /// <summary>
     /// Configures this repository with the specified options.
@@ -42,6 +67,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     {
         ArgumentNullException.ThrowIfNull(options);
         ConnectionString = options.ConnectionString;
+        _aSubIds = null;
     }
 
     /// <summary>
@@ -50,8 +76,209 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// <returns>DB context.</returns>
     protected abstract CadmusGraphDbContext GetContext();
 
+    #region Helpers
+    protected static string? Truncate(string? text, int max) =>
+        text == null || text.Length <= max ? text : text[..max];
+
+    private static string EscapeLike(string text) => text
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal)
+        .Replace("_", "\\_", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Gets the pattern for a case-insensitive "contains" LIKE match with
+    /// <c>\</c> as the escape character: this must be compared with the
+    /// lowercased field value.
+    /// </summary>
+    /// <param name="text">The text to find.</param>
+    /// <returns>Pattern.</returns>
+    protected static string GetContainsPattern(string text) =>
+        "%" + EscapeLike(text.ToLowerInvariant()) + "%";
+
+    /// <summary>
+    /// Acquires the locks for the specified keys in the specified space,
+    /// releasing them at the end of the current transaction of
+    /// <paramref name="context"/>. Implementations must lock the keys
+    /// in a consistent order (to avoid deadlocks), and treat the keys
+    /// case-insensitively. The default implementation does nothing, which
+    /// is fine only when there are no concurrent writers.
+    /// </summary>
+    /// <param name="context">The context, with an active transaction.
+    /// </param>
+    /// <param name="space">The lock space, one of the <c>LOCK_</c>
+    /// constants.</param>
+    /// <param name="keys">The keys to lock.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    protected virtual Task LockAsync(CadmusGraphDbContext context, int space,
+        IEnumerable<string> keys, CancellationToken cancel)
+        => Task.CompletedTask;
+
+    /// <summary>
+    /// Inserts the specified nodes unless they already exist. Nodes are
+    /// identified by their ID, which must exist in the URIs lookup.
+    /// Existing nodes are not updated. The default implementation uses
+    /// Entity Framework: derived classes should override it to provide an
+    /// atomic insertion, safe for concurrent writers.
+    /// </summary>
+    /// <param name="context">The context.</param>
+    /// <param name="nodes">The nodes, sorted by ID.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    protected virtual async Task InsertMissingNodesAsync(
+        CadmusGraphDbContext context, IList<Node> nodes,
+        CancellationToken cancel)
+    {
+        if (nodes.Count == 0) return;
+        List<int> ids = [.. nodes.Select(n => n.Id).Distinct()];
+        HashSet<int> existing = [.. await context.Nodes.AsNoTracking()
+            .Where(n => ids.Contains(n.Id)).Select(n => n.Id)
+            .ToListAsync(cancel)];
+
+        HashSet<int> added = [];
+        foreach (Node node in nodes)
+        {
+            if (existing.Contains(node.Id) || !added.Add(node.Id)) continue;
+            context.Nodes.Add(new EfNode(node)
+            {
+                Label = Truncate(node.Label, MAX_LABEL),
+                Tag = Truncate(node.Tag, MAX_TAG),
+                Sid = Truncate(node.Sid, MAX_SID)
+            });
+        }
+        await context.SaveChangesAsync(cancel);
+    }
+
+    /// <summary>
+    /// Populates the node classes for the nodes with the specified IDs.
+    /// </summary>
+    /// <param name="context">The context.</param>
+    /// <param name="nodeIds">The node IDs.</param>
+    /// <param name="aId">The ID of <c>rdf:type</c>.</param>
+    /// <param name="subId">The ID of <c>rdfs:subClassOf</c>.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    protected virtual async Task PopulateNodeClassesAsync(
+        CadmusGraphDbContext context, IEnumerable<int> nodeIds, int aId,
+        int subId, CancellationToken cancel)
+    {
+        foreach (int[] chunk in nodeIds.Distinct().Order()
+            .Chunk(CLASS_BATCH_SIZE))
+        {
+            // only integers are concatenated here, so this is safe
+            StringBuilder sb = new();
+            foreach (int id in chunk)
+            {
+                sb.Append(CultureInfo.InvariantCulture,
+                    $"CALL populate_node_class({id},{aId},{subId});");
+            }
+#pragma warning disable EF1002 // Risk of vulnerability to SQL injection.
+            await context.Database.ExecuteSqlRawAsync(sb.ToString(), cancel);
+#pragma warning restore EF1002 // Risk of vulnerability to SQL injection.
+        }
+    }
+
+    /// <summary>
+    /// Gets the IDs of the <c>rdf:type</c> and <c>rdfs:subClassOf</c>
+    /// properties, adding them if not present.
+    /// </summary>
+    /// <param name="context">The context. When nodes must be added, this
+    /// should have an active transaction.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    /// <returns>Tuple with IDs.</returns>
+    protected async Task<(int A, int Sub)> GetASubIdsAsync(
+        CadmusGraphDbContext context, CancellationToken cancel)
+    {
+        if (_aSubIds.HasValue) return _aSubIds.Value;
+
+        Dictionary<string, int> ids = await ResolveUrisAsync(context,
+            ["rdf:type", "rdfs:subClassOf"], cancel);
+        int a = ids["rdf:type"], sub = ids["rdfs:subClassOf"];
+
+        int found = await context.Nodes.CountAsync(
+            n => n.Id == a || n.Id == sub, cancel);
+        if (found == 2)
+        {
+            // cache only when existing, i.e. not added by a transaction
+            // which might be rolled back
+            _aSubIds = (a, sub);
+        }
+        else
+        {
+            await InsertMissingNodesAsync(context,
+            [
+                new Node { Id = a, Label = "is-a", Tag = Node.TAG_PROPERTY },
+                new Node
+                {
+                    Id = sub,
+                    Label = "is-subclass-of",
+                    Tag = Node.TAG_PROPERTY
+                }
+            ], cancel);
+        }
+        return (a, sub);
+    }
+
+    /// <summary>
+    /// Collects the changes affecting node classes.
+    /// </summary>
+    private sealed class ClassChanges
+    {
+        /// <summary>
+        /// The instance nodes whose classes changed (subjects of added or
+        /// deleted <c>rdf:type</c> triples).
+        /// </summary>
+        public HashSet<int> Instances { get; } = [];
+
+        /// <summary>
+        /// The class nodes whose superclasses changed (subjects of added or
+        /// deleted <c>rdfs:subClassOf</c> triples). All the instances of
+        /// these classes must be updated.
+        /// </summary>
+        public HashSet<int> Classes { get; } = [];
+
+        public void Add(Triple triple, int aId, int subId)
+        {
+            if (triple.PredicateId == aId) Instances.Add(triple.SubjectId);
+            else if (triple.PredicateId == subId) Classes.Add(triple.SubjectId);
+        }
+    }
+
+    private async Task UpdateClassesAsync(CadmusGraphDbContext context,
+        ClassChanges changes, int aId, int subId, CancellationToken cancel)
+    {
+        HashSet<int> ids = [.. changes.Instances];
+        if (changes.Classes.Count > 0)
+        {
+            List<int> classIds = [.. changes.Classes];
+            ids.UnionWith(await context.NodeClasses.AsNoTracking()
+                .Where(c => classIds.Contains(c.ClassId))
+                .Select(c => c.NodeId)
+                .Distinct()
+                .ToListAsync(cancel));
+        }
+        if (ids.Count > 0)
+            await PopulateNodeClassesAsync(context, ids, aId, subId, cancel);
+    }
+
+    private static async Task<T> RunInTransactionAsync<T>(
+        CadmusGraphDbContext context, Func<Task<T>> action,
+        CancellationToken cancel)
+    {
+        await using IDbContextTransaction tr =
+            await context.Database.BeginTransactionAsync(cancel);
+        T result = await action();
+        await tr.CommitAsync(cancel);
+        return result;
+    }
+
+    private static Task RunInTransactionAsync(CadmusGraphDbContext context,
+        Func<Task> action, CancellationToken cancel) =>
+        RunInTransactionAsync(context, async () =>
+        {
+            await action();
+            return true;
+        }, cancel);
+    #endregion
+
     #region Namespace Lookup
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
     /// <summary>
     /// Gets the specified page of namespaces with their prefixes.
     /// </summary>
@@ -69,13 +296,15 @@ public abstract class EfGraphRepository : IUidBuilder,
 
         if (!string.IsNullOrEmpty(filter.Prefix))
         {
-            lookups = lookups.Where(l => l.Id.ToLower().Contains(
-                filter.Prefix.ToLower()));
+            string pattern = GetContainsPattern(filter.Prefix);
+            lookups = lookups.Where(l =>
+                EF.Functions.Like(l.Id.ToLower(), pattern, "\\"));
         }
         if (!string.IsNullOrEmpty(filter.Uri))
         {
-            lookups = lookups.Where(l => l.Uri.ToLower().Contains(
-                filter.Uri.ToLower()));
+            string pattern = GetContainsPattern(filter.Uri);
+            lookups = lookups.Where(l =>
+                EF.Functions.Like(l.Uri.ToLower(), pattern, "\\"));
         }
 
         // get total and ret if zero
@@ -83,22 +312,19 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (total == 0)
         {
             return new DataPage<NamespaceEntry>(
-                filter.PageNumber, filter.PageSize, 0,
-                Array.Empty<NamespaceEntry>());
+                filter.PageNumber, filter.PageSize, 0, []);
         }
 
-        var results = lookups.OrderBy(l => l.Id.ToLower())
-            .Skip((filter.PageNumber - 1) * filter.PageSize)
+        List<NamespaceEntry> results = [.. lookups
+            .OrderBy(l => l.Id.ToLower())
+            .Skip(filter.GetSkipCount())
             .Take(filter.PageSize)
-            .Select(l => l.ToNamespaceEntry())
-            .ToList();
+            .Select(l => l.ToNamespaceEntry())];
 
         return new DataPage<NamespaceEntry>(filter.PageNumber,
             filter.PageSize, total, results);
     }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
 
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
     /// <summary>
     /// Looks up the namespace from its prefix.
     /// </summary>
@@ -110,14 +336,16 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(prefix);
 
         using CadmusGraphDbContext context = GetContext();
-        EfNamespaceEntry? lookup = context.NamespaceEntries
-            .FirstOrDefault(l => l.Id.ToLower() == prefix.ToLower());
-        return lookup?.Uri;
+        string lower = prefix.ToLowerInvariant();
+        return context.NamespaceEntries.AsNoTracking()
+            .Where(l => l.Id.ToLower() == lower)
+            .Select(l => l.Uri)
+            .FirstOrDefault();
     }
 
     /// <summary>
-    /// Adds the specified namespace prefix. If it already exists, nothing
-    /// is done.
+    /// Adds or updates the specified namespace prefix. If the prefix
+    /// already exists (case-insensitively), its URI is replaced.
     /// </summary>
     /// <param name="prefix">The namespace prefix.</param>
     /// <param name="uri">The namespace URI corresponding to
@@ -129,9 +357,9 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(uri);
 
         using CadmusGraphDbContext context = GetContext();
+        string lower = prefix.ToLowerInvariant();
         EfNamespaceEntry? old = context.NamespaceEntries
-            .FirstOrDefault(l => l.Id.ToLower() == prefix.ToLower() &&
-                                 l.Uri.ToLower() == uri.ToLower());
+            .FirstOrDefault(l => l.Id.ToLower() == lower);
         if (old == null)
         {
             context.NamespaceEntries.Add(new EfNamespaceEntry
@@ -139,8 +367,12 @@ public abstract class EfGraphRepository : IUidBuilder,
                 Id = prefix,
                 Uri = uri
             });
-            context.SaveChanges();
         }
+        else
+        {
+            old.Uri = uri;
+        }
+        context.SaveChanges();
     }
 
     /// <summary>
@@ -153,39 +385,53 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(prefix);
 
         using CadmusGraphDbContext context = GetContext();
-        EfNamespaceEntry? entry = context.NamespaceEntries
-            .FirstOrDefault(l => l.Id.ToLower() == prefix.ToLower());
-        if (entry != null)
-        {
-            context.NamespaceEntries.Remove(entry);
-            context.SaveChanges();
-        }
+        string lower = prefix.ToLowerInvariant();
+        context.NamespaceEntries.Where(l => l.Id.ToLower() == lower)
+            .ExecuteDelete();
     }
 
     /// <summary>
     /// Deletes the specified namespace with all its prefixes.
     /// </summary>
     /// <param name="uri">The namespace URI.</param>
+    /// <exception cref="ArgumentNullException">uri</exception>
     public void DeleteNamespaceByUri(string uri)
     {
         ArgumentNullException.ThrowIfNull(uri);
 
         using CadmusGraphDbContext context = GetContext();
-        IEnumerable<EfNamespaceEntry> entries = context.NamespaceEntries
-            .Where(l => l.Uri.ToLower() == uri.ToLower());
-        if (entries.Any())
-        {
-            context.NamespaceEntries.RemoveRange(entries);
-            context.SaveChanges();
-        }
+        string lower = uri.ToLowerInvariant();
+        context.NamespaceEntries.Where(l => l.Uri.ToLower() == lower)
+            .ExecuteDelete();
     }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
     #endregion
 
     #region UID Lookup
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
+    private static async Task<List<UidEntry>> GetUidEntriesAsync(
+        CadmusGraphDbContext context, string unsuffixed,
+        CancellationToken cancel)
+    {
+        string lower = unsuffixed.ToLowerInvariant();
+        return await context.UidEntries.AsNoTracking()
+            .Where(e => e.Unsuffixed.ToLower() == lower)
+            .OrderBy(e => e.Id)
+            .Select(e => new UidEntry
+            {
+                Id = e.Id,
+                Sid = e.Sid,
+                Unsuffixed = e.Unsuffixed,
+                HasSuffix = e.HasSuffix
+            })
+            .ToListAsync(cancel);
+    }
+
     /// <summary>
-    /// Adds the specified UID, eventually completing it with a suffix.
+    /// Builds the UID for the specified source, eventually adding it to
+    /// the UIDs lookup with a suffix. The rules are documented in
+    /// <see cref="UidResolver.TryResolve"/>: in short, the same source
+    /// (SID) always gets the same UID, and a numeric suffix is added only
+    /// when a unique UID is requested and the UID is already used by
+    /// another source.
     /// </summary>
     /// <param name="unsuffixed">The UID as calculated from its source,
     /// without any suffix. If the caller wants a unique new UID for it, it
@@ -194,104 +440,133 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// value, or replaced by a numeric suffix preceded by <c>#</c> to grant
     /// its uniqueness.</param>
     /// <param name="sid">The SID identifying the source for this UID.</param>
+    /// <param name="cancel">The cancellation token.</param>
     /// <returns>The UID, eventually suffixed.</returns>
-    public string BuildUid(string unsuffixed, string sid)
+    /// <exception cref="ArgumentNullException">unsuffixed or sid</exception>
+    public async Task<string> BuildUidAsync(string unsuffixed, string sid,
+        CancellationToken cancel = default)
     {
         ArgumentNullException.ThrowIfNull(unsuffixed);
         ArgumentNullException.ThrowIfNull(sid);
 
-        using CadmusGraphDbContext context = GetContext();
+        (string uid, bool unique) = UidResolver.Parse(unsuffixed);
+        sid = Truncate(sid, MAX_SID)!;
 
-        // special case: unsuffixed ending with ## means that the caller
-        // wants a unique suffix to be added to the unsuffixed UID
-        bool unique = false;
-        if (unsuffixed.EndsWith("##", StringComparison.Ordinal))
+        await using CadmusGraphDbContext context = GetContext();
+
+        // fast path: no insertion required
+        string? resolved = UidResolver.TryResolve(
+            await GetUidEntriesAsync(context, uid, cancel), uid, sid, unique,
+            out _);
+        if (resolved != null) return resolved;
+
+        // else insert, serializing concurrent insertions of the same UID
+        return await RunInTransactionAsync(context, async () =>
         {
-            unique = true;
-            unsuffixed = unsuffixed[..^2];
-        }
+            await LockAsync(context, LOCK_UID, [uid], cancel);
 
-        // find unsuffixed
-        EfUidEntry? entry = context.UidEntries.FirstOrDefault(l =>
-            l.Unsuffixed.ToLower() == unsuffixed.ToLower());
+            // check again, as others might have inserted it meanwhile
+            resolved = UidResolver.TryResolve(
+                await GetUidEntriesAsync(context, uid, cancel), uid, sid,
+                unique, out bool hasSuffix);
+            if (resolved != null) return resolved;
 
-        // just add if not found
-        if (entry == null)
-        {
-            context.UidEntries.Add(new EfUidEntry
+            EfUidEntry entry = new()
             {
                 Sid = sid,
-                Unsuffixed = unsuffixed,
-                HasSuffix = false
-            });
-            context.SaveChanges();
-            return unsuffixed;
-        }
-
-        // found and not unique: reuse it with its suffix if any,
-        // nothing gets inserted
-        if (!unique)
-        {
-            return entry.HasSuffix ? unsuffixed + "#" + entry.Id : unsuffixed;
-        }
-
-        // else make it unique by adding a new suffixed entry: the suffix
-        // will be the autogenerated ID of the new entry
-        entry = new EfUidEntry
-        {
-            Sid = sid,
-            Unsuffixed = unsuffixed,
-            HasSuffix = true
-        };
-        context.UidEntries.Add(entry);
-        context.SaveChanges();
-        return unsuffixed + "#" + entry.Id;
+                Unsuffixed = uid,
+                HasSuffix = hasSuffix
+            };
+            context.UidEntries.Add(entry);
+            await context.SaveChangesAsync(cancel);
+            return UidResolver.BuildUid(uid, entry.Id, hasSuffix);
+        }, cancel);
     }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
+
+    /// <summary>
+    /// Builds the UID for the specified source (see
+    /// <see cref="BuildUidAsync"/>).
+    /// </summary>
+    /// <param name="unsuffixed">The UID as calculated from its source,
+    /// without any suffix, optionally ending with <c>##</c> to request
+    /// a unique UID.</param>
+    /// <param name="sid">The SID identifying the source for this UID.</param>
+    /// <returns>The UID, eventually suffixed.</returns>
+    /// <exception cref="ArgumentNullException">unsuffixed or sid</exception>
+    public string BuildUid(string unsuffixed, string sid) =>
+        BuildUidAsync(unsuffixed, sid).GetAwaiter().GetResult();
     #endregion
 
     #region URI Lookup
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
-    private static int AddUri(string uri, CadmusGraphDbContext context)
+    private static async Task LoadUrisAsync(CadmusGraphDbContext context,
+        IList<string> lowerUris, Dictionary<string, int> target,
+        CancellationToken cancel)
     {
-        // if the URI already exists, just return its ID
-        EfUriEntry? entry = context.UriEntries.AsNoTracking()
-            .FirstOrDefault(l => l.Uri.ToLower() == uri.ToLower());
-        if (entry != null) return entry.Id;
-
-        // otherwise, add it
-        entry = new EfUriEntry
+        foreach (var entry in await context.UriEntries.AsNoTracking()
+            .Where(e => lowerUris.Contains(e.Uri.ToLower()))
+            // older databases might have case-variant duplicates: the
+            // oldest one wins, as in single lookups
+            .OrderBy(e => e.Id)
+            .Select(e => new { e.Id, e.Uri })
+            .ToListAsync(cancel))
         {
-            Uri = uri
-        };
-        context.UriEntries.Add(entry);
-        context.SaveChanges();
-        return entry.Id;
+            target.TryAdd(entry.Uri, entry.Id);
+        }
     }
 
-    private static int AddUri(string uri, CadmusGraphDbContext context,
-        out bool newUri)
+    /// <summary>
+    /// Resolves the specified URIs into their numeric IDs, adding to the
+    /// lookup those which are missing. URIs are case-insensitive.
+    /// When adding URIs, the context should have an active transaction,
+    /// so that concurrent insertions can be serialized.
+    /// </summary>
+    /// <param name="context">The context.</param>
+    /// <param name="uris">The URIs.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    /// <returns>Case-insensitive dictionary with the ID of each URI.
+    /// </returns>
+    /// <exception cref="CadmusGraphException">empty or too long URI
+    /// </exception>
+    protected async Task<Dictionary<string, int>> ResolveUrisAsync(
+        CadmusGraphDbContext context, IEnumerable<string> uris,
+        CancellationToken cancel)
     {
-        // if the URI already exists, just return its ID
-        EfUriEntry? entry = context.UriEntries.AsNoTracking()
-            .FirstOrDefault(l => l.Uri.ToLower() == uri.ToLower());
-        if (entry != null)
+        Dictionary<string, int> ids = new(StringComparer.OrdinalIgnoreCase);
+        List<string> distinct = [.. uris.Distinct(
+            StringComparer.OrdinalIgnoreCase)];
+        if (distinct.Count == 0) return ids;
+
+        foreach (string uri in distinct)
         {
-            newUri = false;
-            return entry.Id;
+            if (string.IsNullOrWhiteSpace(uri))
+                throw new CadmusGraphException("Empty URI");
+            if (uri.Length > MAX_URI)
+            {
+                throw new CadmusGraphException(
+                    $"URI longer than {MAX_URI} characters: {uri}");
+            }
         }
 
-        // otherwise, add it
-        entry = new EfUriEntry
-        {
-            Uri = uri
-        };
-        context.UriEntries.Add(entry);
-        context.SaveChanges();
-        newUri = true;
-        return entry.Id;
+        await LoadUrisAsync(context,
+            [.. distinct.Select(u => u.ToLowerInvariant())], ids, cancel);
+        List<string> missing = [.. distinct.Where(u => !ids.ContainsKey(u))];
+        if (missing.Count == 0) return ids;
+
+        // serialize insertions of the same URIs, then check again
+        await LockAsync(context, LOCK_URI, missing, cancel);
+        await LoadUrisAsync(context,
+            [.. missing.Select(u => u.ToLowerInvariant())], ids, cancel);
+        missing = [.. missing.Where(u => !ids.ContainsKey(u))];
+        if (missing.Count == 0) return ids;
+
+        List<EfUriEntry> entries = [.. missing.Select(
+            u => new EfUriEntry { Uri = u })];
+        context.UriEntries.AddRange(entries);
+        await context.SaveChangesAsync(cancel);
+        foreach (EfUriEntry entry in entries) ids[entry.Uri] = entry.Id;
+
+        return ids;
     }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
 
     /// <summary>
     /// Adds the specified URI in the mapped URIs set.
@@ -304,7 +579,9 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(uri);
 
         using CadmusGraphDbContext context = GetContext();
-        return AddUri(uri, context);
+        return RunInTransactionAsync(context, async () =>
+            (await ResolveUrisAsync(context, [uri], default))[uri],
+            default).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -315,9 +592,10 @@ public abstract class EfGraphRepository : IUidBuilder,
     public string? LookupUri(int id)
     {
         using CadmusGraphDbContext context = GetContext();
-        EfUriEntry? entry = context.UriEntries.AsNoTracking()
-            .FirstOrDefault(l => l.Id == id);
-        return entry?.Uri;
+        return context.UriEntries.AsNoTracking()
+            .Where(l => l.Id == id)
+            .Select(l => l.Uri)
+            .FirstOrDefault();
     }
 
     /// <summary>
@@ -326,29 +604,30 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// <param name="uri">The URI.</param>
     /// <returns>The ID, or 0 if not found.</returns>
     /// <exception cref="ArgumentNullException">uri</exception>
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
     public int LookupId(string uri)
     {
         ArgumentNullException.ThrowIfNull(uri);
 
         using CadmusGraphDbContext context = GetContext();
-        EfUriEntry? entry = context.UriEntries.AsNoTracking()
-            .FirstOrDefault(l => l.Uri.ToLower() == uri.ToLower());
-        return entry?.Id ?? 0;
+        string lower = uri.ToLowerInvariant();
+        return context.UriEntries.AsNoTracking()
+            .Where(l => l.Uri.ToLower() == lower)
+            .OrderBy(l => l.Id)
+            .Select(l => l.Id)
+            .FirstOrDefault();
     }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
     #endregion
 
     #region Node
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
     private static IQueryable<EfNode> ApplyNodeFilterBase(
         IQueryable<EfNode> nodes, NodeFilterBase filter)
     {
         // uid
         if (!string.IsNullOrEmpty(filter.Uid))
         {
-            nodes = nodes.Where(n => n.UriEntry!.Uri.ToLower().Contains(
-                filter.Uid.ToLower()));
+            string pattern = GetContainsPattern(filter.Uid);
+            nodes = nodes.Where(n => EF.Functions.Like(
+                n.UriEntry!.Uri.ToLower(), pattern, "\\"));
         }
 
         // class
@@ -358,17 +637,18 @@ public abstract class EfGraphRepository : IUidBuilder,
         // tag
         if (filter.Tag != null)
         {
-            string? tag = filter.Tag.ToLower();
-            if (filter.Tag.Length == 0) nodes = nodes.Where(n => n.Tag == null);
-            else nodes = nodes.Where(n => n.Tag!.ToLower() == tag);
+            string tag = filter.Tag.ToLowerInvariant();
+            nodes = filter.Tag.Length == 0
+                ? nodes.Where(n => n.Tag == null)
+                : nodes.Where(n => n.Tag!.ToLower() == tag);
         }
 
         // label
         if (!string.IsNullOrEmpty(filter.Label))
         {
-            string? label = filter.Label.ToLower();
-            nodes = nodes.Where(
-                n => n.Label != null && n.Label.ToLower().Contains(label));
+            string pattern = GetContainsPattern(filter.Label);
+            nodes = nodes.Where(n => n.Label != null &&
+                EF.Functions.Like(n.Label.ToLower(), pattern, "\\"));
         }
 
         // source type
@@ -378,25 +658,23 @@ public abstract class EfGraphRepository : IUidBuilder,
         // sid
         if (!string.IsNullOrEmpty(filter.Sid))
         {
+            string sid = filter.Sid.ToLowerInvariant();
             nodes = filter.IsSidPrefix
                 ? nodes.Where(n => n.Sid != null &&
-                    n.Sid.ToLower().StartsWith(filter.Sid.ToLower()))
-                : nodes.Where(n => n.Sid != null &&
-                    n.Sid.ToLower() == filter.Sid.ToLower());
+                    n.Sid.ToLower().StartsWith(sid))
+                : nodes.Where(n => n.Sid != null && n.Sid.ToLower() == sid);
         }
 
-        // class IDs
+        // class IDs: nodes with any of the specified class IDs
         if (filter.ClassIds?.Count > 0)
         {
-            // nodes with any of the specified class IDs
+            List<int> classIds = filter.ClassIds;
             nodes = nodes.Where(n =>
-                n.Classes != null && n.Classes.Count > 0 &&
-                n.Classes!.Any(c => filter.ClassIds.Contains(c.ClassId)));
+                n.Classes!.Any(c => classIds.Contains(c.ClassId)));
         }
 
         return nodes;
     }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
 
     /// <summary>
     /// Gets the requested page of nodes.
@@ -409,58 +687,29 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(filter);
 
         using CadmusGraphDbContext context = GetContext();
-        IQueryable<EfNode> nodes = filter.LinkedNodeId > 0
-            ? char.ToUpperInvariant(filter.LinkedNodeRole) switch
-            {
-                'S' => context.Nodes
-                    .Include(n => n.UriEntry)
-                    .Include(n => n.ObjectTriples)
-                    .AsNoTracking(),
-                'O' => context.Nodes
-                    .Include(n => n.UriEntry)
-                    .Include(n => n.SubjectTriples)
-                    .AsNoTracking(),
-                _ => context.Nodes
-                    .Include(n => n.UriEntry)
-                    .Include(n => n.SubjectTriples)
-                    .Include(n => n.ObjectTriples)
-                    .AsNoTracking()
-            }
-        : context.Nodes
-                .Include(n => n.UriEntry)
-                .AsNoTracking();
-
-        nodes = ApplyNodeFilterBase(nodes, filter);
+        IQueryable<EfNode> nodes = ApplyNodeFilterBase(
+            context.Nodes.AsNoTracking(), filter);
 
         // additional filter: linked node ID
         if (filter.LinkedNodeId > 0)
         {
+            int linkedId = filter.LinkedNodeId;
             nodes = char.ToUpperInvariant(filter.LinkedNodeRole) switch
             {
-                // filter nodes which once joined with triples have any triple
-                // with the specified linked node ID as object and
-                // the filter node ID as subject
-                'S' => nodes.Where(n =>
-                    n.ObjectTriples != null && n.ObjectTriples.Count > 0 &&
-                    n.ObjectTriples.Any(t => t.ObjectId == n.Id &&
-                                        t.SubjectId == filter.LinkedNodeId)),
+                // nodes being objects of a triple whose subject is the
+                // linked node
+                'S' => nodes.Where(n => n.ObjectTriples!.Any(
+                    t => t.SubjectId == linkedId)),
 
-                // filter nodes which once joined with triples have any triple
-                // with the specified linked node ID as subject and
-                // the filter node ID as object
-                'O' => nodes.Where(n =>
-                    n.SubjectTriples != null && n.SubjectTriples.Count > 0 &&
-                    n.SubjectTriples.Any(t => t.SubjectId == n.Id &&
-                                         t.ObjectId == filter.LinkedNodeId)),
+                // nodes being subjects of a triple whose object is the
+                // linked node
+                'O' => nodes.Where(n => n.SubjectTriples!.Any(
+                    t => t.ObjectId == linkedId)),
 
-                // filter nodes as either S or O
+                // nodes linked to the linked node as either S or O
                 _ => nodes.Where(n =>
-                    (n.ObjectTriples != null && n.ObjectTriples.Count > 0 &&
-                     n.ObjectTriples.Any(t => t.ObjectId == n.Id &&
-                                         t.SubjectId == filter.LinkedNodeId)) ||
-                    (n.SubjectTriples != null && n.SubjectTriples.Count > 0 &&
-                     n.SubjectTriples.Any(t => t.SubjectId == n.Id &&
-                                          t.ObjectId == filter.LinkedNodeId))),
+                    n.ObjectTriples!.Any(t => t.SubjectId == linkedId) ||
+                    n.SubjectTriples!.Any(t => t.ObjectId == linkedId)),
             };
         }
 
@@ -468,13 +717,26 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (total == 0)
         {
             return new DataPage<UriNode>(filter.PageNumber, filter.PageSize, 0,
-                Array.Empty<UriNode>());
+                []);
         }
 
-        nodes = nodes.OrderBy(n => n.Label!.ToLower()).ThenBy(n => n.Id);
-        List<EfNode> results = [.. nodes.Skip(filter.GetSkipCount()).Take(filter.PageSize)];
+        List<UriNode> results = [.. nodes
+            .OrderBy(n => n.Label!.ToLower())
+            .ThenBy(n => n.Id)
+            .Skip(filter.GetSkipCount())
+            .Take(filter.PageSize)
+            .Select(n => new UriNode
+            {
+                Id = n.Id,
+                IsClass = n.IsClass,
+                Tag = n.Tag,
+                Label = n.Label,
+                SourceType = n.SourceType,
+                Sid = n.Sid,
+                Uri = n.UriEntry!.Uri
+            })];
         return new DataPage<UriNode>(filter.PageNumber, filter.PageSize, total,
-            results.Select(n => n.ToUriNode(n.UriEntry!.Uri)).ToArray());
+            results);
     }
 
     /// <summary>
@@ -482,21 +744,22 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// </summary>
     /// <param name="ids">The nodes IDs.</param>
     /// <returns>List of nodes (or null), one per ID.</returns>
+    /// <exception cref="ArgumentNullException">ids</exception>
     public IList<UriNode?> GetNodes(IList<int> ids)
     {
         ArgumentNullException.ThrowIfNull(ids);
+        if (ids.Count == 0) return [];
 
         using CadmusGraphDbContext context = GetContext();
-        IList<EfNode> nodes = [.. context.Nodes
+        List<int> distinct = [.. ids.Distinct()];
+        Dictionary<int, UriNode> nodes = context.Nodes
+            .AsNoTracking()
             .Include(n => n.UriEntry)
-            .Where(n => ids.Contains(n.Id))
-            .AsNoTracking()];
+            .Where(n => distinct.Contains(n.Id))
+            .AsEnumerable()
+            .ToDictionary(n => n.Id, n => n.ToUriNode());
 
-        return [.. ids.Select(id =>
-        {
-            EfNode? node = nodes.FirstOrDefault(n => n.Id == id);
-            return node?.ToUriNode(node.UriEntry!.Uri);
-        })];
+        return [.. ids.Select(id => nodes.GetValueOrDefault(id))];
     }
 
     /// <summary>
@@ -508,19 +771,10 @@ public abstract class EfGraphRepository : IUidBuilder,
     {
         using CadmusGraphDbContext context = GetContext();
         EfNode? node = context.Nodes
-            .Include(n => n.UriEntry)
             .AsNoTracking()
+            .Include(n => n.UriEntry)
             .FirstOrDefault(n => n.Id == id);
-        return node?.ToUriNode(node.UriEntry!.Uri);
-    }
-
-    private static UriNode? GetNodeByUri(string uri, CadmusGraphDbContext context)
-    {
-        EfNode? node = context.Nodes
-            .Include(n => n.UriEntry)
-            .AsNoTracking()
-            .FirstOrDefault(n => n.UriEntry!.Uri.ToLower() == uri.ToLower());
-        return node?.ToUriNode(node.UriEntry!.Uri);
+        return node?.ToUriNode();
     }
 
     /// <summary>
@@ -534,84 +788,23 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(uri);
 
         using CadmusGraphDbContext context = GetContext();
-        return GetNodeByUri(uri, context);
-    }
-
-    private static (int A, int Sub) GetASubIds(CadmusGraphDbContext context)
-    {
-        // a
-        EfNode? a = context.Nodes.Include(n => n.UriEntry)
+        string lower = uri.ToLowerInvariant();
+        EfNode? node = context.Nodes
             .AsNoTracking()
-            .FirstOrDefault(n => n.UriEntry!.Uri.ToLower() == "rdf:type");
-        if (a == null)
-        {
-            context.Nodes.Add(a = new EfNode
-            {
-                Id = AddUri("rdf:type", context),
-                Label = "is-a",
-                Tag = "property"
-            });
-        }
-
-        // sub
-        EfNode? sub = context.Nodes.Include(n => n.UriEntry)
-            .AsNoTracking()
-            .FirstOrDefault(n => n.UriEntry!.Uri.ToLower() == "rdfs:subclassof");
-        if (sub == null)
-        {
-            context.Nodes.Add(sub = new EfNode
-            {
-                Id = AddUri("rdfs:subClassOf", context),
-                Label = "is-subclass-of",
-                Tag = "property"
-            });
-        }
-
-        context.SaveChanges();
-        return (a.Id, sub.Id);
+            .Include(n => n.UriEntry)
+            .Where(n => n.UriEntry!.Uri.ToLower() == lower)
+            .OrderBy(n => n.Id)
+            .FirstOrDefault();
+        return node?.ToUriNode();
     }
 
-    private static void UpdateNodeClasses(int nodeId, int aId, int subId,
-        CadmusGraphDbContext context)
+    private static void CopyNode(Node source, EfNode target)
     {
-        context.Database.ExecuteSql(
-            $"CALL populate_node_class({nodeId},{aId},{subId})");
-    }
-
-    private void AddNode(Node node, bool noUpdate, bool updateClasses,
-        CadmusGraphDbContext? context)
-    {
-        bool localContext = context == null;
-        context ??= GetContext();
-
-        EfNode? old = context.Nodes.Find(node.Id);
-        if (noUpdate && old != null) return;
-        if (old != null)
-        {
-            old.IsClass = node.IsClass;
-            old.Tag = node.Tag;
-            old.Label = node.Label;
-            old.SourceType = node.SourceType;
-            old.Sid = node.Sid;
-        }
-        else
-        {
-            Debug.WriteLine("adding node " + node);
-            context.Nodes.Add(new EfNode(node));
-        }
-
-        if (updateClasses)
-        {
-            context.SaveChanges();
-            (int aId, int subId) = GetASubIds(context);
-            UpdateNodeClasses(node.Id, aId, subId, context);
-        }
-
-        if (localContext)
-        {
-            context.SaveChanges();
-            context.Dispose();
-        }
+        target.IsClass = source.IsClass;
+        target.Tag = Truncate(source.Tag, MAX_TAG);
+        target.Label = Truncate(source.Label, MAX_LABEL);
+        target.SourceType = source.SourceType;
+        target.Sid = Truncate(source.Sid, MAX_SID);
     }
 
     /// <summary>
@@ -628,73 +821,104 @@ public abstract class EfGraphRepository : IUidBuilder,
     {
         ArgumentNullException.ThrowIfNull(node);
 
-        AddNode(node, noUpdate, true, null);
+        using CadmusGraphDbContext context = GetContext();
+        RunInTransactionAsync(context, async () =>
+        {
+            EfNode? old = await context.Nodes.FindAsync(node.Id);
+            if (old != null)
+            {
+                if (noUpdate) return;
+                CopyNode(node, old);
+                await context.SaveChangesAsync();
+            }
+            else
+            {
+                await InsertMissingNodesAsync(context, [node], default);
+            }
+
+            (int aId, int subId) = await GetASubIdsAsync(context, default);
+            await PopulateNodeClassesAsync(context, [node.Id], aId, subId,
+                default);
+        }, default).GetAwaiter().GetResult();
     }
 
     /// <summary>
     /// Bulk imports the specified nodes. Note that here the nodes being
     /// imported are assumed to have a URI, while their ID will be
     /// calculated during import according to the URI value. Nodes without
-    /// URI will not be imported.
+    /// URI will not be imported. Existing nodes are updated.
     /// </summary>
     /// <param name="nodes">The nodes.</param>
+    /// <exception cref="ArgumentNullException">nodes</exception>
     public void ImportNodes(IEnumerable<UriNode> nodes)
     {
         ArgumentNullException.ThrowIfNull(nodes);
 
+        List<UriNode> list = [.. nodes.Where(n => !string.IsNullOrEmpty(n.Uri))];
+        if (list.Count == 0) return;
+
         using CadmusGraphDbContext context = GetContext();
-        (int aId, int subId) = GetASubIds(context);
-        foreach (UriNode node in nodes.Where(n => n.Uri != null))
+        RunInTransactionAsync(context, async () =>
         {
-            string? nodeUri = node.Uri?.ToLower();
-            EfUriEntry? uri = context.UriEntries.AsNoTracking()
-                .FirstOrDefault(e => e.Uri.ToLower() == nodeUri);
-            if (uri == null)
+            Dictionary<string, int> ids = await ResolveUrisAsync(context,
+                list.Select(n => n.Uri!), default);
+            foreach (UriNode node in list) node.Id = ids[node.Uri!];
+
+            List<int> nodeIds = [.. ids.Values];
+            Dictionary<int, EfNode> existing = await context.Nodes
+                .Where(n => nodeIds.Contains(n.Id))
+                .ToDictionaryAsync(n => n.Id);
+
+            List<Node> missing = [];
+            foreach (UriNode node in list)
             {
-                uri = new EfUriEntry
-                {
-                    Uri = node.Uri!
-                };
-                context.UriEntries.Add(uri);
-                // flush immediately so that a later duplicate URI in the
-                // same batch is recognized as already existing, instead of
-                // being added again (which would violate the uri_lookup
-                // uniqueness constraint)
-                context.SaveChanges();
+                if (existing.TryGetValue(node.Id, out EfNode? old))
+                    CopyNode(node, old);
+                else
+                    missing.Add(node);
             }
-            context.Nodes.Add(new EfNode
-            {
-                Id = uri.Id,
-                UriEntry = uri,
-                IsClass = node.IsClass,
-                Tag = node.Tag,
-                Label = node.Label,
-                SourceType = node.SourceType,
-                Sid = node.Sid
-            });
-        }
-        context.SaveChanges();
+            await context.SaveChangesAsync();
+            await InsertMissingNodesAsync(context,
+                [.. missing.OrderBy(n => n.Id)], default);
 
-        foreach (int id in nodes.Select(n => n.Id))
-            UpdateNodeClasses(id, aId, subId, context);
-    }
-
-    private static void DeleteNode(int id, CadmusGraphDbContext context)
-    {
-        EfNode? node = context.Nodes.FirstOrDefault(n => n.Id == id);
-        if (node == null) return;
-        context.Nodes.Remove(node);
-        context.SaveChanges();
+            (int aId, int subId) = await GetASubIdsAsync(context, default);
+            await PopulateNodeClassesAsync(context, nodeIds, aId, subId,
+                default);
+        }, default).GetAwaiter().GetResult();
     }
 
     /// <summary>
-    /// Deletes the node with the specified ID.
+    /// Deletes the node with the specified ID. This also deletes all the
+    /// triples using it.
     /// </summary>
     /// <param name="id">The node identifier.</param>
     public void DeleteNode(int id)
     {
         using CadmusGraphDbContext context = GetContext();
-        DeleteNode(id, context);
+        RunInTransactionAsync(context, async () =>
+        {
+            EfNode? node = await context.Nodes.FindAsync(id);
+            if (node == null) return;
+
+            (int aId, int subId) = await GetASubIdsAsync(context, default);
+
+            // nodes whose classes will change: instances of the node
+            // (when it's a class), either direct (S a node) or inherited
+            HashSet<int> affected = [.. await context.NodeClasses
+                .Where(c => c.ClassId == id)
+                .Select(c => c.NodeId)
+                .ToListAsync()];
+            affected.Remove(id);
+
+            context.Nodes.Remove(node);
+            await context.SaveChangesAsync();
+
+            if (affected.Count > 0)
+            {
+                await PopulateNodeClassesAsync(context, affected, aId, subId,
+                    default);
+            }
+        }, default).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -709,32 +933,18 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(filter);
 
         using CadmusGraphDbContext context = GetContext();
-        IQueryable<EfNode> nodes;
+        IQueryable<EfNode> nodes = context.Nodes.AsNoTracking();
+        int pid = filter.PredicateId, otherId = filter.OtherNodeId;
 
-        if (filter.IsObject)
-        {
-            // get nodes being objects of triples with the specified predicate
+        nodes = filter.IsObject
+            // nodes being objects of triples with the specified predicate
             // having the specified other node as subject
-            nodes = context.Nodes
-                .Include(n => n.UriEntry)
-                .Include(n => n.ObjectTriples)
-                .Where(n => n.ObjectTriples!.Any(
-                    t => t.PredicateId == filter.PredicateId &&
-                         t.SubjectId == filter.OtherNodeId))
-                .AsNoTracking();
-        }
-        else
-        {
-            // get nodes being subjects of triples with the specified predicate
+            ? nodes.Where(n => n.ObjectTriples!.Any(
+                t => t.PredicateId == pid && t.SubjectId == otherId))
+            // nodes being subjects of triples with the specified predicate
             // having the specified other node as object
-            nodes = context.Nodes
-                .Include(n => n.UriEntry)
-                .Include(n => n.SubjectTriples)
-                .Where(n => n.SubjectTriples!.Any(
-                    t => t.PredicateId == filter.PredicateId &&
-                         t.ObjectId == filter.OtherNodeId))
-                .AsNoTracking();
-        }
+            : nodes.Where(n => n.SubjectTriples!.Any(
+                t => t.PredicateId == pid && t.ObjectId == otherId));
 
         nodes = ApplyNodeFilterBase(nodes, filter);
 
@@ -746,21 +956,60 @@ public abstract class EfGraphRepository : IUidBuilder,
                 filter.PageNumber, filter.PageSize, 0, []);
         }
 
-        nodes = nodes.OrderBy(n => n.Label!.ToLower())
-                     .ThenBy(n => n.UriEntry!.Uri.ToLower())
-                     .ThenBy(n => n.Id)
-                     .Skip(filter.GetSkipCount()).Take(filter.PageSize);
-
-        List<EfNode> results = [.. nodes];
+        List<UriNode> results = [.. nodes
+            .OrderBy(n => n.Label!.ToLower())
+            .ThenBy(n => n.UriEntry!.Uri.ToLower())
+            .ThenBy(n => n.Id)
+            .Skip(filter.GetSkipCount())
+            .Take(filter.PageSize)
+            .Select(n => new UriNode
+            {
+                Id = n.Id,
+                IsClass = n.IsClass,
+                Tag = n.Tag,
+                Label = n.Label,
+                SourceType = n.SourceType,
+                Sid = n.Sid,
+                Uri = n.UriEntry!.Uri
+            })];
         return new DataPage<UriNode>(filter.PageNumber, filter.PageSize, total,
-            results.ConvertAll(n => n.ToUriNode(n.UriEntry!.Uri)));
+            results);
     }
 
+    /// <summary>
+    /// Builds the regex match expression for field value vs pattern.
+    /// This is no longer used, as all the regular expressions are now
+    /// passed as SQL parameters (see <see cref="GetRegexMatchSql"/>).
+    /// </summary>
+    /// <param name="field">The field name.</param>
+    /// <param name="pattern">The regex pattern.</param>
+    /// <returns>SQL code.</returns>
     protected abstract string BuildRegexMatch(string field, string pattern);
 
+    /// <summary>
+    /// Builds the SQL code for a regular expression match between a field
+    /// and a parameter in the form <c>{N}</c>, as used by raw SQL methods
+    /// of Entity Framework. The default implementation uses the
+    /// PostgreSQL <c>~</c> operator.
+    /// </summary>
+    /// <param name="field">The field name.</param>
+    /// <param name="parameterIndex">The index of the parameter.</param>
+    /// <returns>SQL code.</returns>
+    protected virtual string GetRegexMatchSql(string field, int parameterIndex)
+        => $"{field} ~ {{{parameterIndex}}}";
+
+    /// <summary>
+    /// Builds the SQL code with regular expressions matches for the
+    /// specified fields and patterns.
+    /// </summary>
+    /// <param name="fieldAndPatterns">The fields and patterns.</param>
+    /// <returns>SQL code.</returns>
+    [Obsolete("Concatenates patterns in SQL: use parameters instead")]
     protected string BuildRawRegexSql(
         IList<Tuple<string, string?>> fieldAndPatterns)
     {
+        ArgumentNullException.ThrowIfNull(fieldAndPatterns);
+
         StringBuilder sb = new();
         int n = 0;
         foreach (Tuple<string, string?> fp in fieldAndPatterns
@@ -772,18 +1021,18 @@ public abstract class EfGraphRepository : IUidBuilder,
         return sb.ToString();
     }
 
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
     private IQueryable<EfTriple> GetFilteredTriples(LiteralFilter filter,
         CadmusGraphDbContext context)
     {
+        // literal pattern
         IQueryable<EfTriple> triples = !string.IsNullOrEmpty(filter.LiteralPattern)
-            ? context.Triples
-                .FromSqlRaw(
-                ("SELECT * FROM triple WHERE " + BuildRawRegexSql(
-                    [ Tuple.Create("o_lit", (string?)filter.LiteralPattern) ])))
+#pragma warning disable EF1003 // only the field name is concatenated
+            ? context.Triples.FromSqlRaw(
+                "SELECT * FROM triple WHERE " + GetRegexMatchSql("o_lit", 0),
+                filter.LiteralPattern)
+#pragma warning restore EF1003
             : context.Triples;
 
-        // literal pattern
         triples = triples.Include(t => t.Subject).ThenInclude(n => n!.UriEntry)
                          .Include(t => t.Predicate).ThenInclude(n => n!.UriEntry)
                          .Include(t => t.Object).ThenInclude(n => n!.UriEntry);
@@ -791,29 +1040,31 @@ public abstract class EfGraphRepository : IUidBuilder,
         // literal type
         if (!string.IsNullOrEmpty(filter.LiteralType))
         {
-            triples = triples.Where(
-                t => t.LiteralType!.ToLower() == filter.LiteralType.ToLower());
+            string type = filter.LiteralType.ToLowerInvariant();
+            triples = triples.Where(t => t.LiteralType!.ToLower() == type);
         }
 
         // literal language
         if (!string.IsNullOrEmpty(filter.LiteralLanguage))
         {
-            triples = triples.Where(t =>
-                t.LiteralLanguage!.ToLower() == filter.LiteralLanguage.ToLower());
+            string lang = filter.LiteralLanguage.ToLowerInvariant();
+            triples = triples.Where(t => t.LiteralLanguage!.ToLower() == lang);
         }
 
         // min literal number
         if (filter.MinLiteralNumber.HasValue)
         {
+            double min = filter.MinLiteralNumber.Value;
             triples = triples.Where(t => t.LiteralNumber != null &&
-                t.LiteralNumber >= filter.MinLiteralNumber.Value);
+                t.LiteralNumber >= min);
         }
 
         // max literal number
         if (filter.MaxLiteralNumber.HasValue)
         {
+            double max = filter.MaxLiteralNumber.Value;
             triples = triples.Where(t => t.LiteralNumber != null &&
-                t.LiteralNumber <= filter.MaxLiteralNumber.Value);
+                t.LiteralNumber <= max);
         }
 
         return triples.AsNoTracking();
@@ -831,17 +1082,22 @@ public abstract class EfGraphRepository : IUidBuilder,
 
         // predicate ID
         if (filter.PredicateIds?.Count > 0)
-            triples = triples.Where(t => filter.PredicateIds.Contains(t.PredicateId));
+        {
+            List<int> ids = [.. filter.PredicateIds];
+            triples = triples.Where(t => ids.Contains(t.PredicateId));
+        }
         if (filter.NotPredicateIds?.Count > 0)
-            triples = triples.Where(t => !filter.NotPredicateIds.Contains(t.PredicateId));
+        {
+            List<int> ids = [.. filter.NotPredicateIds];
+            triples = triples.Where(t => !ids.Contains(t.PredicateId));
+        }
 
         // has literal and object ID
         if (filter.HasLiteralObject != null)
         {
-            if (filter.HasLiteralObject.Value)
-                triples = triples.Where(t => t.ObjectId == null);
-            else
-                triples = triples.Where(t => t.ObjectId != null);
+            triples = filter.HasLiteralObject.Value
+                ? triples.Where(t => t.ObjectId == null)
+                : triples.Where(t => t.ObjectId != null);
         }
         if (filter.ObjectId > 0)
             triples = triples.Where(t => t.ObjectId == filter.ObjectId);
@@ -849,30 +1105,23 @@ public abstract class EfGraphRepository : IUidBuilder,
         // sid
         if (!string.IsNullOrEmpty(filter.Sid))
         {
-            if (filter.IsSidPrefix)
-            {
-                triples = triples.Where(t => t.Sid!
-                    .ToLower().StartsWith(filter.Sid.ToLower()));
-            }
-            else
-            {
-                triples = triples.Where(
-                    t => t.Sid!.ToLower() == filter.Sid.ToLower());
-            }
+            string sid = filter.Sid.ToLowerInvariant();
+            triples = filter.IsSidPrefix
+                ? triples.Where(t => t.Sid!.ToLower().StartsWith(sid))
+                : triples.Where(t => t.Sid!.ToLower() == sid);
         }
 
         // tag (null if empty)
         if (filter.Tag != null)
         {
+            string tag = filter.Tag.ToLowerInvariant();
             triples = filter.Tag.Length == 0
                 ? triples.Where(t => t.Tag == null)
-                : triples
-                    .Where(t => t.Tag!.ToLower() == filter.Tag.ToLower());
+                : triples.Where(t => t.Tag!.ToLower() == tag);
         }
 
         return triples;
     }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
 
     /// <summary>
     /// Gets the literals included in a triple with the specified subject ID
@@ -887,26 +1136,24 @@ public abstract class EfGraphRepository : IUidBuilder,
 
         using CadmusGraphDbContext context = GetContext();
 
-        IQueryable<EfTriple> triples = GetFilteredTriples(filter, context);
-
-        triples = triples.Where(t => t.SubjectId == filter.SubjectId &&
-            t.PredicateId == filter.PredicateId &&
-            t.ObjectId == null);
+        IQueryable<EfTriple> triples = GetFilteredTriples(filter, context)
+            .Where(t => t.SubjectId == filter.SubjectId &&
+                t.PredicateId == filter.PredicateId &&
+                t.ObjectId == null);
 
         // get total and return if zero
         int total = triples.Count();
         if (total == 0)
         {
             return new DataPage<UriTriple>(filter.PageNumber, filter.PageSize,
-                0, Array.Empty<UriTriple>());
+                0, []);
         }
 
-        triples = triples.OrderBy(t => t.ObjectLiteralIx!.ToLower())
+        List<EfTriple> results = [.. triples
+            .OrderBy(t => t.ObjectLiteralIx!.ToLower())
             .ThenBy(t => t.Id)
             .Skip(filter.GetSkipCount())
-            .Take(filter.PageSize);
-
-        List<EfTriple> results = [.. triples];
+            .Take(filter.PageSize)];
         return new DataPage<UriTriple>(filter.PageNumber, filter.PageSize, total,
             results.ConvertAll(t => t.ToUriTriple()));
     }
@@ -918,31 +1165,34 @@ public abstract class EfGraphRepository : IUidBuilder,
     /// </summary>
     /// <param name="filter">The filter.</param>
     /// <returns>Page.</returns>
+    /// <exception cref="ArgumentNullException">filter</exception>
     public DataPage<UriProperty> GetProperties(PropertyFilter filter)
     {
         ArgumentNullException.ThrowIfNull(filter);
 
         using CadmusGraphDbContext context = GetContext();
         IQueryable<EfProperty> properties = context.Properties
+            .AsNoTracking()
             .Include(p => p.Node)
-            .ThenInclude(n => n!.UriEntry)
-            .AsNoTracking();
+            .ThenInclude(n => n!.UriEntry);
 
         if (!string.IsNullOrEmpty(filter.Uid))
         {
-            properties = properties.Where(
-                p => p.Node!.UriEntry!.Uri.ToLower().Contains(filter.Uid.ToLower()));
+            string pattern = GetContainsPattern(filter.Uid);
+            properties = properties.Where(p => EF.Functions.Like(
+                p.Node!.UriEntry!.Uri.ToLower(), pattern, "\\"));
         }
 
         if (!string.IsNullOrEmpty(filter.DataType))
         {
-            properties = properties.Where(
-                p => p.DataType!.ToLower() == filter.DataType.ToLower());
+            string type = filter.DataType.ToLowerInvariant();
+            properties = properties.Where(p => p.DataType!.ToLower() == type);
         }
         if (!string.IsNullOrEmpty(filter.LiteralEditor))
         {
+            string editor = filter.LiteralEditor.ToLowerInvariant();
             properties = properties.Where(p =>
-                p.LitEditor!.ToLower() == filter.LiteralEditor.ToLower());
+                p.LitEditor!.ToLower() == editor);
         }
 
         // get total and return if zero
@@ -950,13 +1200,14 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (total == 0)
         {
             return new DataPage<UriProperty>(filter.PageNumber, filter.PageSize,
-                0, Array.Empty<UriProperty>());
+                0, []);
         }
 
-        properties = properties.OrderBy(p => p.Node!.UriEntry!.Uri.ToLower())
-            .Skip(filter.GetSkipCount()).Take(filter.PageSize);
-
-        List<EfProperty> results = [.. properties];
+        List<EfProperty> results = [.. properties
+            .OrderBy(p => p.Node!.UriEntry!.Uri.ToLower())
+            .ThenBy(p => p.Id)
+            .Skip(filter.GetSkipCount())
+            .Take(filter.PageSize)];
 
         return new DataPage<UriProperty>(filter.PageNumber, filter.PageSize,
             total, results.ConvertAll(p => p.ToUriProperty()));
@@ -971,9 +1222,9 @@ public abstract class EfGraphRepository : IUidBuilder,
     {
         using CadmusGraphDbContext context = GetContext();
         EfProperty? property = context.Properties
+            .AsNoTracking()
             .Include(p => p.Node)
             .ThenInclude(n => n!.UriEntry)
-            .AsNoTracking()
             .FirstOrDefault(p => p.Id == id);
         return property?.ToUriProperty();
     }
@@ -989,16 +1240,17 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(uri);
 
         using CadmusGraphDbContext context = GetContext();
+        string lower = uri.ToLowerInvariant();
         EfProperty? property = context.Properties
+            .AsNoTracking()
             .Include(p => p.Node)
             .ThenInclude(n => n!.UriEntry)
-            .AsNoTracking()
-            .FirstOrDefault(p => p.Node!.UriEntry!.Uri.ToLower() == uri.ToLower());
+            .FirstOrDefault(p => p.Node!.UriEntry!.Uri.ToLower() == lower);
         return property?.ToUriProperty();
     }
 
     /// <summary>
-    /// Adds or updates the specified property.
+    /// Adds or updates the specified property. Its node must exist.
     /// </summary>
     /// <param name="property">The property.</param>
     /// <exception cref="ArgumentNullException">property</exception>
@@ -1007,10 +1259,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(property);
 
         using CadmusGraphDbContext context = GetContext();
-        EfProperty? old = context.Properties
-            .Include(p => p.Node)
-            .ThenInclude(n => n!.UriEntry)
-            .FirstOrDefault(p => p.Id == property.Id);
+        EfProperty? old = context.Properties.Find(property.Id);
         if (old != null)
         {
             old.DataType = property.DataType;
@@ -1031,548 +1280,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     public void DeleteProperty(int id)
     {
         using CadmusGraphDbContext context = GetContext();
-        EfProperty? property = context.Properties
-            .FirstOrDefault(p => p.Id == id);
-        if (property != null)
-        {
-            context.Properties.Remove(property);
-            context.SaveChanges();
-        }
-    }
-    #endregion
-
-    #region Node Mappings
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
-    private IQueryable<EfMapping> GetFilteredMappings(NodeMappingFilter filter,
-        CadmusGraphDbContext context)
-    {
-        IQueryable<EfMapping> mappings;
-
-        if (!string.IsNullOrEmpty(filter.Group) ||
-            !string.IsNullOrEmpty(filter.Title))
-        {
-            mappings = context.Mappings
-                .FromSqlRaw("SELECT * FROM mapping WHERE " +
-                BuildRawRegexSql(
-                [
-                    Tuple.Create("group_filter", filter.Group),
-                    Tuple.Create("title_filter", filter.Title)
-                ]))
-                .Include(m => m.MetaOutputs)
-                .Include(m => m.NodeOutputs)
-                .Include(m => m.TripleOutputs)
-                .Include(m => m.ChildLinks)
-                .Include(m => m.ParentLinks)
-                .AsNoTracking();
-        }
-        else
-        {
-            mappings = context.Mappings
-                .Include(m => m.MetaOutputs)
-                .Include(m => m.NodeOutputs)
-                .Include(m => m.TripleOutputs)
-                .Include(m => m.ChildLinks)
-                .Include(m => m.ParentLinks)
-                .AsNoTracking();
-        }
-
-        if (filter.ParentId != null)
-        {
-            mappings = mappings.Where(m => m.ParentLinks != null &&
-                m.ParentLinks.Any(l => l.ParentId == filter.ParentId));
-        }
-        else
-        {
-            mappings = mappings.Where(m => m.ParentLinks == null ||
-                m.ParentLinks.Count == 0);
-        }
-
-        if (filter.SourceType != null)
-            mappings = mappings.Where(m => m.SourceType == filter.SourceType);
-
-        if (!string.IsNullOrEmpty(filter.Name))
-        {
-            // use ToLower() to get the right translation into SQL
-            // (PostgreSQL is case-sensitive, so we need to use lower() on both sides)
-            mappings = mappings.Where(m =>
-                m.Name.ToLower().Contains(filter.Name.ToLower()));
-        }
-
-        if (!string.IsNullOrEmpty(filter.Facet))
-        {
-            mappings = mappings.Where(m =>
-                m.FacetFilter!.ToLower() == filter.Facet.ToLower());
-        }
-
-        if (filter.Flags.HasValue)
-        {
-            mappings = mappings.Where(
-                m => (m.FlagsFilter & filter.Flags) == filter.Flags);
-        }
-
-        if (!string.IsNullOrEmpty(filter.PartType))
-        {
-            mappings = mappings.Where(m =>
-                m.PartTypeFilter!.ToLower() == filter.PartType.ToLower());
-        }
-
-        if (!string.IsNullOrEmpty(filter.PartRole))
-        {
-            mappings = mappings.Where(m =>
-                m.PartRoleFilter!.ToLower() == filter.PartRole.ToLower());
-        }
-
-        return mappings;
-    }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
-
-#pragma warning disable RCS1155 // Use StringComparison when comparing strings.
-    private IQueryable<EfMapping> GetFilteredMappings(
-        RunNodeMappingFilter filter, CadmusGraphDbContext context)
-    {
-        IQueryable<EfMapping> mappings;
-
-        // group and title
-        if (!string.IsNullOrEmpty(filter.Group) ||
-            !string.IsNullOrEmpty(filter.Title))
-        {
-            StringBuilder sb = new();
-            sb.AppendLine("SELECT * FROM mapping WHERE ");
-
-            if (!string.IsNullOrEmpty(filter.Group))
-            {
-                sb.Append("(group_filter IS NULL OR ")
-                  .Append(BuildRawRegexSql(
-                    [
-                        Tuple.Create("group_filter", (string?)filter.Group),
-                    ]))
-                  .AppendLine(")");
-            }
-            if (!string.IsNullOrEmpty(filter.Title))
-            {
-                if (!string.IsNullOrEmpty(filter.Group)) sb.AppendLine("AND");
-
-                sb.Append("(title_filter IS NULL OR ")
-                  .Append(BuildRawRegexSql(
-                    [
-                        Tuple.Create("title_filter", (string?)filter.Title),
-                    ]))
-                  .AppendLine(")");
-            }
-
-            mappings = context.Mappings
-                .FromSqlRaw(sb.ToString())
-                .Include(m => m.MetaOutputs)
-                .Include(m => m.NodeOutputs)
-                .Include(m => m.TripleOutputs)
-                .Include(m => m.ChildLinks)
-                .AsNoTracking();
-        }
-        else
-        {
-            mappings = context.Mappings
-                .Include(m => m.MetaOutputs)
-                .Include(m => m.NodeOutputs)
-                .Include(m => m.TripleOutputs)
-                .Include(m => m.ChildLinks)
-                .AsNoTracking();
-        }
-
-        // only root mappings for the requested source type
-        mappings = mappings.Where(m => m.SourceType == filter.SourceType &&
-            !m.ChildLinks!.Any(l => l.ChildId == m.Id));
-
-        // facet
-        if (!string.IsNullOrEmpty(filter.Facet))
-        {
-            mappings = mappings.Where(
-                m => m.FacetFilter == null ||
-                     m.FacetFilter.ToLower() == filter.Facet.ToLower());
-        }
-
-        // flags (all the flags specified must be present)
-        if (filter.Flags.HasValue)
-        {
-            mappings = mappings.Where(
-                m => m.FlagsFilter == null ||
-                ((m.FlagsFilter & filter.Flags) == filter.Flags));
-        }
-
-        // part type
-        if (!string.IsNullOrEmpty(filter.PartType))
-        {
-            mappings = mappings.Where(m => m.PartTypeFilter == null ||
-                m.PartTypeFilter.ToLower() == filter.PartType.ToLower());
-        }
-
-        // part role
-        if (!string.IsNullOrEmpty(filter.PartRole))
-        {
-            mappings = mappings.Where(m => m.PartRoleFilter == null ||
-                m.PartRoleFilter.ToLower() == filter.PartRole.ToLower());
-        }
-
-        return mappings;
-    }
-#pragma warning restore RCS1155 // Use StringComparison when comparing strings.
-
-    private static void PopulateMappingChildren(IList<EfMappingLink>? links,
-        GraphNodeMapping mapping, CadmusGraphDbContext context)
-    {
-        if (links == null) return;
-
-        foreach (EfMappingLink link in links)
-        {
-            EfMapping? child = context.Mappings
-                .Include(m => m.MetaOutputs)
-                .Include(m => m.NodeOutputs)
-                .Include(m => m.TripleOutputs)
-                .Include(m => m.ChildLinks)
-                .FirstOrDefault(m => m.Id == link.ChildId);
-            if (child == null) continue;    // defensive
-
-            GraphNodeMapping m = child.ToNodeMapping(mapping.Id);
-            mapping.Children.Add(m);
-            PopulateMappingChildren(child.ChildLinks, m, context);
-        }
-    }
-
-    private GraphNodeMapping GetPopulatedMapping(EfMapping mapping,
-        CadmusGraphDbContext context)
-    {
-        // use the cached mapping if any
-        if (Cache != null && Cache.TryGetValue($"{CACHE_KEY_PREFIX}-{mapping.Id}",
-            out GraphNodeMapping? m))
-        {
-            return m!;
-        }
-
-        m = mapping.ToNodeMapping(0);
-        PopulateMappingChildren(mapping.ChildLinks, m, context);
-
-        Cache?.Set($"{CACHE_KEY_PREFIX}{mapping.Id}", m);
-        return m;
-    }
-
-    /// <summary>
-    /// Gets the specified page of node mappings.
-    /// </summary>
-    /// <param name="filter">The filter. Set page size=0 to get all
-    /// the mappings at once.</param>
-    /// <param name="descendants">True to load the descendants of each mapping.
-    /// </param>
-    /// <returns>The page.</returns>
-    /// <exception cref="ArgumentNullException">filter</exception>
-    public DataPage<GraphNodeMapping> GetMappings(NodeMappingFilter filter,
-        bool descendants)
-    {
-        ArgumentNullException.ThrowIfNull(filter);
-
-        using CadmusGraphDbContext context = GetContext();
-        IQueryable<EfMapping> mappings = GetFilteredMappings(filter, context);
-
-        // get total and return if it's zero
-        int total = mappings.Count();
-        if (total == 0)
-        {
-            return new DataPage<GraphNodeMapping>(
-                filter.PageNumber, filter.PageSize, 0,
-                Array.Empty<GraphNodeMapping>());
-        }
-
-        mappings = mappings.OrderBy(m => m.Name.ToLower()).ThenBy(m => m.Id);
-
-        List<EfMapping> results = filter.PageSize > 0
-            ? [.. mappings.Skip(filter.GetSkipCount()).Take(filter.PageSize)]
-            : [.. mappings.Skip(filter.GetSkipCount())];
-
-        if (descendants)
-        {
-            return new DataPage<GraphNodeMapping>(filter.PageNumber, filter.PageSize,
-                total, results.ConvertAll(m => GetPopulatedMapping(m, context)));
-        }
-        else
-        {
-            return new DataPage<GraphNodeMapping>(filter.PageNumber, filter.PageSize,
-                total, results.ConvertAll(m => m.ToNodeMapping(0)));
-        }
-    }
-
-    /// <summary>
-    /// Gets the node mapping with the specified ID, including all its
-    /// descendant mappings.
-    /// </summary>
-    /// <param name="id">The identifier.</param>
-    /// <returns>The mapping or null if not found.</returns>
-    public GraphNodeMapping? GetMapping(int id)
-    {
-        using CadmusGraphDbContext context = GetContext();
-
-        EfMapping? mapping = context.Mappings
-            .Include(m => m.MetaOutputs)
-            .Include(m => m.NodeOutputs)
-            .Include(m => m.TripleOutputs)
-            .FirstOrDefault(m => m.Id == id);
-        if (mapping == null) return null;
-
-        return GetPopulatedMapping(mapping, context);
-    }
-
-    private static void AddOrUpdateChildMapping(GraphNodeMapping mapping,
-        EfMapping parent, CadmusGraphDbContext context)
-    {
-        EfMapping efMapping = new(mapping);
-
-        // upsert the mapping
-        EfMapping? old = context.Mappings
-            .Include(m => m.ParentLinks)
-            .Include(m => m.ChildLinks)
-            .Include(m => m.MetaOutputs)
-            .Include(m => m.NodeOutputs)
-            .Include(m => m.TripleOutputs)
-            .SingleOrDefault(e => e.Name == mapping.Name);
-
-        if (old != null)
-        {
-            old.Ordinal = efMapping.Ordinal;
-            old.Name = efMapping.Name;
-            old.SourceType = efMapping.SourceType;
-            old.FacetFilter = efMapping.FacetFilter;
-            old.GroupFilter = efMapping.GroupFilter;
-            old.FlagsFilter = efMapping.FlagsFilter;
-            old.TitleFilter = efMapping.TitleFilter;
-            old.PartTypeFilter = efMapping.PartTypeFilter;
-            old.PartRoleFilter = efMapping.PartRoleFilter;
-            old.Description = efMapping.Description;
-            old.Source = efMapping.Source;
-            old.Sid = efMapping.Sid;
-            old.ScalarPattern = efMapping.ScalarPattern;
-
-            // parent links: merge
-            if (old.ParentLinks == null)
-            {
-                old.ParentLinks = efMapping.ParentLinks;
-            }
-            else if (efMapping.ParentLinks?.Count > 0)
-            {
-                foreach (EfMappingLink link in efMapping.ParentLinks)
-                {
-                    if (old.ParentLinks.Find(l => l.ParentId == link.ParentId) == null)
-                        old.ParentLinks.Add(link);
-                }
-            }
-
-            // children links: merge
-            if (old.ChildLinks == null)
-            {
-                old.ChildLinks = efMapping.ChildLinks;
-            }
-            else if (efMapping.ChildLinks?.Count > 0)
-            {
-                foreach (EfMappingLink link in efMapping.ChildLinks)
-                {
-                    if (old.ChildLinks.Find(l => l.ChildId == link.ChildId) == null)
-                        old.ChildLinks.Add(link);
-                }
-            }
-
-            // other collections: replace
-            if (old.MetaOutputs == null)
-            {
-                old.MetaOutputs = efMapping.MetaOutputs;
-            }
-            else
-            {
-                old.MetaOutputs.Clear();
-                if (efMapping.MetaOutputs != null)
-                    old.MetaOutputs.AddRange(efMapping.MetaOutputs);
-            }
-
-            if (old.NodeOutputs == null)
-            {
-                old.NodeOutputs = efMapping.NodeOutputs;
-            }
-            else
-            {
-                old.NodeOutputs.Clear();
-                if (efMapping.NodeOutputs != null)
-                    old.NodeOutputs.AddRange(efMapping.NodeOutputs);
-            }
-
-            if (old.TripleOutputs == null)
-            {
-                old.TripleOutputs = efMapping.TripleOutputs;
-            }
-            else
-            {
-                old.TripleOutputs.Clear();
-                if (efMapping.TripleOutputs != null)
-                    old.TripleOutputs.AddRange(efMapping.TripleOutputs);
-            }
-
-            context.SaveChanges();
-            efMapping = old;
-        }
-        else
-        {
-            context.Mappings.Add(efMapping);
-            context.SaveChanges();
-            mapping.Id = efMapping.Id;
-        }
-
-        // add parent-child link
-        if (context.MappingLinks.Find(parent.Id, efMapping.Id) == null)
-        {
-            context.MappingLinks.Add(new EfMappingLink
-            {
-                Parent = parent,
-                Child = efMapping
-            });
-            context.SaveChanges();
-        }
-
-        // recursively add/update children
-        if (mapping.Children?.Count > 0)
-        {
-            foreach (GraphNodeMapping child in mapping.Children)
-                AddOrUpdateChildMapping(child, efMapping, context);
-        }
-    }
-
-    /// <summary>
-    /// Adds the specified root mapping.
-    /// </summary>
-    /// <param name="mapping">The mapping. Its ID will be updated if newly
-    /// added.</param>
-    /// <returns>The mapping ID.</returns>
-    /// <exception cref="ArgumentNullException">mapping</exception>
-    public int AddMapping(GraphNodeMapping mapping)
-    {
-        ArgumentNullException.ThrowIfNull(mapping);
-        if (mapping.ParentId != 0)
-            throw new InvalidOperationException($"Not a root mapping: {mapping}");
-
-        using CadmusGraphDbContext context = GetContext();
-        using IDbContextTransaction tr = context.Database.BeginTransaction();
-
-        try
-        {
-            // remove root mapping with all its links if exists
-            EfMapping? old = context.Mappings.FirstOrDefault(
-                m => m.Name == mapping.Name);
-            if (old != null) context.Remove(old);
-
-            // add new root mapping
-            EfMapping newMapping = new(mapping);
-            context.Mappings.Add(newMapping);
-            context.SaveChanges();
-            mapping.Id = newMapping.Id;
-
-            // add all the children recursively or update them when they exist
-            if (mapping.Children?.Count > 0)
-            {
-                foreach (GraphNodeMapping child in mapping.Children)
-                    AddOrUpdateChildMapping(child, newMapping, context);
-            }
-
-            tr.Commit();
-            return newMapping.Id;
-        }
-        catch (Exception)
-        {
-            tr.Rollback();
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Deletes the specified node mapping.
-    /// </summary>
-    /// <param name="id">The mapping identifier.</param>
-    public void DeleteMapping(int id)
-    {
-        using CadmusGraphDbContext context = GetContext();
-        EfMapping? mapping = context.Mappings.FirstOrDefault(m => m.Id == id);
-        if (mapping == null) return;
-        context.Mappings.Remove(mapping);
-        context.SaveChanges();
-    }
-
-    /// <summary>
-    /// Finds all the applicable mappings.
-    /// </summary>
-    /// <param name="filter">The filter to match.</param>
-    /// <returns>List of mappings.</returns>
-    /// <exception cref="ArgumentNullException">filter</exception>
-    public IList<GraphNodeMapping> FindMappings(RunNodeMappingFilter filter)
-    {
-        ArgumentNullException.ThrowIfNull(filter);
-
-        using CadmusGraphDbContext context = GetContext();
-
-        IList<EfMapping> mappings = [.. GetFilteredMappings(filter, context)
-            .OrderBy(m => m.Ordinal)];
-
-        return [.. mappings.Select(m => GetPopulatedMapping(m, context))];
-    }
-
-    private static JsonSerializerOptions GetMappingJsonSerializerOptions()
-    {
-        JsonSerializerOptions options = new()
-        {
-            AllowTrailingCommas = true,
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = true,
-        };
-        options.Converters.Add(new NodeMappingOutputJsonConverter());
-        options.Converters.Add(new NodeMappingJsonConverter<GraphNodeMapping>());
-        return options;
-    }
-
-    /// <summary>
-    /// Imports mappings from the specified JSON code representing a mappings
-    /// document.
-    /// </summary>
-    /// <param name="json">The json.</param>
-    /// <returns>The number of root mappings imported.</returns>
-    /// <exception cref="ArgumentNullException">json</exception>
-    /// <exception cref="InvalidDataException">Invalid JSON mappings document
-    /// </exception>
-    public int Import(string json)
-    {
-        ArgumentNullException.ThrowIfNull(json);
-
-        NodeMappingDocument? doc =
-            JsonSerializer.Deserialize<NodeMappingDocument>(json,
-            GetMappingJsonSerializerOptions())
-            ?? throw new InvalidDataException("Invalid JSON mappings document");
-
-        int n = 0;
-        foreach (GraphNodeMapping mapping in doc.GetMappings())
-        {
-            AddMapping(mapping);
-            n++;
-        }
-        return n;
-    }
-
-    /// <summary>
-    /// Exports mappings to JSON code representing a mappings document.
-    /// </summary>
-    /// <returns>JSON.</returns>
-    public string Export()
-    {
-        NodeMappingDocument doc = new();
-        NodeMappingFilter filter = new();
-        DataPage<GraphNodeMapping> page = GetMappings(filter, true);
-        do
-        {
-            doc.DocumentMappings.AddRange(page.Items);
-            filter.PageNumber++;
-        } while (filter.PageNumber < page.PageCount);
-
-        return JsonSerializer.Serialize(doc, GetMappingJsonSerializerOptions());
+        context.Properties.Where(p => p.Id == id).ExecuteDelete();
     }
     #endregion
 
@@ -1596,7 +1304,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (total == 0)
         {
             return new DataPage<UriTriple>(filter.PageNumber, filter.PageSize,
-                0, Array.Empty<UriTriple>());
+                0, []);
         }
 
         triples = triples.OrderBy(t => t.Subject!.UriEntry!.Uri.ToLower())
@@ -1607,7 +1315,7 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (filter.PageSize > 0) triples = triples.Take(filter.PageSize);
 
         return new DataPage<UriTriple>(filter.PageNumber, filter.PageSize,
-            total, [.. triples.Select(t => t.ToUriTriple())]);
+            total, [.. triples.AsEnumerable().Select(t => t.ToUriTriple())]);
     }
 
     /// <summary>
@@ -1618,6 +1326,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     {
         using CadmusGraphDbContext context = GetContext();
         EfTriple? triple = context.Triples
+            .AsNoTracking()
             .Include(t => t.Subject)
             .ThenInclude(n => n!.UriEntry)
             .Include(t => t.Predicate)
@@ -1628,16 +1337,16 @@ public abstract class EfGraphRepository : IUidBuilder,
         return triple?.ToUriTriple();
     }
 
-    private static EfTriple? FindTripleByValue(Triple triple,
-        CadmusGraphDbContext context)
+    private static Task<EfTriple?> FindTripleByValueAsync(Triple triple,
+        CadmusGraphDbContext context, CancellationToken cancel)
     {
-        string? tag = triple.Tag?.ToLower();
+        string? tag = triple.Tag?.ToLowerInvariant();
 
         IQueryable<EfTriple> triples = context.Triples
             .Where(t => t.SubjectId == triple.SubjectId &&
                         t.PredicateId == triple.PredicateId &&
                         t.Sid == triple.Sid &&
-                        t.Tag!.ToLower() == tag);
+                        (tag == null ? t.Tag == null : t.Tag!.ToLower() == tag));
 
         triples = triple.ObjectId != null && triple.ObjectId > 0
             ? triples.Where(t => t.ObjectId == triple.ObjectId)
@@ -1647,42 +1356,33 @@ public abstract class EfGraphRepository : IUidBuilder,
                 t.LiteralType == triple.LiteralType &&
                 t.LiteralLanguage == triple.LiteralLanguage);
 
-        return triples.FirstOrDefault();
+        return triples.OrderBy(t => t.Id).FirstOrDefaultAsync(cancel);
     }
 
-    private static void AddTriple(Triple triple, CadmusGraphDbContext context)
+    private static void CopyTriple(Triple source, EfTriple target)
     {
-        // nope if exactly the same triple already exists.
-        // In this case, update the triple's ID to ensure it's valid
-        int existingId = FindTripleByValue(triple, context)?.Id ?? 0;
-        if (existingId > 0)
-        {
-            triple.Id = existingId;
-            return;
-        }
+        target.SubjectId = source.SubjectId;
+        target.PredicateId = source.PredicateId;
+        target.ObjectId = source.ObjectId == 0 ? null : source.ObjectId;
+        target.ObjectLiteral = source.ObjectLiteral;
+        CopyTripleDetails(source, target);
+    }
 
-        EfTriple? old = triple.Id == 0 ? null : context.Triples.Find(triple.Id);
-        if (old == null)
-        {
-            EfTriple newTriple = new(triple);
-            context.Triples.Add(newTriple);
-            context.SaveChanges();
-            triple.Id = newTriple.Id;
-        }
-        else
-        {
-            old.SubjectId = triple.SubjectId;
-            old.PredicateId = triple.PredicateId;
-            old.ObjectId = triple.ObjectId == 0? null : triple.ObjectId;
-            old.ObjectLiteral = triple.ObjectLiteral;
-            old.ObjectLiteralIx = triple.ObjectLiteralIx;
-            old.LiteralType = triple.LiteralType;
-            old.LiteralLanguage = triple.LiteralLanguage;
-            old.LiteralNumber = triple.LiteralNumber;
-            old.Sid = triple.Sid;
-            old.Tag = triple.Tag;
-            context.SaveChanges();
-        }
+    private static void CopyTripleDetails(Triple source, EfTriple target)
+    {
+        target.ObjectLiteralIx = Truncate(source.ObjectLiteralIx, MAX_LIT_IX);
+        target.LiteralType = Truncate(source.LiteralType, MAX_LIT_TYPE);
+        target.LiteralLanguage = Truncate(source.LiteralLanguage, MAX_LIT_LANG);
+        target.LiteralNumber = source.LiteralNumber;
+        target.Sid = Truncate(source.Sid, MAX_SID);
+        target.Tag = Truncate(source.Tag, MAX_TAG);
+    }
+
+    private static EfTriple CreateTriple(Triple source)
+    {
+        EfTriple triple = new() { Id = 0 };
+        CopyTriple(source, triple);
+        return triple;
     }
 
     /// <summary>
@@ -1700,14 +1400,55 @@ public abstract class EfGraphRepository : IUidBuilder,
         ArgumentNullException.ThrowIfNull(triple);
 
         using CadmusGraphDbContext context = GetContext();
-        AddTriple(triple, context);
+        RunInTransactionAsync(context, async () =>
+        {
+            // nope if exactly the same triple already exists.
+            // In this case, update the triple's ID to ensure it's valid
+            EfTriple? same = await FindTripleByValueAsync(triple, context,
+                default);
+            if (same != null)
+            {
+                triple.Id = same.Id;
+                return;
+            }
+
+            (int aId, int subId) = await GetASubIdsAsync(context, default);
+            ClassChanges changes = new();
+
+            EfTriple? old = triple.Id == 0
+                ? null : await context.Triples.FindAsync(triple.Id);
+            if (old == null)
+            {
+                EfTriple added = CreateTriple(triple);
+                context.Triples.Add(added);
+                await context.SaveChangesAsync();
+                triple.Id = added.Id;
+            }
+            else
+            {
+                changes.Add(old, aId, subId);
+                CopyTriple(triple, old);
+                await context.SaveChangesAsync();
+            }
+            changes.Add(triple, aId, subId);
+            await UpdateClassesAsync(context, changes, aId, subId, default);
+        }, default).GetAwaiter().GetResult();
     }
+
+    private sealed record ImportTripleKey(int S, int P, int O, string? Lit,
+        string? Type, string? Lang, string? Sid);
+
+    private static ImportTripleKey GetImportKey(Triple t) => new(
+        t.SubjectId, t.PredicateId, t.ObjectId ?? 0,
+        t.ObjectId is null or 0 ? t.ObjectLiteral : null,
+        t.LiteralType, t.LiteralLanguage, t.Sid);
 
     /// <summary>
     /// Bulk imports the specified triples. Note that it is assumed that
     /// all the triple's non-literal terms have a URI; if it is missing,
     /// the triple will not be imported. The URI is used to generate the
-    /// corresponding numeric IDs used internally.
+    /// corresponding numeric IDs used internally. Nodes are added for
+    /// missing URIs. Triples equal to existing ones are not imported.
     /// </summary>
     /// <param name="triples">The triples.</param>
     /// <exception cref="ArgumentNullException">triples</exception>
@@ -1715,89 +1456,80 @@ public abstract class EfGraphRepository : IUidBuilder,
     {
         ArgumentNullException.ThrowIfNull(triples);
 
+        List<UriTriple> list = [.. triples.Where(t =>
+            t.SubjectUri != null && t.PredicateUri != null &&
+            (t.ObjectLiteral != null || t.ObjectUri != null))];
+        if (list.Count == 0) return;
+
         using CadmusGraphDbContext context = GetContext();
-        List<int> nodeIds = new();
-
-        foreach (UriTriple triple in triples)
+        RunInTransactionAsync(context, async () =>
         {
-            if (triple.SubjectUri == null || triple.PredicateUri == null ||
-                (triple.ObjectLiteral == null && triple.ObjectUri == null))
-            {
-                continue;
-            }
+            Dictionary<string, int> ids = await ResolveUrisAsync(context,
+                list.SelectMany(t => t.ObjectUri != null
+                    ? new[] { t.SubjectUri!, t.PredicateUri!, t.ObjectUri }
+                    : [t.SubjectUri!, t.PredicateUri!]), default);
 
-            // add subject - the node is added if not present
-            int id = AddUri(triple.SubjectUri, context, out bool newUri);
-            nodeIds.Add(id);
-            triple.SubjectId = id;
-            if (newUri)
+            // nodes: add the missing ones
+            Dictionary<int, Node> nodes = [];
+            foreach (UriTriple triple in list)
             {
-                AddNode(new Node
+                triple.SubjectId = ids[triple.SubjectUri!];
+                triple.PredicateId = ids[triple.PredicateUri!];
+                triple.ObjectId = triple.ObjectUri != null
+                    ? ids[triple.ObjectUri] : null;
+
+                nodes.TryAdd(triple.SubjectId, new Node
                 {
-                    Id = id,
+                    Id = triple.SubjectId,
                     Label = triple.SubjectUri,
-                    Sid = triple.Sid,
-                }, true, false, context);
-            }
-
-            // add predicate - the node is added if not present
-            id = AddUri(triple.PredicateUri, context, out newUri);
-            nodeIds.Add(id);
-            triple.PredicateId = id;
-            if (newUri)
-            {
-                AddNode(new Node
+                    Sid = triple.Sid
+                });
+                Node predicate = new()
                 {
-                    Id = id,
+                    Id = triple.PredicateId,
                     Label = triple.PredicateUri,
                     Sid = triple.Sid,
                     Tag = Node.TAG_PROPERTY
-                }, true, false, context);
-            }
-
-            // add object if it's a node
-            if (triple.ObjectUri != null)
-            {
-                id = AddUri(triple.ObjectUri, context, out newUri);
-                nodeIds.Add(id);
-                triple.ObjectId = id;
-                if (newUri)
+                };
+                if (!nodes.TryAdd(triple.PredicateId, predicate))
+                    nodes[triple.PredicateId].Tag = Node.TAG_PROPERTY;
+                if (triple.ObjectId != null)
                 {
-                    AddNode(new Node
+                    nodes.TryAdd(triple.ObjectId.Value, new Node
                     {
-                        Id = id,
+                        Id = triple.ObjectId.Value,
                         Label = triple.ObjectUri,
                         Sid = triple.Sid
-                    }, true, false, context);
+                    });
                 }
             }
+            await InsertMissingNodesAsync(context,
+                [.. nodes.Values.OrderBy(n => n.Id)], default);
 
-            // add triple
-            context.Triples.Add(new EfTriple(triple));
-        }
-        context.SaveChanges();
+            // triples: skip those already existing
+            List<int> subjectIds = [.. list.Select(t => t.SubjectId).Distinct()];
+            HashSet<ImportTripleKey> existing = [.. (await context.Triples
+                .AsNoTracking()
+                .Where(t => subjectIds.Contains(t.SubjectId))
+                .ToListAsync()).Select(GetImportKey)];
 
-        // update classes for nodes
-        if (nodeIds.Count > 0)
-        {
-            (int aId, int subId) = GetASubIds(context);
-            foreach (int id in nodeIds) UpdateNodeClasses(id, aId, subId, context);
-        }
-    }
+            (int aId, int subId) = await GetASubIdsAsync(context, default);
+            ClassChanges changes = new();
+            List<(UriTriple Source, EfTriple Target)> added = [];
+            foreach (UriTriple triple in list)
+            {
+                if (!existing.Add(GetImportKey(triple))) continue;
+                EfTriple target = CreateTriple(triple);
+                context.Triples.Add(target);
+                added.Add((triple, target));
+                changes.Add(triple, aId, subId);
+            }
+            await context.SaveChangesAsync();
+            foreach ((UriTriple source, EfTriple target) in added)
+                source.Id = target.Id;
 
-    private static void DeleteTriple(int id, CadmusGraphDbContext context)
-    {
-        EfTriple? triple = context.Triples.Find(id);
-        if (triple == null) return;
-
-        context.Triples.Remove(triple);
-        context.SaveChanges();
-
-        if (triple.ObjectId != null)
-        {
-            (int aId, int subId) = GetASubIds(context);
-            UpdateNodeClasses(triple.ObjectId.Value, aId, subId, context);
-        }
+            await UpdateClassesAsync(context, changes, aId, subId, default);
+        }, default).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -1807,7 +1539,19 @@ public abstract class EfGraphRepository : IUidBuilder,
     public void DeleteTriple(int id)
     {
         using CadmusGraphDbContext context = GetContext();
-        DeleteTriple(id, context);
+        RunInTransactionAsync(context, async () =>
+        {
+            EfTriple? triple = await context.Triples.FindAsync(id);
+            if (triple == null) return;
+
+            context.Triples.Remove(triple);
+            await context.SaveChangesAsync();
+
+            (int aId, int subId) = await GetASubIdsAsync(context, default);
+            ClassChanges changes = new();
+            changes.Add(triple, aId, subId);
+            await UpdateClassesAsync(context, changes, aId, subId, default);
+        }, default).GetAwaiter().GetResult();
     }
 
     /// <summary>
@@ -1825,6 +1569,7 @@ public abstract class EfGraphRepository : IUidBuilder,
     {
         ArgumentNullException.ThrowIfNull(filter);
         ArgumentNullException.ThrowIfNull(sort);
+        if (sort.Length == 0) sort = "Cu";
 
         using CadmusGraphDbContext context = GetContext();
         // inner query:
@@ -1842,18 +1587,17 @@ public abstract class EfGraphRepository : IUidBuilder,
         if (total == 0)
         {
             return new DataPage<TripleGroup>(
-                filter.PageNumber, filter.PageSize, 0,
-                Array.Empty<TripleGroup>());
+                filter.PageNumber, filter.PageSize, 0, []);
         }
 
-        // get groups PredicateUri by joining with node
-        groups = groups.Join(context.Nodes.Include(n => n.UriEntry),
+        // get groups PredicateUri by joining with URIs
+        groups = groups.Join(context.UriEntries,
             g => g.PredicateId,
-            n => n.Id,
-            (g, n) => new TripleGroup
+            u => u.Id,
+            (g, u) => new TripleGroup
             {
                 PredicateId = g.PredicateId,
-                PredicateUri = n.UriEntry!.Uri,
+                PredicateUri = u.Uri,
                 Count = g.Count
             });
 
@@ -1877,8 +1621,11 @@ public abstract class EfGraphRepository : IUidBuilder,
                 _ => sortedGroups.ThenByDescending(g => g.Count),
             };
         }
+        sortedGroups = sortedGroups.ThenBy(g => g.PredicateId);
 
-        List<TripleGroup> results = [.. sortedGroups.Skip(filter.GetSkipCount()).Take(filter.PageSize)];
+        List<TripleGroup> results = [.. sortedGroups
+            .Skip(filter.GetSkipCount())
+            .Take(filter.PageSize)];
 
         return new DataPage<TripleGroup>(filter.PageNumber, filter.PageSize,
             total, results);
@@ -1904,124 +1651,118 @@ public abstract class EfGraphRepository : IUidBuilder,
         // nothing to do for aliases
         if (thesaurus.TargetId != null) return;
 
-        using CadmusGraphDbContext context = GetContext();
-        List<int> nodeIds = new();
+        // collect nodes and parent-child relationships
+        List<(string Uri, string Label)> nodes = [];
+        List<(string Child, string Parent)> links = [];
 
-        // ensure that we have rdfs:subClassOf
-        Node? sub = GetNodeByUri("rdfs:subClassOf", context);
-        if (sub == null)
-        {
-            EfNode ef = new()
-            {
-                Id = AddUri("rdfs:subClassOf", context),
-                Label = "rdfs:subClassOf",
-                IsClass = true
-            };
-            context.Nodes.Add(ef);
-            sub = ef.ToUriNode("rdfs:subClassOf");
-        }
-
-        // include root if requested
-        EfNode? root = null;
+        string? rootUri = null;
         if (includeRoot)
         {
             int atIndex = thesaurus.Id.LastIndexOf('@');
-            string id = atIndex > -1
-                ? thesaurus.Id[..atIndex]
-                : thesaurus.Id;
-            string uri = string.IsNullOrEmpty(prefix)
-                ? id : prefix + id;
-
-            root = new EfNode
-            {
-                Id = AddUri(uri, context),
-                Label = id,
-                IsClass = true,
-                SourceType = Node.SOURCE_THESAURUS,
-                Tag = "thesaurus",
-                Sid = thesaurus.Id
-            };
-            nodeIds.Add(root.Id);
-            AddNode(root, true, false, context);
+            string id = atIndex > -1 ? thesaurus.Id[..atIndex] : thesaurus.Id;
+            rootUri = prefix + id;
+            nodes.Add((rootUri, id));
         }
 
-        Dictionary<string, int> idMap = new();
         thesaurus.VisitByLevel(entry =>
         {
-            // node
-            string uri = string.IsNullOrEmpty(prefix)
-                ? entry.Id : prefix + entry.Id;
-            EfNode node = new()
-            {
-                Id = AddUri(uri, context),
-                IsClass = true,
-                Label = entry.Id,
-                SourceType = Node.SOURCE_THESAURUS,
-                Tag = "thesaurus",
-                Sid = thesaurus.Id
-            };
-            nodeIds.Add(node.Id);
-            AddNode(node, true, false, context);
-            idMap[entry.Id] = node.Id;
-
-            // triple
+            string uri = prefix + entry.Id;
+            nodes.Add((uri, entry.Id));
             if (entry.Parent != null)
-            {
-                AddTriple(new Triple
-                {
-                    SubjectId = node.Id,
-                    PredicateId = sub.Id,
-                    ObjectId = idMap[entry.Parent.Id]
-                }, context);
-            }
-            else if (root != null)
-            {
-                AddTriple(new Triple
-                {
-                    SubjectId = node.Id,
-                    PredicateId = sub.Id,
-                    ObjectId = root.Id
-                }, context);
-            }
+                links.Add((uri, prefix + entry.Parent.Id));
+            else if (rootUri != null)
+                links.Add((uri, rootUri));
             return true;
         });
-        context.SaveChanges();
 
-        // update classes for nodes
-        if (nodeIds.Count > 0)
+        using CadmusGraphDbContext context = GetContext();
+        RunInTransactionAsync(context, async () =>
         {
-            (int aId, int subId) = GetASubIds(context);
-            foreach (int id in nodeIds) UpdateNodeClasses(id, aId, subId, context);
-        }
+            (int aId, int subId) = await GetASubIdsAsync(context, default);
+            Dictionary<string, int> ids = await ResolveUrisAsync(context,
+                nodes.Select(n => n.Uri), default);
+
+            await InsertMissingNodesAsync(context, [.. nodes
+                .Select(n => new Node
+                {
+                    Id = ids[n.Uri],
+                    IsClass = true,
+                    Label = n.Label,
+                    SourceType = Node.SOURCE_THESAURUS,
+                    Tag = "thesaurus",
+                    Sid = thesaurus.Id
+                })
+                .DistinctBy(n => n.Id)
+                .OrderBy(n => n.Id)], default);
+
+            // child rdfs:subClassOf parent, unless existing
+            List<int> nodeIds = [.. ids.Values];
+            HashSet<(int, int)> existing = [.. (await context.Triples
+                .AsNoTracking()
+                .Where(t => t.PredicateId == subId &&
+                    nodeIds.Contains(t.SubjectId) && t.ObjectId != null)
+                .Select(t => new { t.SubjectId, t.ObjectId })
+                .ToListAsync())
+                .Select(t => (t.SubjectId, t.ObjectId!.Value))];
+
+            ClassChanges changes = new();
+            foreach ((string child, string parent) in links)
+            {
+                Triple triple = new()
+                {
+                    SubjectId = ids[child],
+                    PredicateId = subId,
+                    ObjectId = ids[parent]
+                };
+                if (!existing.Add((triple.SubjectId, triple.ObjectId.Value)))
+                    continue;
+                context.Triples.Add(CreateTriple(triple));
+                changes.Add(triple, aId, subId);
+            }
+            await context.SaveChangesAsync();
+            await UpdateClassesAsync(context, changes, aId, subId, default);
+        }, default).GetAwaiter().GetResult();
     }
     #endregion
 
     #region Node Classes
     /// <summary>
     /// Updates the classes for all the nodes belonging to any class.
+    /// This is a potentially long operation, which rebuilds the whole
+    /// node classes table.
     /// </summary>
     /// <param name="cancel">The cancel.</param>
     /// <param name="progress">The progress.</param>
-    public Task UpdateNodeClassesAsync(CancellationToken cancel,
+    public async Task UpdateNodeClassesAsync(CancellationToken cancel,
         IProgress<ProgressReport>? progress = null)
     {
-        using CadmusGraphDbContext context = GetContext();
-        (int aId, int subId) = GetASubIds(context);
+        await using CadmusGraphDbContext context = GetContext();
 
-        // get total nodes to go
-        int total = context.Nodes.Count(n => !n.IsClass);
+        (int aId, int subId) = await RunInTransactionAsync(context,
+            () => GetASubIdsAsync(context, cancel), cancel);
+
+        // load all the IDs first, as the connection cannot be used for
+        // other commands while reading
+        List<int> ids = await context.Nodes.AsNoTracking()
+            .Where(n => !n.IsClass)
+            .OrderBy(n => n.Id)
+            .Select(n => n.Id)
+            .ToListAsync(cancel);
+
         ProgressReport? report = progress != null ? new ProgressReport() : null;
         int oldPercent = 0;
 
-        foreach (int id in context.Nodes.Where(n => !n.IsClass).Select(n => n.Id))
+        foreach (int[] chunk in ids.Chunk(CLASS_BATCH_SIZE))
         {
+            // as in previous versions, cancelling just stops the update
             if (cancel.IsCancellationRequested) break;
+            await PopulateNodeClassesAsync(context, chunk, aId, subId,
+                CancellationToken.None);
 
-            UpdateNodeClasses(id, aId, subId, context);
-
-            if (report != null && ++report.Count % 10 == 0)
+            if (report != null)
             {
-                report.Percent = report.Count * 100 / total;
+                report.Count += chunk.Length;
+                report.Percent = report.Count * 100 / ids.Count;
                 if (report.Percent != oldPercent)
                 {
                     progress!.Report(report);
@@ -2029,315 +1770,12 @@ public abstract class EfGraphRepository : IUidBuilder,
                 }
             }
         }
-        context.SaveChanges();
 
         if (report != null)
         {
             report.Percent = 100;
-            report.Count = total;
+            report.Count = ids.Count;
             progress!.Report(report);
-        }
-
-        return Task.CompletedTask;
-    }
-    #endregion
-
-    #region Graph
-    /// <summary>
-    /// Gets the set of graph's nodes and triples whose SID starts with
-    /// the specified GUID. This identifies all the nodes and triples
-    /// generated from a single source item or part.
-    /// </summary>
-    /// <param name="sourceId">The source identifier.</param>
-    /// <returns>The set.</returns>
-    /// <exception cref="ArgumentNullException">sourceId</exception>
-    public GraphSet GetGraphSet(string sourceId)
-    {
-        ArgumentNullException.ThrowIfNull(sourceId);
-
-        using CadmusGraphDbContext context = GetContext();
-
-        // SID nodes
-        List<EfNode> nodes = [.. context.Nodes.Include(n => n.UriEntry)
-            .AsNoTracking()
-            .Where(n => n.Sid != null &&
-                        n.Sid.ToLower().StartsWith(sourceId.ToLower()))];
-
-        // SID triples
-        List<EfTriple> triples = [.. context.Triples
-            .Include(t => t.Subject).ThenInclude(n => n!.UriEntry)
-            .Include(t => t.Predicate).ThenInclude(n => n!.UriEntry)
-            .Include(t => t.Object).ThenInclude(n => n!.UriEntry)
-            .AsNoTracking()
-            .Where(t => t.Sid != null &&
-                        t.Sid.ToLower().StartsWith(sourceId.ToLower()))];
-
-        return new GraphSet(
-            nodes.ConvertAll(n => n.ToUriNode()),
-            triples.ConvertAll(t => t.ToUriTriple()));
-    }
-
-    /// <summary>
-    /// Deletes the set of graph's nodes and triples whose SID starts with
-    /// the specified GUID. This identifies all the nodes and triples
-    /// generated from a single source item or part.
-    /// </summary>
-    /// <param name="sourceId">The source identifier.</param>
-    /// <exception cref="ArgumentNullException">sourceId</exception>
-    public void DeleteGraphSet(string sourceId)
-    {
-        ArgumentNullException.ThrowIfNull(sourceId);
-
-        using CadmusGraphDbContext context = GetContext();
-
-        // delete all nodes whose SID is not null and starts with sourceId
-        context.Nodes.RemoveRange(context.Nodes.Where(
-            n => n.Sid != null && n.Sid.ToLower().StartsWith(sourceId.ToLower())));
-
-        // delete all triples whose SID is not null and starts with sourceId
-        context.Triples.RemoveRange(context.Triples.Where(
-            t => t.Sid != null && t.Sid.ToLower().StartsWith(sourceId.ToLower())));
-
-        context.SaveChanges();
-    }
-
-    private IList<int> UpdateGraph(string? sourceId, IList<UriNode> nodes,
-        IList<UriTriple> triples, CadmusGraphDbContext context)
-    {
-        // corner case: sourceId = null/empty:
-        // this happens only for nodes generated as the objects of a
-        // generated triple, and in this case we must only ensure that
-        // such nodes exist, without updating them
-        if (string.IsNullOrEmpty(sourceId))
-        {
-            foreach (UriNode node in nodes) AddNode(node, true, false, context);
-            return [.. nodes.Select(n => n.Id)];
-        }
-
-        // get old set
-        GraphSet oldSet = GetGraphSet(sourceId);
-
-        // compare new and old sets
-        CrudGrouper<UriNode> nodeGrouper = new();
-        nodeGrouper.Group(nodes, oldSet.Nodes,
-            (UriNode a, UriNode b) => a.Id == b.Id);
-
-        CrudGrouper<UriTriple> tripleGrouper = new();
-        tripleGrouper.Group(triples, oldSet.Triples,
-            (UriTriple a, UriTriple b) =>
-            {
-                return a.SubjectId == b.SubjectId &&
-                    a.PredicateId == b.PredicateId &&
-                    a.ObjectId == b.ObjectId &&
-                    a.ObjectLiteral?.ToLower() == b.ObjectLiteral?.ToLower() &&
-                    a.Sid?.ToLower() == b.Sid?.ToLower();
-            });
-
-        // filter deleted nodes to ensure that no property/class gets deleted
-        nodeGrouper.FilterDeleted(n =>
-            !n.IsClass &&
-            n.Tag?.ToLower() != Node.TAG_PROPERTY &&
-            triples.All(t => t.SubjectId != n.Id &&
-                             t.PredicateId != n.Id &&
-                             t.ObjectId != n.Id));
-
-        // nodes
-        List<int> nodeIds = new();
-        foreach (UriNode node in nodeGrouper.Deleted)
-        {
-            EfNode? n = context.Nodes.FirstOrDefault(n => n.Id == node.Id);
-            if (n != null) context.Nodes.Remove(n);
-        }
-        foreach (UriNode node in nodeGrouper.Added)
-        {
-            nodeIds.Add(node.Id);
-            if (node.Id == 0) node.Id = AddUri(node.Uri!, context);
-            AddNode(node, true, false, context);
-        }
-        foreach (UriNode node in nodeGrouper.Updated)
-        {
-            nodeIds.Add(node.Id);
-            AddNode(node, node.Sid == null, false, context);
-        }
-
-        // triples
-        foreach (UriTriple triple in tripleGrouper.Deleted)
-        {
-            EfTriple? t = context.Triples.Find(triple.Id);
-            if (t != null)
-            {
-                context.Triples.Remove(t);
-                if (t.ObjectId != null) nodeIds.Add(t.ObjectId.Value);
-            }
-        }
-
-        List<EfTriple> newTriples = new(tripleGrouper.Added.Count);
-        foreach (UriTriple triple in tripleGrouper.Added)
-        {
-            EfTriple? old = FindTripleByValue(triple, context);
-            if (old != null)
-            {
-                newTriples.Add(old);
-            }
-            else
-            {
-                EfTriple newTriple = new(triple);
-                newTriples.Add(newTriple);
-                context.Triples.Add(newTriple);
-            }
-        }
-
-        foreach (UriTriple triple in tripleGrouper.Updated)
-        {
-            int existingId = FindTripleByValue(triple, context)?.Id ?? 0;
-            if (existingId > 0)
-            {
-                triple.Id = existingId;
-            }
-            else
-            {
-                EfTriple? old = context.Triples.Find(triple.Id);
-                if (old != null)
-                {
-                    old.SubjectId = triple.SubjectId;
-                    old.PredicateId = triple.PredicateId;
-                    old.ObjectId = triple.ObjectId;
-                    old.ObjectLiteral = triple.ObjectLiteral;
-                    old.ObjectLiteralIx = triple.ObjectLiteralIx;
-                    old.LiteralType = triple.LiteralType;
-                    old.LiteralLanguage = triple.LiteralLanguage;
-                    old.LiteralNumber = triple.LiteralNumber;
-                    old.Sid = triple.Sid;
-                    old.Tag = triple.Tag;
-                }
-                else
-                {
-                    Debug.WriteLine("Triple to update not found: " + triple);
-                }
-            }
-        }
-
-        context.SaveChanges();
-
-        // update the IDs of added triples
-        for (int i = 0; i < newTriples.Count; i++)
-        {
-            EfTriple newTriple = newTriples[i];
-            tripleGrouper.Added[i].Id = newTriple.Id;
-        }
-
-        return nodeIds;
-    }
-
-    /// <summary>
-    /// Updates the graph with the specified nodes and triples.
-    /// </summary>
-    /// <param name="set">The new set of nodes and triples.</param>
-    /// <exception cref="ArgumentNullException">set</exception>
-    public void UpdateGraph(GraphSet set)
-    {
-        ArgumentNullException.ThrowIfNull(set);
-
-        using CadmusGraphDbContext context = GetContext();
-        using IDbContextTransaction trans = context.Database.BeginTransaction();
-        try
-        {
-            // ensure to save each new node's URI, thus getting its ID
-            foreach (UriNode node in set.Nodes.Where(n => n.Id == 0))
-                node.Id = AddUri(node.Uri!, context);
-
-            // triples
-            foreach (UriTriple triple in set.Triples)
-            {
-                if (triple.SubjectId == 0)
-                {
-                    triple.SubjectId = AddUri(triple.SubjectUri!, context,
-                        out bool newUri);
-                    if (newUri || context.Nodes.Find(triple.SubjectId) == null)
-                    {
-                        // add node implicit in triple
-                        set.Nodes.Add(new UriNode
-                        {
-                            Id = triple.SubjectId,
-                            Uri = triple.SubjectUri,
-                            Label = triple.SubjectUri,
-                            Sid = triple.Sid,
-                            SourceType = Node.SOURCE_IMPLICIT
-                        });
-                    }
-                }
-
-                if (triple.PredicateId == 0)
-                {
-                    triple.PredicateId = AddUri(triple.PredicateUri!, context,
-                        out bool newUri);
-                    if (newUri || context.Nodes.Find(triple.PredicateId) == null)
-                    {
-                        // add node implicit in triple,
-                        // but this shold not happen for predicates
-                        set.Nodes.Add(new UriNode
-                        {
-                            Id = triple.PredicateId,
-                            Uri = triple.PredicateUri,
-                            Label = triple.PredicateUri,
-                            Sid = triple.Sid,
-                            SourceType = Node.SOURCE_IMPLICIT,
-                            Tag = Node.TAG_PROPERTY
-                        });
-                    }
-                }
-
-                if ((triple.ObjectId == null || triple.ObjectId == 0) &&
-                    !string.IsNullOrEmpty(triple.ObjectUri))
-                {
-                    triple.ObjectId = AddUri(triple.ObjectUri, context,
-                        out bool newUri);
-                    if (newUri || context.Nodes.Find(triple.ObjectId) == null)
-                    {
-                        // add node implicit in triple
-                        set.Nodes.Add(new UriNode
-                        {
-                            Id = triple.ObjectId.Value,
-                            Uri = triple.ObjectUri,
-                            Label = triple.ObjectUri,
-                            Sid = triple.Sid,
-                            SourceType = Node.SOURCE_IMPLICIT
-                        });
-                    }
-                }
-            } // triples
-
-            // get nodes and triples grouped by their SID's GUID
-            var nodeGroups = set.GetNodesByGuid();
-            var tripleGroups = set.GetTriplesByGuid();
-
-            // order by key so that empty (=null SID) keys come before
-            HashSet<int> nodeIds = new();
-            foreach (string key in nodeGroups.Keys.OrderBy(s => s))
-            {
-                var ids = UpdateGraph(key,
-                    nodeGroups[key],
-                    tripleGroups.ContainsKey(key)
-                        ? tripleGroups[key]
-                        : Array.Empty<UriTriple>(), context);
-
-                foreach (int id in ids) nodeIds.Add(id);
-            }
-            trans.Commit();
-
-            // node classes
-            Debug.WriteLine("Updating node classes");
-            (int aId, int subId) = GetASubIds(context);
-            foreach (int nodeId in nodeIds)
-            {
-                UpdateNodeClasses(nodeId, aId, subId, context);
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine("UpdateGraph: " + ex.ToString());
-            trans.Rollback();
-            throw;
         }
     }
     #endregion

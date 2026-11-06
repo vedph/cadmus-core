@@ -1,19 +1,23 @@
-﻿using Cadmus.Graph.Ef.PgSql;
+using Cadmus.Graph.Ef.PgSql;
 using Cadmus.Index.Config;
 using Fusi.Microsoft.Extensions.Configuration.InMemoryJson;
 using Microsoft.Extensions.Hosting;
 using System;
+using System.Collections.Concurrent;
 
 namespace Cadmus.Api.Services;
 
 /// <summary>
-/// Standard item graph factory provider.
+/// Standard item graph factory provider. Factories are cached per profile,
+/// as building them requires building a DI host.
 /// </summary>
 /// <seealso cref="IItemGraphFactoryProvider" />
 public sealed class StandardItemGraphFactoryProvider
     : IItemGraphFactoryProvider
 {
     private readonly string _connectionString;
+    private readonly ConcurrentDictionary<string, Lazy<ItemGraphFactory>>
+        _factories = new();
 
     /// <summary>
     /// Initializes a new instance of the
@@ -51,6 +55,7 @@ public sealed class StandardItemGraphFactoryProvider
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        return new ItemGraphFactory(GetHost(profile), _connectionString);
+        return _factories.GetOrAdd(profile, p => new Lazy<ItemGraphFactory>(
+            () => new ItemGraphFactory(GetHost(p), _connectionString))).Value;
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 
 namespace Cadmus.Graph;
 
@@ -37,6 +37,6 @@ public class UidEntry
     public override string ToString()
     {
         return Unsuffixed + (HasSuffix
-            ? Id.ToString(CultureInfo.InvariantCulture) : "");
+            ? "#" + Id.ToString(CultureInfo.InvariantCulture) : "");
     }
 }

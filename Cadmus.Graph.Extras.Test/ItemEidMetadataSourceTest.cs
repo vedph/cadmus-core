@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Cadmus.Core;
 using Cadmus.General.Parts;
-using Cadmus.Graph.Adapters;
+using Cadmus.Export.Mapping;
 using Xunit;
 
 namespace Cadmus.Graph.Extras.Test;
@@ -24,7 +24,7 @@ public sealed class ItemEidMetadataSourceTest
     {
         ItemEidMetadataSource source = new();
         Item item = new();
-        GraphSource graphSource = new(item);
+        MapperSource graphSource = new(item);
         MockCadmusRepository repository = new();
 
         Assert.Throws<ArgumentNullException>(
@@ -36,7 +36,7 @@ public sealed class ItemEidMetadataSourceTest
     {
         ItemEidMetadataSource source = new();
         Item item = new();
-        GraphSource graphSource = new(item);
+        MapperSource graphSource = new(item);
 
         Assert.Throws<ArgumentNullException>(() => source.Supply(
             graphSource, new Dictionary<string, object>(), null));
@@ -49,7 +49,7 @@ public sealed class ItemEidMetadataSourceTest
         Item item = new();
         MetadataPart part = new() { ItemId = item.Id };
         part.Metadata.Add(new Metadatum { Name = "eid", Value = "alpha" });
-        GraphSource graphSource = new(item, part);
+        MapperSource graphSource = new(item, part);
         MockCadmusRepository repository = new();
         Dictionary<string, object> metadata = [];
 
@@ -66,7 +66,7 @@ public sealed class ItemEidMetadataSourceTest
         Item item = new();
         MetadataPart part = new() { ItemId = item.Id };
         part.Metadata.Add(new Metadatum { Name = "other", Value = "x" });
-        GraphSource graphSource = new(item, part);
+        MapperSource graphSource = new(item, part);
         MockCadmusRepository repository = new();
         Dictionary<string, object> metadata = [];
 
@@ -83,7 +83,7 @@ public sealed class ItemEidMetadataSourceTest
         Item item = new();
         // some other part type as the mapping's direct source
         NotePart otherPart = new() { ItemId = item.Id };
-        GraphSource graphSource = new(item, otherPart);
+        MapperSource graphSource = new(item, otherPart);
 
         MetadataPart fetchedPart = new() { ItemId = item.Id };
         fetchedPart.Metadata.Add(new Metadatum
@@ -109,7 +109,7 @@ public sealed class ItemEidMetadataSourceTest
     {
         ItemEidMetadataSource source = new();
         Item item = new();
-        GraphSource graphSource = new(item);
+        MapperSource graphSource = new(item);
         MockCadmusRepository repository = new(); // ItemParts empty
         Dictionary<string, object> metadata = [];
 
@@ -131,7 +131,7 @@ public sealed class ItemEidMetadataSourceTest
         Item item = new();
         MetadataPart part = new() { ItemId = item.Id };
         part.Metadata.Add(new Metadatum { Name = "eid", Value = "gamma" });
-        GraphSource graphSource = new(item, part);
+        MapperSource graphSource = new(item, part);
         supplier.SetCadmusRepository(new MockCadmusRepository());
         Dictionary<string, object> metadata = [];
 

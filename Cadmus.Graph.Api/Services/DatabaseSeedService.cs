@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Polly;
 using System;
 using System.Data.Common;
@@ -66,7 +66,11 @@ public sealed class DatabaseSeedService : IHostedService
         PgSqlDbManager dbManager = new(cst);
         if (dbManager.Exists(db))
         {
-            logger?.LogInformation("Database {DatabaseName} exists", db);
+            // upgrade the schema of databases created by older versions
+            logger?.LogInformation("Database {DatabaseName} exists: " +
+                "updating schema", db);
+            PgSqlGraphSchema.ApplyAsync(string.Format(cst, db))
+                .GetAwaiter().GetResult();
             return;
         }
 

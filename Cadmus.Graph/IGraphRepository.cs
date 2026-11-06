@@ -46,7 +46,8 @@ public interface IGraphRepository : IUidBuilder, IMappingRepository
     string? LookupNamespace(string prefix);
 
     /// <summary>
-    /// Adds or updates the specified namespace prefix.
+    /// Adds or updates the specified namespace prefix. If the prefix
+    /// already exists, its URI is replaced.
     /// </summary>
     /// <param name="prefix">The namespace prefix.</param>
     /// <param name="uri">The namespace URI corresponding to
@@ -192,6 +193,21 @@ public interface IGraphRepository : IUidBuilder, IMappingRepository
     IList<GraphNodeMapping> FindMappings(RunNodeMappingFilter filter);
 
     /// <summary>
+    /// Finds all the root mappings applicable to the specified source,
+    /// with all their descendants.
+    /// The default implementation wraps <see cref="FindMappings"/>.
+    /// </summary>
+    /// <param name="filter">The filter to match.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    /// <returns>List of mappings.</returns>
+    Task<IList<GraphNodeMapping>> FindMappingsAsync(RunNodeMappingFilter filter,
+        CancellationToken cancel = default)
+    {
+        cancel.ThrowIfCancellationRequested();
+        return Task.FromResult(FindMappings(filter));
+    }
+
+    /// <summary>
     /// Gets the specified page of triples.
     /// </summary>
     /// <param name="filter">The filter.</param>
@@ -265,16 +281,72 @@ public interface IGraphRepository : IUidBuilder, IMappingRepository
     GraphSet GetGraphSet(string sourceId);
 
     /// <summary>
+    /// Gets the set of graph's nodes and triples whose SID starts with
+    /// the specified GUID.
+    /// The default implementation wraps <see cref="GetGraphSet"/>.
+    /// </summary>
+    /// <param name="sourceId">The source identifier.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    /// <returns>The set.</returns>
+    Task<GraphSet> GetGraphSetAsync(string sourceId,
+        CancellationToken cancel = default)
+    {
+        cancel.ThrowIfCancellationRequested();
+        return Task.FromResult(GetGraphSet(sourceId));
+    }
+
+    /// <summary>
     /// Deletes the set of graph's nodes and triples whose SID starts with
     /// the specified GUID. This identifies all the nodes and triples
-    /// generated from a single source item or part.
+    /// generated from a single source item or part, and is used when
+    /// that source gets deleted. All the triples generated from the source
+    /// are deleted; its nodes are deleted unless they are classes or
+    /// properties, or they are still used by other triples (e.g. created
+    /// by users or generated from other sources). In this case they are
+    /// kept, and handed over to the source of one of these triples as
+    /// implicit nodes.
     /// </summary>
     /// <param name="sourceId">The source identifier.</param>
     void DeleteGraphSet(string sourceId);
 
     /// <summary>
-    /// Updates the graph with the specified nodes and triples.
+    /// Deletes the set of graph's nodes and triples whose SID starts with
+    /// the specified GUID (see <see cref="DeleteGraphSet"/>).
+    /// The default implementation wraps <see cref="DeleteGraphSet"/>.
+    /// </summary>
+    /// <param name="sourceId">The source identifier.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    Task DeleteGraphSetAsync(string sourceId,
+        CancellationToken cancel = default)
+    {
+        cancel.ThrowIfCancellationRequested();
+        DeleteGraphSet(sourceId);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Updates the graph with the specified nodes and triples. For each
+    /// source represented in the set (see <see cref="GraphSet.SourceIds"/>),
+    /// the set replaces whatever was previously generated from it: new
+    /// nodes and triples are added, changed ones updated, and those no
+    /// longer generated are removed (with the same rules of
+    /// <see cref="DeleteGraphSet"/> for nodes). Nodes and triples created
+    /// by users are never touched.
     /// </summary>
     /// <param name="set">The new set of nodes and triples.</param>
     void UpdateGraph(GraphSet set);
+
+    /// <summary>
+    /// Updates the graph with the specified nodes and triples (see
+    /// <see cref="UpdateGraph"/>).
+    /// The default implementation wraps <see cref="UpdateGraph"/>.
+    /// </summary>
+    /// <param name="set">The new set of nodes and triples.</param>
+    /// <param name="cancel">The cancellation token.</param>
+    Task UpdateGraphAsync(GraphSet set, CancellationToken cancel = default)
+    {
+        cancel.ThrowIfCancellationRequested();
+        UpdateGraph(set);
+        return Task.CompletedTask;
+    }
 }

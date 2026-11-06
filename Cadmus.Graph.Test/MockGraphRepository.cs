@@ -65,7 +65,7 @@ internal class MockGraphRepository : RamMappingRepository, IGraphRepository
 
     public void DeleteGraphSet(string sourceId)
     {
-        throw new NotImplementedException();
+        DeletedSourceIds.Add(sourceId);
     }
 
     public void DeleteNamespaceByPrefix(string prefix)
@@ -93,57 +93,26 @@ internal class MockGraphRepository : RamMappingRepository, IGraphRepository
         throw new NotImplementedException();
     }
 
+    // same semantics of the database repositories: each filter defined
+    // in the mapping must be satisfied by the source
     private static IQueryable<GraphNodeMapping> ApplyNodeMappingFilter(
         RunNodeMappingFilter filter, IQueryable<GraphNodeMapping> mappings)
     {
         // (in our RAM list all the mappings are top-level, so no parent ID
         // filtering is required)
-
-        // source type is always present
-        mappings = mappings.Where(m => m.SourceType == filter.SourceType);
-
-        if (!string.IsNullOrEmpty(filter.Facet))
-        {
-            mappings = mappings.Where(m => m.FacetFilter == null
-                || m.FacetFilter == filter.Facet);
-        }
-
-        if (!string.IsNullOrEmpty(filter.Group))
-        {
-            mappings = mappings.Where(m =>
-                m.GroupFilter == null ||
-                Regex.IsMatch(filter.Group, m.GroupFilter ?? ""));
-        }
-
-        if (filter.Flags.HasValue)
-        {
-            mappings = mappings.Where(m =>
-                m.FlagsFilter == null ||
-                (m.FlagsFilter & filter.Flags.Value) == filter.Flags.Value);
-        }
-
-        if (!string.IsNullOrEmpty(filter.Title))
-        {
-            mappings = mappings.Where(m =>
-                m.TitleFilter == null ||
-                Regex.IsMatch(filter.Title, m.TitleFilter ?? ""));
-        }
-
-        if (!string.IsNullOrEmpty(filter.PartType))
-        {
-            mappings = mappings.Where(m =>
-                m.PartTypeFilter == null ||
-                m.PartTypeFilter == filter.PartType);
-        }
-
-        if (!string.IsNullOrEmpty(filter.PartRole))
-        {
-            mappings = mappings.Where(m =>
-                m.PartRoleFilter == null ||
-                m.PartRoleFilter == filter.PartRole);
-        }
-
-        return mappings;
+        return mappings.Where(m => m.SourceType == filter.SourceType &&
+            (string.IsNullOrEmpty(m.FacetFilter) ||
+             m.FacetFilter == filter.Facet) &&
+            (string.IsNullOrEmpty(m.GroupFilter) ||
+             Regex.IsMatch(filter.Group ?? "", m.GroupFilter)) &&
+            (m.FlagsFilter == null ||
+             ((filter.Flags ?? 0) & m.FlagsFilter.Value) == m.FlagsFilter.Value) &&
+            (string.IsNullOrEmpty(m.TitleFilter) ||
+             Regex.IsMatch(filter.Title ?? "", m.TitleFilter)) &&
+            (string.IsNullOrEmpty(m.PartTypeFilter) ||
+             m.PartTypeFilter == filter.PartType) &&
+            (string.IsNullOrEmpty(m.PartRoleFilter) ||
+             m.PartRoleFilter == filter.PartRole));
     }
 
     public IList<GraphNodeMapping> FindMappings(RunNodeMappingFilter filter)
@@ -154,7 +123,9 @@ internal class MockGraphRepository : RamMappingRepository, IGraphRepository
 
     public GraphSet GetGraphSet(string sourceId)
     {
-        throw new NotImplementedException();
+        GraphSet set = new();
+        set.SourceIds.Add(sourceId);
+        return set;
     }
 
     public DataPage<UriTriple> GetLinkedLiterals(LinkedLiteralFilter filter)
@@ -248,9 +219,19 @@ internal class MockGraphRepository : RamMappingRepository, IGraphRepository
         throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// The sets received by <see cref="UpdateGraph"/>.
+    /// </summary>
+    public List<GraphSet> UpdatedSets { get; } = [];
+
+    /// <summary>
+    /// The source IDs received by <see cref="DeleteGraphSet"/>.
+    /// </summary>
+    public List<string> DeletedSourceIds { get; } = [];
+
     public void UpdateGraph(GraphSet set)
     {
-        // nope
+        UpdatedSets.Add(set);
     }
 
     public Task UpdateNodeClassesAsync(CancellationToken cancel,
