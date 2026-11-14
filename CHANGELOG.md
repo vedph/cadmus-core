@@ -1,5 +1,12 @@
 # History
 
+## 18.0.0
+
+- 2026-11-14:
+  - ⚠️ upgraded to .NET 11.
+  - added to `Cadmus.Import.Excel` generic Proteus entry region parsers for importing items from Excel rows and columns (`it.vedph.entry-region-parser.xlsx.*`: `row-item`, `col-metadata`, `col-categories`, `col-flags`, `col-note`, `col-periods`, `col-internal-link`, `col-ext-link`, `col-link-attr`, `col-taxo-link`, `col-parent-item-id`, `col-keywords`, `col-measures`), with `ImportHelper` and `DateBinsConverter`. These were extracted from Cadmus TES and are now shared by TES and VPI.
+  - 🐛 `col-measures`: configured `names` and `separators` were appended to their defaults by configuration binding, so that the count of values never matched. Options now have no default collections, and defaults are applied when parsing. Added a test binding options from JSON to prevent this for all the options.
+
 ## 17.2.0
 
 - 2026-11-06: ⚠️ revised the MongoDB storage (`Cadmus.Mongo`), fixing several bugs, adding an asynchronous API, and optimizing queries. The API is backwards compatible: new interface members have default implementations.

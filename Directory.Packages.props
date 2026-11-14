@@ -4,64 +4,64 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Unified version for all packages -->
-    <PackageVersion Include="Cadmus.Api.Config" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Api.Controllers.Export" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Api.Controllers.Import" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Api.Controllers" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Api.Models" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Api.Services" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Api" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Bricks.Api" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Core" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Cli.Core" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Core.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Export" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Export.ML" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Export.ML.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Export.Rdf" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Export.Rdf.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Export.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.General.Parts" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.General.Parts.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Graph" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Graph.Api" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Graph.Ef" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Graph.Ef.PgSql" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Graph.Ef.PgSql.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Graph.Ef.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Graph.Extras" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Graph.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Import" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Import.Excel" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Import.Excel.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Import.Proteus" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Import.Proteus.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Import.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Index" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Index.Ef.PgSql" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Index.Ef.PgSql.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Index.PgSql" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Index.PgSql.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Index.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Mat.Bricks" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Mongo" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Mongo.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Philology.Parts" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Philology.Parts.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Philology.Tools" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Philology.Tools.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Refs.Bricks" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Seed" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Seed.General.Parts" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Seed.General.Parts.Test" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Seed.Test" Version="17.2.0" />
-    <PackageVersion Include="cadmus-mig" Version="17.2.0" />
-    <PackageVersion Include="cadmus-tool" Version="17.2.0" />
-    <PackageVersion Include="CadmusPreviewBuilder" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Seed.Philology.Parts" Version="17.2.0" />
-    <PackageVersion Include="Cadmus.Seed.Philology.Parts.Test" Version="17.2.0" />
-    <PackageVersion Include="Proteus.Rendering" Version="17.2.0" />
-    <PackageVersion Include="Proteus.Rendering.Test" Version="17.2.0" />
+    <PackageVersion Include="Cadmus.Api.Config" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Api.Controllers.Export" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Api.Controllers.Import" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Api.Controllers" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Api.Models" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Api.Services" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Api" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Bricks.Api" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Core" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Cli.Core" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Core.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Export" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Export.ML" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Export.ML.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Export.Rdf" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Export.Rdf.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Export.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.General.Parts" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.General.Parts.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Graph" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Graph.Api" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Graph.Ef" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Graph.Ef.PgSql" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Graph.Ef.PgSql.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Graph.Ef.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Graph.Extras" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Graph.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Import" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Import.Excel" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Import.Excel.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Import.Proteus" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Import.Proteus.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Import.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Index" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Index.Ef.PgSql" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Index.Ef.PgSql.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Index.PgSql" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Index.PgSql.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Index.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Mat.Bricks" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Mongo" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Mongo.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Philology.Parts" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Philology.Parts.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Philology.Tools" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Philology.Tools.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Refs.Bricks" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Seed" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Seed.General.Parts" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Seed.General.Parts.Test" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Seed.Test" Version="18.0.0" />
+    <PackageVersion Include="cadmus-mig" Version="18.0.0" />
+    <PackageVersion Include="cadmus-tool" Version="18.0.0" />
+    <PackageVersion Include="CadmusPreviewBuilder" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Seed.Philology.Parts" Version="18.0.0" />
+    <PackageVersion Include="Cadmus.Seed.Philology.Parts.Test" Version="18.0.0" />
+    <PackageVersion Include="Proteus.Rendering" Version="18.0.0" />
+    <PackageVersion Include="Proteus.Rendering.Test" Version="18.0.0" />
     <!-- External dependencies for all packages -->
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="Cadmus.Codicology.Parts" Version="9.0.8" />
@@ -72,63 +72,63 @@
     <PackageVersion Include="Cadmus.TaxoStore.Parts" Version="2.0.2" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="CsvHelper" Version="34.0.0" />
-    <PackageVersion Include="DiffMatchPatch" Version="5.0.0" />
+    <PackageVersion Include="DiffMatchPatch" Version="6.0.0" />
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
     <PackageVersion Include="Fluid.Core" Version="2.41.1" />
-    <PackageVersion Include="Fusi.Antiquity" Version="6.0.1" />
+    <PackageVersion Include="Fusi.Antiquity" Version="7.0.1" />
     <PackageVersion Include="Fusi.Api.Auth.Controllers" Version="7.1.0" />
     <PackageVersion Include="Fusi.Api.Auth.Models" Version="7.1.0" />
-    <PackageVersion Include="Fusi.DbManager" Version="6.1.0" />
-    <PackageVersion Include="Fusi.DbManager.PgSql" Version="6.1.0" />
+    <PackageVersion Include="Fusi.DbManager" Version="7.0.0" />
+    <PackageVersion Include="Fusi.DbManager.PgSql" Version="7.0.0" />
     <PackageVersion Include="Fusi.Cli.Auth" Version="7.1.0" />
-    <PackageVersion Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" Version="5.0.0" />
-    <PackageVersion Include="Fusi.Text" Version="7.0.6" />
-    <PackageVersion Include="Fusi.Tools" Version="9.0.2" />
-    <PackageVersion Include="Fusi.Tools.Configuration" Version="9.0.2" />
-    <PackageVersion Include="Fusi.Xml" Version="7.0.3" />
-    <PackageVersion Include="Fusi.Xml.Extras" Version="7.0.3" />
+    <PackageVersion Include="Fusi.Microsoft.Extensions.Configuration.InMemoryJson" Version="6.0.0" />
+    <PackageVersion Include="Fusi.Text" Version="8.0.0" />
+    <PackageVersion Include="Fusi.Tools" Version="10.0.0" />
+    <PackageVersion Include="Fusi.Tools.Configuration" Version="10.0.0" />
+    <PackageVersion Include="Fusi.Xml" Version="8.0.0" />
+    <PackageVersion Include="Fusi.Xml.Extras" Version="8.0.0" />
     <PackageVersion Include="JmesPath.Net" Version="1.1.0" />
     <PackageVersion Include="Markdig" Version="1.6.0" />
     <PackageVersion Include="McMaster.NETCore.Plugins" Version="2.0.0" />
-    <PackageVersion Include="MessagingApi" Version="6.0.0" />
-    <PackageVersion Include="MessagingApi.SendGrid" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="10.0.14" />
+    <PackageVersion Include="MessagingApi" Version="7.1.0" />
+    <PackageVersion Include="MessagingApi.SendGrid" Version="7.1.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="11.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.13" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.14" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="11.0.0" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.14" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Abstractions" Version="10.0.14" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.FileProviders.Physical" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.FileExtensions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.FileProviders.Physical" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="11.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="10.0.403" />
+    <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="11.0.100" />
     <PackageVersion Include="Mol.Api.Controllers" Version="0.0.8" />
     <PackageVersion Include="Mol.PgSql" Version="0.0.8" />
-    <PackageVersion Include="MongoDB.Bson" Version="3.13.0" />
-    <PackageVersion Include="MongoDB.Driver" Version="3.13.0" />
+    <PackageVersion Include="MongoDB.Bson" Version="3.14.0" />
+    <PackageVersion Include="MongoDB.Driver" Version="3.14.0" />
     <PackageVersion Include="Mufi.Api.Controllers" Version="2.0.2" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="NPOI" Version="2.8.1" />
-    <PackageVersion Include="Polly" Version="8.9.0" />
-    <PackageVersion Include="Proteus.Core" Version="14.0.4" />
-    <PackageVersion Include="Proteus.Entries" Version="14.0.4" />
-    <PackageVersion Include="Proteus.Text.Xml" Version="14.0.4" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.19.0" />
+    <PackageVersion Include="Polly" Version="8.9.1" />
+    <PackageVersion Include="Proteus.Core" Version="15.0.0" />
+    <PackageVersion Include="Proteus.Entries" Version="15.0.0" />
+    <PackageVersion Include="Proteus.Text.Xml" Version="15.0.0" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.21.0" />
     <PackageVersion Include="Serilog" Version="4.4.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Exceptions" Version="8.4.0" />
@@ -144,6 +144,6 @@
     <PackageVersion Include="TaxoStore.Cli.Core" Version="2.0.2" />
     <PackageVersion Include="TaxoStore.Core" Version="2.0.2" />
     <PackageVersion Include="TaxoStore.PgSql" Version="2.0.2" />
-    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3" Version="4.0.3" />
   </ItemGroup>
 </Project>

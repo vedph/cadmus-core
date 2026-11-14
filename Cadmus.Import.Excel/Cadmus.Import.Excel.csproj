@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
+		<TargetFramework>net11.0</TargetFramework>
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<IncludeSymbols>true</IncludeSymbols>
@@ -9,7 +9,7 @@
 		<Authors>Daniele Fusi</Authors>
 		<Company>Fusi</Company>
 		<Product>Cadmus</Product>
-		<Description>Cadmus import Excel components.</Description>
+		<Description>Cadmus import Excel components, including generic Proteus entry region parsers for Excel rows and columns.</Description>
 		<Copyright>by Daniele Fusi 2023</Copyright>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
@@ -31,9 +31,11 @@
 
 	<ItemGroup Condition="'$(Configuration)'=='Debug'">
 		<ProjectReference Include="..\Cadmus.Import\Cadmus.Import.csproj" />
+		<ProjectReference Include="..\Cadmus.Import.Proteus\Cadmus.Import.Proteus.csproj" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)'=='Release'">
 		<PackageReference Include="Cadmus.Import" />
+		<PackageReference Include="Cadmus.Import.Proteus" />
 	</ItemGroup>
 
 </Project>

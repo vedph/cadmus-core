@@ -41,6 +41,7 @@ $projectOrder = @(
     "Cadmus.Graph.Ef.PgSql\Cadmus.Graph.Ef.PgSql.csproj",
     "Cadmus.Graph.Extras\Cadmus.Graph.Extras.csproj",
     "Cadmus.Import\Cadmus.Import.csproj",
+    "Cadmus.Import.Proteus\Cadmus.Import.Proteus.csproj",
     "Cadmus.Import.Excel\Cadmus.Import.Excel.csproj",
     "Cadmus.Index\Cadmus.Index.csproj",
     "Cadmus.Index.PgSql\Cadmus.Index.PgSql.csproj",
@@ -52,8 +53,7 @@ $projectOrder = @(
     "Cadmus.Api.Controllers.Export\Cadmus.Api.Controllers.Export.csproj",
     "Cadmus.Api.Models\Cadmus.Api.Models.csproj",
     "Cadmus.Api.Controllers.Import\Cadmus.Api.Controllers.Import.csproj",
-    "Cadmus.Api.Controllers\Cadmus.Api.Controllers.csproj",
-    "Cadmus.Import.Proteus\Cadmus.Import.Proteus.csproj"
+    "Cadmus.Api.Controllers\Cadmus.Api.Controllers.csproj"
 )
 
 if ($Pack) {

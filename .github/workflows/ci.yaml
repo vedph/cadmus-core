@@ -44,7 +44,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
 
       - name: Use only nuget.org for restore
         shell: bash
@@ -66,7 +66,7 @@ jobs:
           release_name="$tag-${{ matrix.target }}"
 
           # Build everything
-          dotnet publish ./cadmus-tool/cadmus-tool.csproj --framework net10.0 --self-contained --runtime "${{ matrix.target }}" -c Release -o "$release_name"
+          dotnet publish ./cadmus-tool/cadmus-tool.csproj --framework net11.0 --self-contained --runtime "${{ matrix.target }}" -c Release -o "$release_name"
 
           # Make executable
           if [ "${{ matrix.target }}" != "win-x64" ] && [ "${{ matrix.target }}" != "win-arm64" ]; then
